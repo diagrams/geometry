@@ -72,7 +72,6 @@ import           Data.Semigroup
 import           Data.Typeable
 import Data.Functor.Classes
 
-import           Geometry.Align
 import           Geometry.Space
 import           Geometry.Envelope
 import           Geometry.Juxtapose
@@ -157,9 +156,6 @@ instance (Metric v, OrderedField n) => Enveloped (Path v n) where
 
 instance (Metric v, OrderedField n) => Juxtaposable (Path v n) where
   juxtapose = juxtaposeDefault
-
-instance (Metric v, OrderedField n) => Alignable (Path v n) where
-  defaultBoundary = envelopeBoundary
 
 ------------------------------------------------------------
 --  Constructing paths  ------------------------------------

@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE ViewPatterns          #-}
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE TemplateHaskell       #-}
@@ -24,21 +26,37 @@ module Geometry.Combinators
     -- * n-ary operations
   , appends
   , position, atPoints
-  , cat , cat'
-  , CatOpts(_catMethod, _sep), catMethod, sep
-  , CatMethod(..)
+  , cat
+  , sep
+  , sepEven
   -- , composeAligned
+
+   -- * Alignment
+  , align
+  , alignBy
+  , alignBy'
+
+   -- * Snugging
+  , snug
+  , snugBy
+
+   -- * Centering
+  , center
+  , centerV
+  , snugCenter
+  , snugCenterV
 
   ) where
 
-import           Control.Lens              hiding (beside, ( # ))
-import           Data.Default.Class
 import           Data.Monoid.WithSemigroup
-import           Data.Proxy
+import           Data.Maybe (fromMaybe)
 import           Data.Semigroup
+import           Data.Foldable (foldl')
 
 import           Geometry.Direction
 import           Geometry.Juxtapose
+import           Geometry.Trace
+import           Geometry.Envelope
 import           Geometry.Space
 import           Geometry.Transform
 
@@ -133,65 +151,13 @@ appends d1 apps = d1 <> mconcat (map (\(v,d) -> juxtapose v d1 d) apps)
 --   >   where spot      = circle 0.2 # fc black
 --   >         mkPoint :: Double -> P2 Double
 --   >         mkPoint x = p2 (x,x*x)
-position :: (InSpace v n a, HasOrigin a, Monoid' a) => [(Point v n, a)] -> a
+position :: (InSpace v n a, HasOrigin a, Monoid a) => [(Point v n, a)] -> a
 position = mconcat . map (uncurry moveTo)
 
 -- | Curried version of @position@, takes a list of points and a list of
 --   objects.
 atPoints :: (InSpace v n a, HasOrigin a, Monoid' a) => [Point v n] -> [a] -> a
 atPoints ps as = position $ zip ps as
-
--- | Methods for concatenating diagrams.
-data CatMethod
-  = Cat
-  -- ^ Normal catenation: simply put diagrams next to one another
-  -- (possibly with a certain distance in between each). The distance
-  -- between successive diagram /envelopes/ will be consistent; the
-  -- distance between /origins/ may vary if the diagrams are of
-  -- different sizes.
-  | Distrib
-  -- ^ Distribution: place the local origins of diagrams at regular
-  -- intervals.  With this method, the distance between successive
-  -- /origins/ will be consistent but the distance between envelopes may
-  -- not be.  Indeed, depending on the amount of separation, diagrams
-  -- may overlap.
-
--- | Options for 'cat''.
-data CatOpts n = CatOpts
-  { _catMethod    :: CatMethod
-  , _sep          :: n
-  , catOptsvProxy :: Proxy n
-  }
-
--- The reason the proxy field is necessary is that without it,
--- altering the sep field could theoretically change the type of a
--- CatOpts record.  This causes problems when using record update, as
--- in @with { _sep = 10 }@, because knowing the type of the whole
--- expression does not tell us anything about the type of @with@, and
--- therefore the @Num (Scalar v)@ constraint cannot be satisfied.
--- Adding the Proxy field constrains the type of @with@ in @with {_sep
--- = 10}@ to be the same as the type of the whole expression.  Note
--- this is not a problem when using the 'sep' lens, as its type is
--- more restricted.
-
-makeLensesWith (lensRules & generateSignatures .~ False) ''CatOpts
-
--- | Which 'CatMethod' should be used:
---   normal catenation (default), or distribution?
-catMethod :: Lens' (CatOpts n) CatMethod
-
--- | How much separation should be used between successive diagrams
---   (default: 0)?  When @catMethod = Cat@, this is the distance between
---   /envelopes/; when @catMethod = Distrib@, this is the distance
---   between /origins/.
-sep :: Lens' (CatOpts n) n
-
-instance Num n => Default (CatOpts n) where
-  def = CatOpts
-    { _catMethod    = Cat
-    , _sep          = 0
-    , catOptsvProxy = Proxy
-    }
 
 -- | @cat v@ positions a list of objects so that their local origins
 --   lie along a line in the direction of @v@.  Successive objects
@@ -201,63 +167,126 @@ instance Num n => Default (CatOpts n) where
 --
 --   See also 'cat'', which takes an extra options record allowing
 --   certain aspects of the operation to be tweaked.
-cat :: (InSpace v n a, Metric v, Floating n, Juxtaposable a, Monoid' a, HasOrigin a)
-       => v n -> [a] -> a
-cat v = cat' v def
+cat
+  :: (InSpace v n a, Enveloped a, Monoid a, HasOrigin a)
+  => v n -> [a] -> a
+cat v = sep v 0
 
--- | Like 'cat', but taking an extra 'CatOpts' arguments allowing the
---   user to specify
---
---   * The spacing method: catenation (uniform spacing between
---     envelopes) or distribution (uniform spacing between local
---     origins).  The default is catenation.
---
---   * The amount of separation between successive diagram
---     envelopes/origins (depending on the spacing method).  The
---     default is 0.
---
---   'CatOpts' is an instance of 'Default', so 'with' may be used for
---   the second argument, as in @cat' (1,2) (with & sep .~ 2)@.
---
---   Note that @cat' v (with & catMethod .~ Distrib) === mconcat@
---   (distributing with a separation of 0 is the same as
---   superimposing).
--- cat' :: (InSpace v n a, Metric v, Floating n, Juxtaposable a, Monoid' a, HasOrigin a)
---      => v n -> CatOpts n -> [a] -> a
--- cat' :: (InSpace v n t, Juxtaposable t, HasOrigin t, Monoid' t, Metric v, Floating n)
---      => Direction v n -> CatOpts n -> [t] -> t
--- cat' _ _ []                          = []
--- cat' _ _ [t]                         = [t]
--- cat' v (CatOpts method s) tss@(_:ts) =
---   case method of
---     Cat     ->
---       let sv      = -s ^* signorm v
---           f d1 d2 = d1 <> (juxtapose v d1 d2 & moveOriginBy sv)
---       in  zipWith f tss ts
---     Distrib -> distribV (s *^ getDir d)
+sep
+  :: (InSpace v n t, Monoid t, Enveloped t, HasOrigin t)
+  => v n -> n -> [t] -> t
+sep _              _ []      = mempty
+sep (signorm -> v) s (t0:ts) = snd $ foldl' f (n0, t0) ts
+  where
+    -- If we come across an empty envelope treat it as a point on the
+    -- origin (this isn't ideal but what else can we do? Maybe don't
+    -- even move it at all?)
+    extent' = fromMaybe (0,0) . extent v
+    n0 = snd $ extent' t0
+    f (!n, tAcc) t = (n + s - nMin + nMax, tAcc')
+      where
+        (nMin, nMax) = extent' t
+        nStart = n + s - nMin
+        tAcc' = tAcc `mappend` moveOriginTo (P $ negate nStart *^ v) t
 
-cat' v (CatOpts { _catMethod = Cat, _sep = s }) = foldB comb mempty
-  where comb d1 d2 = d1 <> (juxtapose v d1 d2 & moveOriginBy vs)
-        vs = s *^ signorm (negated v)
-cat' v (CatOpts { _catMethod = Distrib, _sep = s }) =
-  position . zip (iterate (.+^ (s *^ signorm v)) origin)
+-- | Evenly separate items along the vector @v@ at distance @s@,
+--   starting at the 'origin'.
+--
+--   >>> sepEven unitX $ map regPoly [3..7]
+--
+sepEven
+  :: (InSpace v n t, Metric v, Floating n, Monoid t, HasOrigin t)
+  => v n -> n -> [t] -> t
+sepEven (signorm -> v) s =
+  position . zip (iterate (.+^ s *^ v) origin)
 
--- | Given an associative binary operation and a default value to use
---   in the case of an empty list, perform a /balanced/ fold over a
---   list.  For example,
---
---   @
---   foldB (+) z [a,b,c,d,e,f] == ((a+b) + (c+d)) + (e+f)
---   @
---
-foldB :: (a -> a -> a) -> a -> [a] -> a
-foldB _ z [] = z
-foldB f _ as = foldB' as
-  where foldB' [x] = x
-        foldB' xs  = foldB' (go xs)
-        go []         = []
-        go [x]        = [x]
-        go (x1:x2:xs) = f x1 x2 : go xs
+------------------------------------------------------------------------
+-- Aligning
+------------------------------------------------------------------------
+
+-- | @alignBy v d a@ moves the origin of @a@ along the vector @v@. If @d
+--   = 1@, the origin is moved to the edge of the boundary in the
+--   direction of @v@; if @d = -1@, it moves to the edge of the boundary
+--   in the direction of the negation of @v@.  Other values of @d@
+--   interpolate linearly (so for example, @d = 0@ centers the origin
+--   along the direction of @v@).
+alignBy'
+  :: (InSpace v n t, Fractional n, HasOrigin t)
+  => (v n -> t -> Maybe (n, n)) -> v n -> n -> t -> t
+alignBy' f v d t = fromMaybe t $ do
+  (a,b) <- f v t
+  Just $ moveOriginTo (P $ lerp' ((d + 1) / 2) b a *^ v) t
+  where
+    lerp' alpha a b = alpha * a + (1 - alpha) * b
+  -- case f v of
+  --   Just (a,b) -> moveOriginTo (lerp ((d + 1) / 2) a b) t
+  --   Nothing    -> t
+
+alignBy
+  :: (InSpace v n t, Enveloped t, HasOrigin t)
+  => v n -> n -> t -> t
+alignBy = alignBy' extent
+
+-- | @align v@ aligns an enveloped object along the edge in the
+--   direction of @v@. That is, it moves the local origin in the
+--   direction of @v@ until it is on the edge of the envelope. (Note
+--   that if the local origin is outside the envelope to begin with, it
+--   may have to move \"backwards\".)
+align
+  :: (InSpace v n t, Enveloped t, HasOrigin t)
+  => v n -> t -> t
+align v = alignBy v 1
+
+-- | Version of @alignBy@ specialized to use @traceBoundary@
+snugBy
+  :: (InSpace v n t, Fractional n, Traced t, HasOrigin t)
+  => v n -> n -> t -> t
+snugBy = alignBy' traceBoundary
+
+traceBoundary :: (InSpace v n t, Traced t) => v n -> t -> Maybe (n,n)
+traceBoundary v a =
+  case getSortedList $ appTrace (getTrace a) origin v of
+    []        -> Nothing
+    (nMin:ns) -> let !nMax = foldl (\_ x -> x) nMin ns
+                 in  Just (nMin,nMax)
+
+-- | Like align but uses trace.
+snug :: (InSpace v n t, Fractional n, Traced t, HasOrigin t)
+      => v n -> t -> t
+snug v = snugBy v 1
+
+-- | @centerV v@ centers an enveloped object along the direction of
+--   @v@.
+centerV
+  :: (InSpace v n a, Enveloped a, HasOrigin a)
+  => v n -> a -> a
+centerV v = alignBy v 0
+
+applyAll :: Foldable t => t (b -> b) -> b -> b
+applyAll = foldr (.) id
+
+-- | @center@ centers an enveloped object along all of its basis vectors.
+center
+  :: (InSpace v n a, Traversable v, Enveloped a, HasOrigin a)
+  => a -> a
+center = applyAll fs
+  where
+    fs = map centerV basis
+
+-- | Like @centerV@ using trace.
+snugCenterV
+  :: (InSpace v n a, Fractional n, Traced a, HasOrigin a)
+   => v n -> a -> a
+snugCenterV v = snugBy v 0
+
+-- | Like @center@ using trace.
+snugCenter
+  :: (InSpace v n a, Traversable v, Fractional n, HasOrigin a, Traced a)
+  => a -> a
+snugCenter = applyAll fs
+  where
+    fs = map snugCenterV basis
+
 
 -- | Compose a list of diagrams using the given composition function,
 --   first aligning them all according to the given alignment, *but*

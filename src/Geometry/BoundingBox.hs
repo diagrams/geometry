@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -29,11 +30,10 @@ module Geometry.BoundingBox
     BoundingBox (..)
 
     -- * Constructing bounding boxes
-  , emptyBox, fromCorners, fromPoint, fromPoints
+  , emptyBox, fromCorners
   -- , boundingBox
 
     -- * Queries on bounding boxes
-  , isEmptyBox
   , getCorners, getAllCorners
   , boxExtents, boxCenter
   -- , mCenterPoint, centerPoint
@@ -45,23 +45,13 @@ module Geometry.BoundingBox
 
 -- import           Control.Lens            (AsEmpty (..), Each (..), contains, nearly)
 import           Data.Foldable           as F
-import           Data.Maybe              (fromMaybe)
 import           Data.Semigroup
 import           Text.Read
-import           Data.Coerce
 
 import Geometry.Space
 import Geometry.Transform
 import Geometry.Trace
--- import           Diagrams.Align
--- import           Diagrams.Core.Transform
--- import           Diagrams.Path
 import           Geometry.Query
--- import           Diagrams.ThreeD.Shapes  (cube)
--- import           Diagrams.ThreeD.Types
--- import           Diagrams.TwoD.Path      ()
--- import           Diagrams.TwoD.Shapes
--- import           Diagrams.TwoD.Types
 
 import           Control.Applicative
 import           Control.Lens hiding (contains, inside, outside)
@@ -69,7 +59,6 @@ import Data.Functor.Classes
 
 import           Data.Traversable        as T
 import           Linear.Affine
--- import           Linear.Metric
 import           Linear.Vector
 
 -- | A bounding box is an axis-aligned region determined by two points
@@ -100,7 +89,7 @@ boxPoints _ eb                = pure eb
 {-# INLINE boxPoints #-}
 
 instance AsEmpty (BoundingBox v n) where
-  _Empty = nearly emptyBox isEmptyBox
+  _Empty = nearly emptyBox (\case EmptyBox -> True; _ -> False)
   {-# INLINE _Empty #-}
 
 type instance V (BoundingBox v n) = v
@@ -221,8 +210,8 @@ instance (HasLinearMap v, Fractional n, Ord n) => Traced (BoundingBox v n) where
    -- s - trace starting point
    -- d - direction of trace
    -- let f a b s d
-         -- | d == 0    = if s >= a && s <= b then All else None
-         -- | otherwise = two ((a-s)/d) ((b-s)/d)
+        --  -- | d == 0    = if s >= a && s <= b then All else None
+         -- -- | otherwise = two ((a-s)/d) ((b-s)/d)
 
    -- let f a b s d = ((near - s) / d, (far - s) / d)
    --       where

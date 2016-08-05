@@ -1,6 +1,6 @@
 module Geometry
-  ( module Geometry.Align
-  , module Geometry.Angle
+  -- ( module Geometry.Align
+  ( module Geometry.Angle
   , module Geometry.BoundingBox
   , module Geometry.Combinators
   , module Geometry.Direction
@@ -17,7 +17,7 @@ module Geometry
   , module Geometry.Size
   -- , module Geometry.Solve
   , module Geometry.Space
-  , module Geometry.TwoD.Align
+  -- , module Geometry.TwoD.Align
   , module Geometry.TwoD.Arc
   , module Geometry.TwoD.Combinators
   , module Geometry.TwoD.Curvature
@@ -39,7 +39,7 @@ module Geometry
   , module Geometry.Transform
   ) where
 
-import Geometry.Align
+-- import Geometry.Align
 import Geometry.Angle
 import Geometry.BoundingBox
 import Geometry.Combinators
@@ -57,7 +57,7 @@ import Geometry.Segment
 import Geometry.Size
 -- import Geometry.Solve
 import Geometry.Space
-import Geometry.TwoD.Align
+-- import Geometry.TwoD.Align
 import Geometry.TwoD.Arc
 import Geometry.TwoD.Combinators
 import Geometry.TwoD.Curvature

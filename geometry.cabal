@@ -37,7 +37,7 @@ library
     -- Geometry.TwoD.Offset
     Geometry.TwoD.Arc
     Geometry
-    Geometry.Align
+    -- Geometry.Align
     Geometry.Angle
     Geometry.BoundingBox
     Geometry.Combinators
@@ -60,7 +60,7 @@ library
     Geometry.Trail.Unboxed
     Geometry.TrailLike
     Geometry.Transform
-    Geometry.TwoD.Align
+    -- Geometry.TwoD.Align
     Geometry.TwoD.Combinators
     Geometry.TwoD.Path
     Geometry.TwoD.Points

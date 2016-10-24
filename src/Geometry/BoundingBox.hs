@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -35,6 +36,7 @@ module Geometry.BoundingBox
 
     -- * Queries on bounding boxes
   , getCorners, getAllCorners
+  , what
   , boxExtents, boxCenter
   -- , mCenterPoint, centerPoint
   -- , boxTransform, boxFit
@@ -60,6 +62,10 @@ import Data.Functor.Classes
 import           Data.Traversable        as T
 import           Linear.Affine
 import           Linear.Vector
+import Data.Coerce
+
+-- for specialise instances
+import Linear (V2, V3)
 
 -- | A bounding box is an axis-aligned region determined by two points
 --   indicating its \"lower\" and \"upper\" corners.  It can also represent
@@ -105,39 +111,69 @@ instance (Additive v, Foldable v, Ord n) => HasQuery (BoundingBox v n) Any where
     Any $ F.and (liftI2 (<=) l p) && F.and (liftI2 (<=) p u)
   {-# INLINE getQuery #-}
 
+-- -- | Possible time values for intersecting a bounding box. Either we
+-- --   intersect for all values of t, two specific values of t or no
+-- --   values of t.
+-- data Intersect a
+--   = AllT        -- all values may lead to infinite number of intersections
+--   | MaxTwo      -- all values of t lead two intersections
+--   | Range !a !a -- intersection for a range of t values
+--   | Two !a !a   -- two t values for intersections
+--   | None        -- no t values lead to intersections
+
+-- instance Ord a => Semigroup (Intersect a) where
+--   None        <> (!_)        = None
+--   _           <> None        = None
+--   AllT        <> a           = allT a
+--   a           <> AllT        = allT a
+--   MaxTwo      <> a           = a
+--   a           <> MaxTwo      = a
+--   Two a1 b1   <> Two a2 b2   = check Two (max a1 a2) (min b1 b2)
+--   Range a1 b1 <> Range a2 b2 = check Range (max a1 a2) (min b1 b2)
+--   Range a1 b1 <> Two a2 b2   = if a1 < a2 && b1 > b2 then Two a2 b2 else None
+--   Two a1 b1   <> Range a2 b2 = if a2 < a1 && b2 > b1 then Two a1 b1 else None
+--   {-# INLINE (<>) #-}
+
+-- check :: Ord a => (a -> a -> Intersect a) -> a -> a -> Intersect a
+-- check f a b = if a <= b then f a b else None
+-- {-# INLINE check #-}
+
+-- allT :: Intersect a -> Intersect a
+-- allT (Two a b) = Range a b
+-- allT MaxTwo    = MaxTwo
+-- allT a         = a
+-- {-# INLINE allT #-}
+
+-- intersectToList :: Intersect a -> [a]
+-- intersectToList (Range a b) = [a,b]
+-- intersectToList (Two a b)   = [a,b]
+-- intersectToList !_          = []
+-- {-# INLINE intersectToList #-}
+
 -- | Possible time values for intersecting a bounding box. Either we
 --   intersect for all values of t, two specific values of t or no
 --   values of t.
 data Intersect a
-  = AllT        -- all values may lead to infinite number of intersections
-  | MaxTwo      -- all values of t lead two intersections
-  | Range !a !a -- intersection for a range of t values
+  = MaxTwo      -- all values of t lead two intersections
   | Two !a !a   -- two t values for intersections
   | None        -- no t values lead to intersections
 
 instance Ord a => Semigroup (Intersect a) where
   None        <> _           = None
   _           <> None        = None
-  AllT        <> a           = allT a
-  a           <> AllT        = allT a
   MaxTwo      <> a           = a
   a           <> MaxTwo      = a
   Two a1 b1   <> Two a2 b2   = check Two (max a1 a2) (min b1 b2)
-  Range a1 b1 <> Range a2 b2 = check Range (max a1 a2) (min b1 b2)
-  Range a1 b1 <> Two a2 b2   = if a1 < a2 && b1 > b2 then Two a2 b2 else None
-  Two a1 b1   <> Range a2 b2 = if a2 < a1 && b2 > b1 then Two a1 b1 else None
-    where
   {-# INLINE (<>) #-}
 
 check :: Ord a => (a -> a -> Intersect a) -> a -> a -> Intersect a
 check f a b = if a <= b then f a b else None
 {-# INLINE check #-}
 
-allT :: Intersect a -> Intersect a
-allT (Two a b) = Range a b
-allT MaxTwo    = MaxTwo
-allT a         = a
-{-# INLINE allT #-}
+intersectToList :: Intersect a -> [a]
+intersectToList (Two a b)   = [a,b]
+intersectToList !_          = []
+{-# INLINE intersectToList #-}
 
 instance Ord a => Monoid (Intersect a) where
   mappend = (<>)
@@ -148,8 +184,7 @@ instance Ord a => Monoid (Intersect a) where
 bbIntersection
   :: (Additive v, Foldable v, Fractional n, Ord n)
   => BoundingBox v n -> Point v n -> v n -> Intersect n
-bbIntersection EmptyBox _ _          = None
-bbIntersection (BoundingBox l u) p v = foldr (<>) AllT (liftI4 l u p v)
+bbIntersection (BoundingBox l u) !p !v = foldMap f (liftI4 l u p v)
   where
    -- The near coordinate is the first intersection from coming from
    -- -Infinity *^ v. The far intersection is the first intersection
@@ -161,25 +196,67 @@ bbIntersection (BoundingBox l u) p v = foldr (<>) AllT (liftI4 l u p v)
    -- b - upper point of bounding box
    -- s - trace starting point
    -- d - direction of trace
-   f a b s d
-     | d == 0    = if s >= a && s <= b then AllT else None
+   f (!a,!b,!s,!d)
+     | d == 0    = if s >= a && s <= b then MaxTwo else None
      | otherwise = two ((a-s)/d) ((b-s)/d)
 
    -- utilities
    -- liftI4 :: Additive f => (a -> a -> a -> a -> b) -> Point f a -> Point f a -> Point f a -> f a -> f b
-   liftI4 (P a) (P b) (P c) = liftI2 id (liftI2 id (liftI2 f a b) c)
+   liftI4 (P a) (P b) (P c) = liftI2 id (liftI2 id (liftI2 (,,,) a b) c)
    {-# INLINE liftI4 #-}
 
    two :: Ord a => a -> a -> Intersect a
-   two a b = if a < b then Two a b else Two b a
+   two !a !b = if a < b then Two a b else Two b a
    {-# INLINE two #-}
+bbIntersection EmptyBox !_ !_            = None
+{-# INLINEABLE [0] bbIntersection #-}
+{-# SPECIALISE bbIntersection :: BoundingBox V2 Double -> Point V2 Double -> V2 Double -> Intersect Double #-}
+{-# SPECIALISE bbIntersection :: BoundingBox V3 Double -> Point V3 Double -> V3 Double -> Intersect Double #-}
+
+-- bbIntersection
+--   :: (Additive v, Foldable v, Fractional n, Ord n)
+--   => BoundingBox v n -> Point v n -> v n -> Intersect n
+-- bbIntersection (BoundingBox l u) !p !v = fold (liftI4 l u p v)
+--   where
+--    -- The near coordinate is the first intersection from coming from
+--    -- -Infinity *^ v. The far intersection is the first intersection
+--    -- coming from +Infinity *^ v. The the direcion is negative, the
+--    -- means the near and far coordinates are flipped.
+--    -- We return the time where the near and far intersections occur.
+--    --
+--    -- a - lower point of bounding box
+--    -- b - upper point of bounding box
+--    -- s - trace starting point
+--    -- d - direction of trace
+--    f !a !b !s !d
+--      | d == 0    = if s >= a && s <= b then MaxTwo else None
+--      | otherwise = two ((a-s)/d) ((b-s)/d)
+
+--    -- utilities
+--    -- liftI4 :: Additive f => (a -> a -> a -> a -> b) -> Point f a -> Point f a -> Point f a -> f a -> f b
+--    liftI4 (P a) (P b) (P c) = liftI2 id (liftI2 id (liftI2 f a b) c)
+--    {-# INLINE liftI4 #-}
+
+--    two :: Ord a => a -> a -> Intersect a
+--    two !a !b = if a < b then Two a b else Two b a
+--    {-# INLINE two #-}
+-- bbIntersection EmptyBox !_ !_            = None
+-- {-# INLINEABLE [0] bbIntersection #-}
+-- {-# SPECIALISE bbIntersection :: BoundingBox V2 Double -> Point V2 Double -> V2 Double -> Intersect Double #-}
+-- {-# SPECIALISE bbIntersection :: BoundingBox V3 Double -> Point V3 Double -> V3 Double -> Intersect Double #-}
+
+what :: BoundingBox V2 Double -> Point V2 Double -> V2 Double -> SortedList Double
+what = coerce (getTrace :: BoundingBox V2 Double -> Trace V2 Double)
 
 instance (HasLinearMap v, Fractional n, Ord n) => Traced (BoundingBox v n) where
-  getTrace bb = mkTrace $ \p v ->
-    case bbIntersection bb p v of
-      Range a b -> unsafeMkSortedList [a,b]
-      Two a b   -> unsafeMkSortedList [a,b]
-      _         -> mempty
+  -- {-# SPECIALIZE instance Traced (BoundingBox V2 Double) #-}
+  -- {-# SPECIALIZE instance Traced (BoundingBox V3 Double) #-}
+  {-# INLINE getTrace #-}
+  getTrace bb = mkTrace $ \p v -> unsafeMkSortedList (intersectToList (bbIntersection bb p v))
+    -- case bbIntersection bb p v of
+    --   Range a b -> unsafeMkSortedList [a,b]
+    --   Two a b   -> unsafeMkSortedList [a,b]
+    --   _         -> unsafeMkSortedList []
 
   -- getTrace EmptyBox        = mempty
   -- getTrace BoundingBox l u = mkTrace $ \p v ->

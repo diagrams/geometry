@@ -47,7 +47,7 @@ sortedConvexHull ps = (chain True ps, chain False ps)
        go d p1 l@(p2:rest)
          -- backtrack if the direction is outward
          | test $ d `cross2` d' = Left l
-         | otherwise                =
+         | otherwise            =
              case go d' p2 rest of
                Left m  -> go d p1 m
                Right m -> Right (p1:m)

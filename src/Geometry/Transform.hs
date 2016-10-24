@@ -127,6 +127,9 @@ import           Data.Functor.Classes
 data Transformation v n = T !(v (v n)) !(v (v n)) !(v n)
   deriving Typeable
 
+type T2 = Transformation V2
+type T3 = Transformation V3
+
 instance (Show1 v, Show n) => Show (Transformation v n) where
   showsPrec p (T m mInv v) = showParen (p > 10) $
     showString "T " . showMatrix 11 m
@@ -176,10 +179,8 @@ tappend :: (Additive v, Foldable v, Num n)
         => Transformation v n -> Transformation v n -> Transformation v n
 tappend (T m1 m1Inv v1) (T m2 m2Inv v2)
     = T (m1 !*! m2) (m2Inv !*! m1Inv) (v1 ^+^ m1 !* v2)
-{-# SPECIALIZE INLINE tappend :: Num n =>
-  Transformation V2 n -> Transformation V2 n -> Transformation V2 n #-}
-{-# SPECIALIZE INLINE tappend :: Num n =>
-  Transformation V3 n -> Transformation V3 n -> Transformation V3 n #-}
+{-# SPECIALIZE tappend :: T2 Double -> T2 Double -> T2 Double #-}
+{-# SPECIALIZE tappend :: T3 Double -> T3 Double -> T3 Double #-}
 
 tempty :: (HasBasis v, Num n) => Transformation v n
 tempty = T eye eye zero

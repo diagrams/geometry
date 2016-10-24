@@ -27,6 +27,7 @@ import qualified Data.Set            as S
 import           Geometry.Envelope
 import           Geometry.HasOrigin
 import           Geometry.Space
+import           Geometry.Direction
 
 import           Linear.Metric
 import           Linear.Vector
@@ -48,11 +49,16 @@ class Juxtaposable a where
 --   empty, the second object is returned unchanged.
 juxtaposeDefault :: (Enveloped a, HasOrigin a) => Vn a -> a -> a -> a
 juxtaposeDefault v a1 a2 =
-  case (mv1, mv2) of
-    (Just v1, Just v2) -> moveOriginBy (v1 ^+^ v2) a2
-    _                  -> a2
-  where mv1 = negated <$> envelopeVMay v a1
-        mv2 = envelopeVMay (negated v) a2
+  case md of
+    Just d -> moveOriginBy (negate d *^ v) a2
+    _      -> a2
+  where
+    -- the distance a2 needs to be moved by such the hyperplanes between
+    -- a1 and a2 are touching
+    md = do
+      (_,d1) <- extent (direction v) a1
+      (d2,_) <- extent (direction v) a2
+      Just (d1 - d2)
 
 instance (Metric v, OrderedField n) => Juxtaposable (Envelope v n) where
   juxtapose = juxtaposeDefault

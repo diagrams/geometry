@@ -172,12 +172,15 @@ runEnvelope a v =
 
 instance Unboxable v n => TrailLike (UPath v n) where
   trailLike = UPath . Seq.singleton . trailLike
+  {-# INLINE trailLike #-}
 
 instance (Unbox n, OrderedField n) => Traced (UPath V2 n) where
   getTrace (UPath ts) = foldMap getTrace ts
+  {-# INLINE getTrace #-}
 
 instance (Unbox n, OrderedField n) => HasQuery (UPath V2 n) Crossings where
   getQuery (UPath ts) = foldMap getQuery ts
+  {-# INLINE getQuery #-}
 
   -- F.foldMap trailEnvelope . op Path
   --         -- this type signature is necessary to work around an apparent bug in ghc 6.12.1

@@ -79,6 +79,7 @@ rotation theta = fromOrthogonal (V2 (V2 c (-s)) (V2 s c))
   where
     c = cosA theta
     s = sinA theta
+{-# SPECIALIZE rotation :: Angle Double -> T2 Double #-}
 
 -- | Rotate about the local origin by the given angle. Positive angles
 --   correspond to counterclockwise rotation, negative to
@@ -96,12 +97,14 @@ rotation theta = fromOrthogonal (V2 (V2 c (-s)) (V2 s c))
 
 rotate :: (InSpace V2 n t, Transformable t, Floating n) => Angle n -> t -> t
 rotate = transform . rotation
+{-# INLINE rotate #-}
 
 -- | A synonym for 'rotate', interpreting its argument in units of
 -- turns; it can be more convenient to write @rotateBy (1\/4)@ than
 -- @'rotate' (1\/4 \@\@ 'turn')@.
 rotateBy :: (InSpace V2 n t, Transformable t, Floating n) => n -> t -> t
 rotateBy = transform . rotation . review turn
+{-# INLINE rotateBy #-}
 
 -- | Use an 'Angle' to make an 'Iso' between an object
 --   rotated and unrotated. This us useful for performing actions
@@ -116,6 +119,7 @@ rotateBy = transform . rotation . review turn
 rotated :: (InSpace V2 n a, Floating n, SameSpace a b, Transformable a, Transformable b)
         => Angle n -> Iso a b a b
 rotated = transformed . rotation
+{-# INLINE rotated #-}
 
 -- | @rotationAbout p@ is a rotation about the point @p@ (instead of
 --   around the local origin).
@@ -150,16 +154,16 @@ scalingX c =
   -- fromLinear
   --   (V2 (V2 c     0) (V2 0 1))
   --   (V2 (V2 (1/c) 0) (V2 0 1))
-
 {-# SPECIALIZE scalingX :: Double -> T2 Double #-}
 -- {-# SPECIALIZE scalingX :: Double -> T3 Double #-}
-{-# SPECIALIZE scalingX :: Fractional n => n -> T2 n #-}
+-- {-# SPECIALIZE scalingX :: Fractional n => n -> T2 n #-}
 -- {-# SPECIALIZE scalingX :: Fractional n => n -> T3 n #-}
 
 -- | Scale a diagram by the given factor in the x (horizontal)
 --   direction.  To scale uniformly, use 'scale'.
 scaleX :: (InSpace v n t, HasBasis v, R1 v, Fractional n, Transformable t) => n -> t -> t
 scaleX = transform . scalingX
+{-# INLINE scaleX #-}
 
 -- | Construct a transformation which scales by the given factor in
 --   the y (vertical) direction.
@@ -180,32 +184,33 @@ scalingY c =
 scaleY :: (InSpace v n t, HasBasis v, R2 v, Fractional n, Transformable t)
   => n -> t -> t
 scaleY = transform . scalingY
+{-# INLINE scaleY #-}
 
 -- | @scaleToX w@ scales a diagram in the x (horizontal) direction by
 --   whatever factor required to make its width @w@.  @scaleToX@
 --   should not be applied to diagrams with a width of 0, such as
 --   'vrule'.
 scaleToX :: (InSpace v n t, HasBasis v, R1 v, Enveloped t, Transformable t) => n -> t -> t
-scaleToX w d = scaleX (w / diameter unitX d) d
+scaleToX w d = scaleX (w / diameter (direction unitX) d) d
 
 -- | @scaleToY h@ scales a diagram in the y (vertical) direction by
 --   whatever factor required to make its height @h@.  @scaleToY@
 --   should not be applied to diagrams with a height of 0, such as
 --   'hrule'.
 scaleToY :: (InSpace v n t, HasBasis v, R2 v, Enveloped t, Transformable t) => n -> t -> t
-scaleToY h d = scaleY (h / diameter unitY d) d
+scaleToY h d = scaleY (h / diameter (direction unitY) d) d
 
 -- | @scaleUToX w@ scales a diagram /uniformly/ by whatever factor
 --   required to make its width @w@.  @scaleUToX@ should not be
 --   applied to diagrams with a width of 0, such as 'vrule'.
 scaleUToX :: (InSpace v n t, HasBasis v, R1 v, Enveloped t, Transformable t) => n -> t -> t
-scaleUToX w d = scale (w / diameter unitX d) d
+scaleUToX w d = scale (w / diameter (direction unitX) d) d
 
 -- | @scaleUToY h@ scales a diagram /uniformly/ by whatever factor
 --   required to make its height @h@.  @scaleUToY@ should not be applied
 --   to diagrams with a height of 0, such as 'hrule'.
 scaleUToY :: (InSpace v n t, HasBasis v, R2 v, Enveloped t, Transformable t) => n -> t -> t
-scaleUToY h d = scale (h / diameter unitY d) d
+scaleUToY h d = scale (h / diameter (direction unitY) d) d
 
 -- Translation ---------------------------------------------
 

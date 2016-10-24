@@ -91,36 +91,6 @@ instance RealFloat n => Traced (Path V2 n) where
 --  Inside/outside testing
 ------------------------------------------------------------
 
--- | The sum of /signed/ crossings of a path as we travel in the
---   positive x direction from a given point.
---
---     - A point is filled according to the 'Winding' fill rule, if the
---       number of 'Crossings' is non-zero (see 'isInsideWinding').
---
---     - A point is filled according to the 'EvenOdd' fill rule, if the
---       number of 'Crossings' is odd (see 'isInsideEvenOdd').
---
---   This is the 'HasQuery' result for 'Path's, 'Located' 'Trail's and
---   'Located' 'Loops'.
---
--- @
--- 'sample' :: 'Path' 'V2' 'Double'                  -> 'Point' 'V2' 'Double' -> 'Crossings'
--- 'sample' :: 'Located' ('Trail' 'V2' 'Double')       -> 'Point' 'V2' 'Double' -> 'Crossings'
--- 'sample' :: 'Located' ('Trail'' 'Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
--- @
---
---   Note that 'Line's have no inside or outside, so don't contribute
---   crossings
-newtype Crossings = Crossings Int
-  deriving (Show, Eq, Ord, Num, Enum, Real, Integral)
-
-instance Semigroup Crossings where
-  Crossings a <> Crossings b = Crossings (a + b)
-
-instance Monoid Crossings where
-  mempty  = Crossings 0
-  mappend = (<>)
-
 instance RealFloat n => HasQuery (Located (Trail V2 n)) Crossings where
   getQuery trail = Query $ \p -> trailCrossings p trail
 
@@ -129,34 +99,6 @@ instance RealFloat n => HasQuery (Located (Trail' l V2 n)) Crossings where
 
 instance RealFloat n => HasQuery (Path V2 n) Crossings where
   getQuery = foldMapOf each getQuery
-
--- | Test whether the given point is inside the given path,
---   by testing whether the point's /winding number/ is nonzero. Note
---   that @False@ is /always/ returned for paths consisting of lines
---   (as opposed to loops), regardless of the winding number.
---
--- @
--- 'isInsideWinding' :: 'Path' 'V2' 'Double'                  -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideWinding' :: 'Located' ('Trail' 'V2' 'Double')       -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideWinding' :: 'Located' ('Trail'' 'Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
--- @
-isInsideWinding :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
-isInsideWinding t = (/= 0) . sample t
-
--- | Test whether the given point is inside the given path,
---   by testing whether a ray extending from the point in the positive
---   x direction crosses the path an even (outside) or odd (inside)
---   number of times.  Note that @False@ is /always/ returned for
---   paths consisting of lines (as opposed to loops), regardless of
---   the number of crossings.
---
--- @
--- 'isInsideEvenOdd' :: 'Path' 'V2' 'Double'                  -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideEvenOdd' :: 'Located' ('Trail' 'V2' 'Double')       -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideEvenOdd' :: 'Located' ('Trail'' 'Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
--- @
-isInsideEvenOdd :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
-isInsideEvenOdd t = odd . sample t
 
 -- | Compute the sum of signed crossings of a trail starting from the
 --   given point in the positive x direction.

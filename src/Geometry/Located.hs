@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
@@ -41,7 +42,7 @@ import           Linear.Vector
 import Data.Typeable
 import Data.Functor.Classes
 
-import           Geometry.Align
+-- import           Geometry.Align
 import           Geometry.Space
 import           Geometry.Envelope
 import           Geometry.Juxtapose
@@ -165,8 +166,8 @@ instance Enveloped a => Juxtaposable (Located a) where
 instance (Traced a, Num (N a)) => Traced (Located a) where
   getTrace (Loc p a) = moveTo p (getTrace a)
 
-instance Alignable a => Alignable (Located a) where
-  defaultBoundary v = defaultBoundary v . unLoc
+-- instance Alignable a => Alignable (Located a) where
+--   defaultBoundary v = defaultBoundary v . unLoc
 
 -- instance Qualifiable a => Qualifiable (Located a) where
 --   n .>> Loc p a = Loc p (n .>> a)
@@ -176,6 +177,15 @@ type instance Codomain (Located a) = Point (Codomain a)
 instance (InSpace v n a, Parametric a, Codomain a ~ v)
     => Parametric (Located a) where
   Loc x a `atParam` p = x .+^ (a `atParam` p)
+
+instance Parametric (Tangent t) => Parametric (Tangent (Located t)) where
+  Tangent l `atParam` p = Tangent (unLoc l) `atParam` p
+
+instance (DomainBounds t, EndValues (Tangent t))
+    => EndValues (Tangent (Located t)) where
+  atStart (Tangent l) = atStart (Tangent (unLoc l))
+  atEnd   (Tangent l) = atEnd   (Tangent (unLoc l))
+
 
 instance DomainBounds a => DomainBounds (Located a) where
   domainLower (Loc _ a) = domainLower a

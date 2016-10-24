@@ -1,6 +1,4 @@
 {-# LANGUAGE CPP                        #-}
-{-# LANGUAGE ViewPatterns               #-}
-{-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -29,52 +27,50 @@
 module Geometry.Envelope
   ( -- * Envelopes
     Envelope(..)
-
-  , appEnvelope
-  , onEnvelope
-  , mkEnvelope
-  , pointEnvelope
-
   , Enveloped(..)
 
     -- * Utility functions
   , diameter
-  , radius
+  -- , radius
   , extent
   , size
-  , envelopeVMay
-  , envelopeV
-  , envelopePMay
-  , envelopeP
-  , envelopeSMay
-  , envelopeS
-
-    -- * Bounding box utilities
-  , boxFit
-  , boxTransform
+  -- , envelopeVMay
+  -- , envelopeV
+  -- , envelopePMay
+  -- , envelopeP
+  -- , envelopeSMay
+  -- , envelopeS
 
   ) where
 
 #if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative     ((<$>))
 #endif
-import           Control.Lens            (op, (&), (.~))
-import           Data.Functor.Rep
+import           Control.Lens            (op)
+-- import           Data.Functor.Rep
 import qualified Data.Map                as M
-import           Data.Maybe              (fromMaybe)
+-- import           Data.Maybe              (fromMaybe)
 import           Data.Semigroup
 import qualified Data.Set                as S
+-- import Data.Functor.Compose
+-- import Data.Distributive
 
 import           Geometry.HasOrigin
 import           Geometry.Points
 import           Geometry.Transform
 import           Geometry.BoundingBox
 import           Geometry.Space
+import Geometry.Direction
 
 import           Linear.Metric
-import           Linear.Vector
-import           Linear.Matrix
-import Linear
+-- import           Linear.Vector
+-- import           Linear.Matrix
+-- import Linear
+import Numeric.Interval.NonEmpty.Internal
+
+-- import Data.Profunctor.Unsafe
+-- import Control.Applicative
+import Data.Typeable
 
 ------------------------------------------------------------
 --  Envelopes  ---------------------------------------------
@@ -116,12 +112,19 @@ import Linear
 --   <http://byorgey.wordpress.com/2009/10/28/collecting-attributes/#comment-2030>.  See also Brent Yorgey, /Monoids: Theme and Variations/, published in the 2012 Haskell Symposium: <http://www.cis.upenn.edu/~byorgey/pub/monoid-pearl.pdf>; video: <http://www.youtube.com/watch?v=X-8NCkD2vOw>.
 data Envelope v n
   = EmptyEnvelope
-  | Envelope (v n -> n)
+  | Envelope (v n -> Interval n) -- (v (v n) -> BoundingBox)
+
+type instance V (Envelope v n) = v
+type instance N (Envelope v n) = n
+
+-- We do it over an arbitrary applicative so we can calculate bounding
+-- boxes of an object in one pass.
+-- The typeable constraint allows types to make specialsed instances.
 
 instance Ord n => Semigroup (Envelope v n) where
-  EmptyEnvelope <> e2 = e2
-  e1 <> EmptyEnvelope = e1
-  Envelope f1 <> Envelope f2 = Envelope $ \v -> max (f1 v) (f2 v)
+  EmptyEnvelope <> e2            = e2
+  e1            <> EmptyEnvelope = e1
+  Envelope f1   <> Envelope f2   = Envelope $ \v -> hull (f1 v) (f2 v)
   {-# INLINE (<>) #-}
 
 instance Ord n => Monoid (Envelope v n) where
@@ -130,37 +133,29 @@ instance Ord n => Monoid (Envelope v n) where
   mempty = EmptyEnvelope
   {-# INLINE mempty #-}
 
-appEnvelope :: Envelope v n -> Maybe (v n -> n)
-appEnvelope EmptyEnvelope = Nothing
-appEnvelope (Envelope f)  = Just f
-{-# INLINE appEnvelope #-}
+shift :: Num a => a -> Interval a -> Interval a
+shift x (I a b) = I (a + x) (b + x)
 
-onEnvelope :: ((v n -> n) -> v n -> n) -> Envelope v n -> Envelope v n
+-- appEnvelope :: Envelope v n -> Maybe (v n -> n)
+-- appEnvelope EmptyEnvelope  = Nothing
+-- appEnvelope (Envelope f) = Just f
+-- {-# INLINE appEnvelope #-}
+
+onEnvelope :: ((v n -> Interval n) -> v n -> Interval n) -> Envelope v n -> Envelope v n
 onEnvelope _ EmptyEnvelope = EmptyEnvelope
-onEnvelope g (Envelope f)  = Envelope (g f)
+onEnvelope m (Envelope f)  = Envelope (m f)
 {-# INLINE onEnvelope #-}
 
-mkEnvelope :: (v n -> n) -> Envelope v n
-mkEnvelope = Envelope
-{-# INLINE mkEnvelope #-}
-
--- | Create an envelope for the given point.
-pointEnvelope :: (Metric v, Fractional n) => Point v n -> Envelope v n
-pointEnvelope (P p) = Envelope $ \v -> (p `dot` v) / (v `dot` v)
-{-# INLINE pointEnvelope #-}
-
---   XXX add some diagrams here to illustrate!  Note that Haddock supports
---   inline images, using a \<\<url\>\> syntax.
-
-type instance V (Envelope v n) = v
-type instance N (Envelope v n) = n
+-- mkEnvelope :: (v n -> n) -> Envelope v n
+-- mkEnvelope f = Envelope f (\v -> MinMax (- f (negated v), f v))
+-- {-# INLINE mkEnvelope #-}
 
 -- | The local origin of an envelope is the point with respect to
 --   which bounding queries are made, /i.e./ the point from which the
 --   input vectors are taken to originate.
 instance (Metric v, Fractional n) => HasOrigin (Envelope v n) where
-  -- moveOriginTo (P u) = onEnvelope $ \f v -> f v - ((u ^/ (v `dot` v)) `dot` v)
-  moveOriginTo (P u) = onEnvelope $ \f v -> f v - (u `dot` v) / (v `dot` v)
+  -- moveOriginTo (P u) = onEnvelope $ \f v -> f v - (u `dot` v)
+  moveOriginTo (P u) = onEnvelope (\f v -> shift (negate (u `dot` v)) (f v))
   {-# INLINE moveOriginTo #-}
 
 instance Show (Envelope v n) where
@@ -169,13 +164,12 @@ instance Show (Envelope v n) where
 
 instance (Metric v, HasBasis v, Foldable v, Floating n)
     => Transformable (Envelope v n) where
-  transform t = moveOriginTo (P . negated . transl $ t) . onEnvelope g
-    where
-      -- XXX add lots of comments explaining this!
-      g f v = f v' / (v' `dot` vi)
-        where
-          v' = signorm $ (transp t) !* v
-          vi = apply (inv t) v
+  transform = undefined
+  -- transform t = moveOriginTo (P . negated . transl $ t) . onEnvelope g where
+  --   g f v = f v' ^/ (v' `dot` vi)
+  --     where
+  --       v' = signorm $ transp t !* v
+  --       vi = apply (inv t) v
   {-# INLINE transform #-}
 
 ------------------------------------------------------------------------
@@ -196,21 +190,19 @@ class (Metric (V a), OrderedField (N a)) => Enveloped a where
   getEnvelope = foldMap getEnvelope
   {-# INLINE getEnvelope #-}
 
-  boundingBox :: HasBasis (V a) => a -> BoundingBox (V a) (N a)
+  boundingBox :: (Typeable (V a), HasBasis (V a), Applicative (V a)) => a -> BoundingBox (V a) (N a)
   boundingBox a =
     case getEnvelope a of
-      EmptyEnvelope -> EmptyBox
-      Envelope f    ->
-        let h = fmap f eye
-            l = negated $ fmap (f . negated) eye
-        in  BoundingBox (P l) (P h)
+      EmptyEnvelope  -> EmptyBox
+      Envelope f     -> BoundingBox (P $ fmap inf bounds) (P $ fmap sup bounds)
+        where bounds = fmap f eye
   {-# INLINE boundingBox #-}
 
 instance (Metric v, OrderedField n) => Enveloped (Envelope v n) where
   getEnvelope = id
 
 instance (OrderedField n, Metric v) => Enveloped (Point v n) where
-  getEnvelope = pointEnvelope
+  getEnvelope (P p) = Envelope $ \v -> singleton (p `dot` v)
   {-# INLINE getEnvelope #-}
   boundingBox p = BoundingBox p p
   {-# INLINE boundingBox #-}
@@ -224,107 +216,73 @@ instance (Metric v, Traversable v, OrderedField n) => Enveloped (BoundingBox v n
 instance Enveloped t => Enveloped (TransInv t) where
   getEnvelope = getEnvelope . op TransInv
   {-# INLINE getEnvelope #-}
+  boundingBox = boundingBox . op TransInv
+  {-# INLINE boundingBox #-}
 
 instance (SameSpace a b, Enveloped a, Enveloped b) => Enveloped (a,b) where
   getEnvelope (x,y) = getEnvelope x <> getEnvelope y
   {-# INLINE getEnvelope #-}
+  boundingBox (x,y) = boundingBox x <> boundingBox y
+  {-# INLINE boundingBox #-}
 
 instance Enveloped b => Enveloped [b] where
-  -- getEnvelope = mconcat . map getEnvelope
-  -- {-# INLINE getEnvelope #-}
   boundingBox = foldMap boundingBox
   {-# INLINE boundingBox #-}
 
-instance Enveloped b => Enveloped (M.Map k b) where
-  -- getEnvelope = mconcat . map getEnvelope . M.elems
-  -- {-# INLINE getEnvelope #-}
-
-instance Enveloped b => Enveloped (S.Set b) where
-  -- getEnvelope = mconcat . map getEnvelope . S.elems
-  -- {-# INLINE getEnvelope #-}
+instance Enveloped b => Enveloped (M.Map k b)
+instance Enveloped b => Enveloped (S.Set b)
 
 ------------------------------------------------------------------------
 --  Computing with envelopes
 ------------------------------------------------------------------------
 
--- | Compute the vector from the local origin to a separating
---   hyperplane in the given direction, or @Nothing@ for the empty
---   envelope.
-envelopeVMay :: Enveloped a => Vn a -> a -> Maybe (Vn a)
-envelopeVMay (signorm -> v) = fmap ((*^ v) . ($ v)) . appEnvelope . getEnvelope
-{-# INLINE envelopeVMay #-}
+-- -- | Compute the vector from the local origin to a separating
+-- --   hyperplane in the given direction, or @Nothing@ for the empty
+-- --   envelope.
+-- envelopeVMay :: Enveloped a => Vn a -> a -> Maybe (Vn a)
+-- envelopeVMay v = fmap ((*^ v) . ($ v)) . appEnvelope . getEnvelope
+-- {-# INLINE envelopeVMay #-}
 
--- | Compute the vector from the local origin to a separating
---   hyperplane in the given direction.  Returns the zero vector for
---   the empty envelope.
-envelopeV :: Enveloped a => Vn a -> a -> Vn a
-envelopeV v = fromMaybe zero . envelopeVMay v
-{-# INLINE envelopeV #-}
+-- -- | Compute the vector from the local origin to a separating
+-- --   hyperplane in the given direction.  Returns the zero vector for
+-- --   the empty envelope.
+-- envelopeV :: Enveloped a => Vn a -> a -> Vn a
+-- envelopeV v = fromMaybe zero . envelopeVMay v
+-- {-# INLINE envelopeV #-}
 
--- | Compute the point on a separating hyperplane in the given
---   direction, or @Nothing@ for the empty envelope.
-envelopePMay :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (Point v n)
-envelopePMay v = fmap P . envelopeVMay v
-{-# INLINE envelopePMay #-}
+-- -- | Compute the point on a separating hyperplane in the given
+-- --   direction, or @Nothing@ for the empty envelope.
+-- envelopePMay :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (Point v n)
+-- envelopePMay v = fmap P . envelopeVMay v
+-- {-# INLINE envelopePMay #-}
 
--- | Compute the point on a separating hyperplane in the given
---   direction.  Returns the origin for the empty envelope.
-envelopeP :: (InSpace v n a, Enveloped a) => v n -> a -> Point v n
-envelopeP v = P . envelopeV v
-{-# INLINE envelopeP #-}
-
--- | Equivalent to the norm of 'envelopeVMay':
---
---   @ envelopeSMay v x == fmap norm (envelopeVMay v x) @
---
---   (other than differences in rounding error)
---
---   Note that the 'envelopeVMay' / 'envelopePMay' functions above should be
---   preferred, as this requires a call to norm.  However, it is more
---   efficient than calling norm on the results of those functions.
-envelopeSMay :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe n
-envelopeSMay v = fmap ((* norm v) . ($ v)) . appEnvelope . getEnvelope
-{-# INLINE envelopeSMay #-}
-
--- | Equivalent to the norm of 'envelopeV':
---
---   @ envelopeS v x == norm (envelopeV v x) @
---
---   (other than differences in rounding error)
---
---   Note that the 'envelopeV' / 'envelopeP' functions above should be
---   preferred, as this requires a call to norm. However, it is more
---   efficient than calling norm on the results of those functions.
-envelopeS :: (InSpace v n a, Enveloped a) => v n -> a -> n
-envelopeS v = fromMaybe 0 . envelopeSMay v
-{-# INLINE envelopeS #-}
+-- -- | Compute the point on a separating hyperplane in the given
+-- --   direction.  Returns the origin for the empty envelope.
+-- envelopeP :: (InSpace v n a, Enveloped a) => v n -> a -> Point v n
+-- envelopeP v = P . envelopeV v
+-- {-# INLINE envelopeP #-}
 
 -- | Compute the diameter of a enveloped object along a particular
 --   vector.  Returns zero for the empty envelope.
-diameter :: (InSpace v n a, Enveloped a) => v n -> a -> n
-diameter v a = maybe 0 (\(lo,hi) -> (hi - lo) * norm v) (extent v a)
+diameter :: (InSpace v n a, Enveloped a) => Direction v n -> a -> n
+diameter d a = maybe 0 (\(lo,hi) -> (hi - lo)) (extent d a)
 {-# INLINE diameter #-}
-
--- | Compute the \"radius\" (1\/2 the diameter) of an enveloped object
---   along a particular vector.
-radius :: (InSpace v n a, Enveloped a) => v n -> a -> n
-radius v = (0.5*) . diameter v
-{-# INLINE radius #-}
 
 -- | Compute the range of an enveloped object along a certain
 --   direction.  Returns a pair of scalars @(lo,hi)@ such that the
 --   object extends from @(lo *^ v)@ to @(hi *^ v)@. Returns @Nothing@
 --   for objects with an empty envelope.
-extent :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (n, n)
-extent v a = (\f -> (-f (negated v), f v)) <$> (appEnvelope . getEnvelope $ a)
+extent :: (InSpace v n a, Enveloped a) => Direction v n -> a -> Maybe (n, n)
+extent d t = case getEnvelope t of
+  EmptyEnvelope -> Nothing
+  Envelope f    -> let I a b = f (fromDir d)
+                   in  Just (a, b)
 {-# INLINE extent #-}
 
 -- | The smallest positive vector that bounds the envelope of an object.
 size :: (InSpace v n a, Enveloped a, HasBasis v) => a -> v n
-size d = tabulate $ \(E l) -> diameter (zero & l .~ 1) d
-{-# SPECIALISE size :: (InSpace V1 n a, Enveloped a) => a -> V1 n #-}
-{-# SPECIALISE size :: (InSpace V2 n a, Enveloped a) => a -> V2 n #-}
-{-# SPECIALISE size :: (InSpace V3 n a, Enveloped a) => a -> V3 n #-}
+size a = fmap (\v -> diameter (direction v) a) eye
+{-# INLINE size #-}
 
 -- | Get the center of a the bounding box of an enveloped object, return
 --   'Nothing' for object with empty envelope.
@@ -340,22 +298,22 @@ size d = tabulate $ \(E l) -> diameter (zero & l .~ 1) d
 
 -- | Create a transformation mapping points from one bounding box to the
 --   other. Returns 'Nothing' if either of the boxes are empty.
-boxTransform
-  :: (HasLinearMap v, Fractional n)
-  => BoundingBox v n -> BoundingBox v n -> Maybe (Transformation v n)
-boxTransform u v = do
-  (P ul, _) <- getCorners u
-  (P vl, _) <- getCorners v
-  let -- i  = s (v, u) <-> s (u, v)
-      -- s = liftU2 (*) . uncurry (liftU2 (/)) . boxExtents
-      x = liftU2 (/) (boxExtents v) (boxExtents u)
-      s = liftU2 (*) x
-      m = fmap s eye
-  return $ T m m (vl ^-^ s ul)
+-- boxTransform
+--   :: (Additive v, Fractional n)
+--   => BoundingBox v n -> BoundingBox v n -> Maybe (Transformation v n)
+-- boxTransform u v = do
+--   (P ul, _) <- getCorners u
+--   (P vl, _) <- getCorners v
+--   let -- i  = s (v, u) <-> s (u, v)
+--       s = liftU2 (*) . uncurry (liftU2 (/)) . mapT boxExtents
+--       m = undefined -- fmap s eye
+--   return $ T m m (vl ^-^ s (v, u) ul)
 
 -- | Transforms an enveloped thing to fit within a @BoundingBox@.  If the
 --   bounding box is empty, then the result is also @mempty@.
-boxFit
-  :: (InSpace v n a, HasLinearMap v, Enveloped a, Transformable a, Monoid a)
-  => BoundingBox v n -> a -> a
-boxFit b x = maybe mempty (`transform` x) $ boxTransform (boundingBox x) b
+-- boxFit
+--   :: (InSpace v n a, HasBasis v, Enveloped a, Transformable a, Monoid a)
+--   => BoundingBox v n -> a -> a
+-- boxFit b x = maybe mempty (`transform` x) $ boxTransform (boundingBox x) b
+
+

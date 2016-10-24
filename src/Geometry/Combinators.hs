@@ -181,7 +181,7 @@ sep (signorm -> v) s (t0:ts) = snd $ foldl' f (n0, t0) ts
     -- If we come across an empty envelope treat it as a point on the
     -- origin (this isn't ideal but what else can we do? Maybe don't
     -- even move it at all?)
-    extent' = fromMaybe (0,0) . extent v
+    extent' = fromMaybe (0,0) . extent (direction v)
     n0 = snd $ extent' t0
     f (!n, tAcc) t = (n + s - nMin + nMax, tAcc')
       where
@@ -225,7 +225,7 @@ alignBy' f v d t = fromMaybe t $ do
 alignBy
   :: (InSpace v n t, Enveloped t, HasOrigin t)
   => v n -> n -> t -> t
-alignBy = alignBy' extent
+alignBy = alignBy' (extent . direction)
 
 -- | @align v@ aligns an enveloped object along the edge in the
 --   direction of @v@. That is, it moves the local origin in the

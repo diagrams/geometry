@@ -10,7 +10,7 @@ module Geometry
   , module Geometry.Located
   , module Geometry.Parametric
   , module Geometry.Path
-  , module Geometry.Path.Unboxed
+  -- , module Geometry.Path.Unboxed
   , module Geometry.Points
   , module Geometry.Query
   , module Geometry.Segment
@@ -34,7 +34,7 @@ module Geometry
   , module Geometry.Tangent
   , module Geometry.Trace
   , module Geometry.Trail
-  , module Geometry.Trail.Unboxed
+  -- , module Geometry.Trail.Unboxed
   , module Geometry.TrailLike
   , module Geometry.Transform
   ) where
@@ -50,7 +50,7 @@ import Geometry.Juxtapose
 import Geometry.Located
 import Geometry.Parametric
 import Geometry.Path
-import Geometry.Path.Unboxed
+-- import Geometry.Path.Unboxed
 import Geometry.Points
 import Geometry.Query
 import Geometry.Segment
@@ -73,7 +73,7 @@ import Geometry.TwoD.Vector
 import Geometry.Tangent
 import Geometry.Trace
 import Geometry.Trail
-import Geometry.Trail.Unboxed
+-- import Geometry.Trail.Unboxed
 import Geometry.TrailLike
 import Geometry.TwoD.Shapes
 import Geometry.Transform

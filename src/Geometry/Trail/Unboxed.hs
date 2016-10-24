@@ -1,22 +1,21 @@
-{-# LANGUAGE EmptyDataDecls             #-}
-{-# LANGUAGE MultiWayIf                 #-}
-{-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE EmptyDataDecls             #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE MultiWayIf                 #-}
+{-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE ViewPatterns               #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -45,13 +44,14 @@
 module Geometry.Trail.Unboxed
   (
     -- * Trails
-    UTrail (..)
-  , UTrail' (..)
+    Trail (..)
+  , Trail' (..)
   , Line, Loop
   , Unboxable
     -- * ClosedSegent
   , ClosedSegment (..)
-  , getEnv
+  , segmentEnvelope
+  , uSegments
 
     -- * Vector internals
     -- ** Segment vectors
@@ -65,58 +65,46 @@ module Geometry.Trail.Unboxed
   , U.MVector(MV_CSeg)
   ) where
 
--- import           Control.Arrow            ((***))
-import           Control.Lens             hiding (at, transform, (<|), (|>))
--- import           Data.Sequence            as S (Seq, (<|), (|>))
--- import qualified Data.Sequence            as S
--- import           Data.Fixed
-import qualified Data.Foldable            as F
--- import           Data.Monoid.MList
+import           Control.Lens                hiding (at, transform, (<|), (|>))
+import           Control.Lens.Internal       (noEffect)
+import           Data.Coerce
+import qualified Data.Foldable               as F
+import           Data.List                   (maximumBy)
+import           Data.Ord                    (comparing)
 import           Data.Semigroup
--- import qualified Numeric.Interval.Kaucher as I
-import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed         as U
+import qualified Data.Vector.Unboxed.Base    as U
+import           Data.Word
 
-import Geometry.TwoD.Transform
-import           Geometry.Space
-import           Geometry.Located
 import           Geometry.Angle
-import           Geometry.Trace
-import           Geometry.Transform
-import Geometry.Query
 import           Geometry.Envelope
+import           Geometry.Located
 import           Geometry.Parametric
+import           Geometry.Query
 import           Geometry.Segment
--- import           Geometry.Tangent
-import           Geometry.Trail (Line, Loop, Trail' (..), withTrail, SegTree (..))
-import           Geometry.TwoD.Path (Crossings (..))
-
-import Data.Coerce
+import           Geometry.Space
+import           Geometry.Trace
+import           Geometry.Trail              (Line, Loop, SegTree (..),
+                                              Trail' (..), withTrail)
+import           Geometry.Transform
+import           Geometry.TwoD.Path          (Crossings (..))
+import           Geometry.TwoD.Transform
 
 import           Linear.Affine
 import           Linear.Metric
-import           Linear.Vector
 import           Linear.V2
 import           Linear.V3
+import           Linear.Vector
 
--- import           Data.Serialize            (Serialize)
--- import qualified Data.Serialize            as Serialize
+import           Control.Applicative         (liftA2)
+import           Control.Monad               (liftM, liftM2)
 
--- import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Generic.Mutable as M
-import qualified Data.Vector.Generic as G
-import qualified Data.Vector.Unboxed.Base as U
-import Data.Word
-import Control.Monad (liftM, liftM2)
-import Control.Applicative (liftA2)
+import           Geometry.TrailLike
+import           Geometry.TwoD.Vector
 
-import Geometry.TrailLike
--- import Geometry.Located
-import Geometry.TwoD.Vector
-
-import Data.List (maximumBy)
-import Data.Ord (comparing)
-
-import Prelude hiding ((^))
+import           Prelude                     hiding ((^))
 import qualified Prelude
 
 (^) :: Num a => a -> Int -> a
@@ -141,7 +129,7 @@ type instance N (ClosedSegment v n) = n
 type instance Codomain (ClosedSegment v n) = v
 
 instance (HasLinearMap v, Num n) => Transformable (ClosedSegment v n) where
-  transform t (LSeg v) = LSeg (apply t v)
+  transform t (LSeg v)        = LSeg (apply t v)
   transform t (CSeg v1 v2 v3) = CSeg (apply t v1) (apply t v2) (apply t v3)
   {-# INLINE transform #-}
 
@@ -178,7 +166,6 @@ instance U.Unbox (v n) => M.MVector U.MVector (ClosedSegment v n) where
         v2 <- M.basicUnsafeRead v (o+1)
         v3 <- M.basicUnsafeRead v (o+2)
         return $ CSeg v1 v2 v3
-      -- _ -> error "Malformed unboxed segment"
   {-# INLINE basicUnsafeRead #-}
   basicUnsafeWrite (MV_CSeg w v) i a = do
     let !o = 3*i
@@ -215,25 +202,24 @@ instance U.Unbox (v n) => G.Vector U.Vector (ClosedSegment v n) where
     let !o = 3*i
     case word of
       0 -> liftM LSeg (G.basicUnsafeIndexM v o)
-      1 -> do
+      _ -> do
         v1 <- G.basicUnsafeIndexM v o
         v2 <- G.basicUnsafeIndexM v (o+1)
         v3 <- G.basicUnsafeIndexM v (o+2)
         return $ CSeg v1 v2 v3
-      _ -> error "Malformed unboxed segment"
 
 instance (Additive v, Num n) => Parametric (ClosedSegment v n) where
   atParam (LSeg x) t       = t *^ x
-  atParam (CSeg c1 c2 x2) t = (3 * t'*t'*t ) *^ c1
+  atParam (CSeg c1 c2 x2) t =  (3 * t'*t'*t ) *^ c1
                            ^+^ (3 * t'*t *t ) *^ c2
                            ^+^ (    t *t *t ) *^ x2
     where t' = 1-t
   {-# INLINE atParam #-}
 
-getEnv :: (Metric v, OrderedField n) => ClosedSegment v n -> v n -> n -- Envelope v n
-getEnv s = \v -> -- mkEnvelope $ \v ->
+segmentEnvelope :: (Metric v, OrderedField n) => ClosedSegment v n -> v n -> n
+segmentEnvelope s = \v ->
   let n = case s of
-        LSeg l -> l `dot` v
+        LSeg l        -> l `dot` v
         CSeg c1 c2 c3 ->
           let quadSol =
                 filterNode (liftA2 (&&) (>0) (<1)) $
@@ -243,9 +229,7 @@ getEnv s = \v -> -- mkEnvelope $ \v ->
               f t = (s `atParam` t) `dot` v
           in maxNode (c3 `dot` v) (mapNode f quadSol)
   in  if n > 0 then n / quadrance v else 0
-{-# INLINE getEnv #-}
-{-# SPECIALISE INLINE getEnv :: ClosedSegment V2 Double -> V2 Double -> Double #-}
-{-# SPECIALISE INLINE getEnv :: ClosedSegment V3 Double -> V3 Double -> Double #-}
+{-# INLINE segmentEnvelope #-}
 
 data Node a
   = None
@@ -345,6 +329,26 @@ cubForm'' toler a b c d
 -- Folds overs segments
 ------------------------------------------------------------------------
 
+uSegments
+  :: (Additive v, Num n, U.Unbox (v n))
+  => Point v n
+  -> IndexedFold (Point v n) (U.Vector (ClosedSegment v n)) (ClosedSegment v n)
+uSegments p0 f (V_CSeg ws vs) = go 0 p0 where
+  go !i !_ | i == n = noEffect
+  -- go  i  p          = indexed f p s *> go (i + 1) p'
+  go !i !p = case U.unsafeIndex ws i of
+    0 -> let !v  = U.unsafeIndex vs o
+             !p' = p .+^ v
+         in  indexed f p (LSeg v) *> go (i+1) p'
+    _ -> let !v1 = U.unsafeIndex vs o
+             !v2 = U.unsafeIndex vs (o+1)
+             !v3 = U.unsafeIndex vs (o+2)
+             !p' = p .+^ v3
+         in  indexed f p (CSeg v1 v2 v3) *> go (i+1) p'
+    where o = 3*i
+  !n = U.length ws
+{-# INLINE uSegments #-}
+
 -- | Fold over the segments in a path.
 foldSegments :: (Additive v, Num n, Semigroup m, U.Unbox (v n))
   => (Point v n -> v n -> m) -- ^ line to
@@ -437,8 +441,8 @@ unboxEnvelope' :: (Metric v, OrderedField n, U.Unbox (v n))
   => (U.Vector (ClosedSegment v n)) -> v n -> (Point v n, n)
 unboxEnvelope' uv w = coerce $ foldSegments str cuv zero uv 0
   where
-  str (P p) v        = Max $ getEnv (LSeg v) w + (p `dot` w)
-  cuv (P p) v1 v2 v3 = Max $ getEnv (CSeg v1 v2 v3) w + (p `dot` w)
+  str (P p) v        = Max $ segmentEnvelope (LSeg v) w + (p `dot` w)
+  cuv (P p) v1 v2 v3 = Max $ segmentEnvelope (CSeg v1 v2 v3) w + (p `dot` w)
   {-# INLINE str #-}
   {-# INLINE cuv #-}
 {-# INLINEABLE [0] unboxEnvelope' #-}
@@ -452,8 +456,8 @@ unboxEnvelope :: (Metric v, OrderedField n, U.Unbox (v n))
   => (U.Vector (ClosedSegment v n)) -> v n -> n
 unboxEnvelope uv w = getMax . snd $ foldSegments str cuv zero uv 0
   where
-  str (P p) v        = Max $ getEnv (LSeg v) w + (p `dot` w)
-  cuv (P p) v1 v2 v3 = Max $ getEnv (CSeg v1 v2 v3) w + (p `dot` w)
+  str (P p) v        = Max $ segmentEnvelope (LSeg v) w + (p `dot` w)
+  cuv (P p) v1 v2 v3 = Max $ segmentEnvelope (CSeg v1 v2 v3) w + (p `dot` w)
   {-# INLINE str #-}
   {-# INLINE cuv #-}
 {-# INLINEABLE [0] unboxEnvelope #-}
@@ -481,43 +485,48 @@ instance Unboxable v n => Transformable (SegVector v n) where
 
 type instance Codomain (SegVector v n) = v
 
-data UTrail' c v n where
-  ULine :: SegVector v n -> UTrail' Line v n
-  ULoop :: SegVector v n -> Segment Open v n -> UTrail' Line v n
+data Trail' c v n where
+  ULine :: !(SegVector v n) -> Trail' Line v n
+  ULoop :: !(SegVector v n) -> !(Segment Open v n) -> Trail' Line v n
 
 type Unboxable v n = (Metric v, HasLinearMap v, OrderedField n, U.Unbox (v n))
 
-type instance V (UTrail' c v n) = v
-type instance N (UTrail' c v n) = n
+type instance V (Trail' c v n) = v
+type instance N (Trail' c v n) = n
 
-instance Unboxable v n => Transformable (UTrail' c v n) where
+instance Unboxable v n => Transformable (Trail' c v n) where
   transform t (ULine s)   = ULine (transform t s)
   transform t (ULoop s o) = ULoop (transform t s) (transform t o)
   {-# INLINE transform #-}
 
-instance Unboxable v n => Enveloped (UTrail' c v n) where
+instance Unboxable v n => Enveloped (Trail' c v n) where
   getEnvelope (ULine s)               = getEnvelope s
   getEnvelope (ULoop (SegVector s) o) = Envelope $ \v ->
-    let (!p, !n) = unboxEnvelope' s v
-    in  max n 0 -- XXX
+    let (!(P p), !n) = unboxEnvelope' s v
+        nOff     = case o of
+          Linear OffsetOpen      -> p `dot` v
+          Cubic c1 c2 OffsetOpen -> segmentEnvelope (CSeg (p ^-^ c1) (p ^-^ c2) p) v
+    in  max n nOff
   {-# INLINE getEnvelope #-}
 
-data UTrail v n where
-  UTrail :: UTrail' c v n -> UTrail v n
+data Trail v n where
+  Trail :: !(Trail' c v n) -> Trail v n
 
-type instance V (UTrail v n) = v
-type instance N (UTrail v n) = n
+type instance V (Trail v n) = v
+type instance N (Trail v n) = n
 
-instance Unboxable v n => Transformable (UTrail v n) where
-  transform t (UTrail s) = UTrail (transform t s)
+instance Unboxable v n => Transformable (Trail v n) where
+  transform t (Trail s) = Trail (transform t s)
   {-# INLINE transform #-}
 
-instance Unboxable v n => Enveloped (UTrail v n) where
-  getEnvelope (UTrail s) = getEnvelope s
+instance Unboxable v n => Enveloped (Trail v n) where
+  getEnvelope (Trail s) = getEnvelope s
   {-# INLINE getEnvelope #-}
 
-instance Unboxable v n => TrailLike (UTrail v n) where
-  trailLike (Loc _ t) = UTrail (fromT t)
+instance Unboxable v n => TrailLike (Trail v n) where
+  {-# SPECIALISE instance TrailLike (Trail V2 Double) #-}
+  {-# SPECIALISE instance TrailLike (Trail V3 Double) #-}
+  trailLike (Loc _ t) = Trail (fromT t)
     where
       fromT = withTrail (\(Line st)   -> ULine (fromSeg st))
                         (\(Loop st o) -> ULoop (fromSeg st) o)
@@ -542,12 +551,12 @@ foldTrail
   :: (Additive v, Num n, Semigroup m, U.Unbox (v n))
   => (Point v n -> v n -> m) -- ^ line to
   -> (Point v n -> v n -> v n -> v n -> m) -- ^ curve to
-  -> Located (UTrail v n)
+  -> Located (Trail v n)
   -> m -- ^ start
   -> (Point v n, m) -- ^ result
 foldTrail sf cf (Loc p0 t) m = case t of
-  UTrail (ULine (SegVector s))   -> foldSegments sf cf p0 s m
-  UTrail (ULoop (SegVector s) o) ->
+  Trail (ULine (SegVector s))   -> foldSegments sf cf p0 s m
+  Trail (ULoop (SegVector s) o) ->
     let (p, m') = foldSegments sf cf p0 s m
     in  case o of
           Linear OffsetOpen      -> (p0, m' <> sf p (p .-. p0))
@@ -558,11 +567,11 @@ foldTrail sf cf (Loc p0 t) m = case t of
 --   given point in the positive x direction.
 trailCrossings
   :: (U.Unbox n, OrderedField n)
-  => Point V2 n -> Located (UTrail V2 n) -> Crossings
+  => Point V2 n -> Located (Trail V2 n) -> Crossings
 
 -- non-loop trails have no inside or outside, so don't contribute crossings
-trailCrossings _ (Loc _ (UTrail (ULine _))) = 0
-trailCrossings p @ (P (V2 x y)) tr
+trailCrossings !_ !(Loc _ (Trail (ULine _))) = 0
+trailCrossings p @ (P (V2 _ y)) tr
   = snd $ foldTrail testLinear testCubic tr 0
   where
 
@@ -590,10 +599,10 @@ trailCrossings p @ (P (V2 x y)) tr
           in  if | 0   < ang && ang < pi && t < 1 ->  1
                  | -pi < ang && ang < 0  && t > 0 -> -1
                  | otherwise                      ->  0
-{-# SPECIALISE trailCrossings :: Point V2 Double -> Located (UTrail V2 Double) -> Crossings #-}
+{-# SPECIALISE trailCrossings :: Point V2 Double -> Located (Trail V2 Double) -> Crossings #-}
 
 instance (U.Unbox n, OrderedField n)
-  => HasQuery (Located (UTrail V2 n)) Crossings where
+  => HasQuery (Located (Trail V2 n)) Crossings where
   getQuery t = Query $ \p -> trailCrossings p t
   {-# INLINE getQuery #-}
 
@@ -601,7 +610,7 @@ type P2 = Point V2
 
 trailTrace
   :: (U.Unbox n, OrderedField n)
-  => Located (UTrail V2 n) -> P2 n -> V2 n -> SortedList n
+  => Located (Trail V2 n) -> P2 n -> V2 n -> SortedList n
 trailTrace t p v@(V2 vx vy) = snd $ foldTrail traceLinear traceCubic t mempty
   where
     traceLinear q w
@@ -630,9 +639,9 @@ trailTrace t p v@(V2 vx vy) = snd $ foldTrail traceLinear traceCubic t mempty
         c  =  3*y1
         d  =  qy
         ts = filter (liftA2 (&&) (>= 0) (<= 1)) (cubForm'' 1e-8 a b c d)
-{-# SPECIALISE trailTrace :: Located (UTrail V2 Double) -> P2 Double -> V2 Double -> SortedList Double #-}
+{-# SPECIALISE trailTrace :: Located (Trail V2 Double) -> P2 Double -> V2 Double -> SortedList Double #-}
 
-instance (U.Unbox n, OrderedField n) => Traced (UTrail V2 n) where
+instance (U.Unbox n, OrderedField n) => Traced (Trail V2 n) where
   getTrace t = mkTrace $ trailTrace (t `at` origin)
 
 -- solveCubic :: n -> n -> n -> n -> Node n

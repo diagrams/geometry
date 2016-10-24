@@ -14,36 +14,36 @@
 -----------------------------------------------------------------------------
 
 module Geometry.TwoD.Shapes
-       (
-         -- * Miscellaneous
-         hrule, vrule
+  (
+    -- * Miscellaneous
+    hrule, vrule
 
-         -- * Regular polygons
+    -- * Regular polygons
 
-       , regPoly
-       , triangle
-       , eqTriangle
-       , square
-       , pentagon
-       , hexagon
-       , heptagon
-       , septagon
-       , octagon
-       , nonagon
-       , decagon
-       , hendecagon
-       , dodecagon
+  , regPoly
+  , triangle
+  , eqTriangle
+  , square
+  , pentagon
+  , hexagon
+  , heptagon
+  , septagon
+  , octagon
+  , nonagon
+  , decagon
+  , hendecagon
+  , dodecagon
 
-         -- * Other special polygons
-       , unitSquare
-       , rect
+    -- * Other special polygons
+  , unitSquare
+  , rect
 
-         -- * Other shapes
+    -- * Other shapes
 
-       , roundedRect
-       , RoundedRectOpts(..), radiusTL, radiusTR, radiusBL, radiusBR
-       , roundedRect'
-       ) where
+  , roundedRect
+  , RoundedRectOpts(..), radiusTL, radiusTR, radiusBL, radiusBR
+  , roundedRect'
+  ) where
 
 import           Control.Lens            (makeLenses, (&), (.~), (<>~), (^.))
 import           Data.Default.Class
@@ -55,13 +55,14 @@ import           Geometry.Angle
 import           Geometry.Located        (at)
 import           Geometry.Segment
 import           Geometry.Trail
-import           Geometry.TrailLike
+-- import           Geometry.FromTrail
 import           Geometry.TwoD.Arc
 import           Geometry.TwoD.Polygons
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector
 
+import Data.Vector.Unboxed (Unbox)
 
 -- | Create a centered horizontal (L-R) line of the given length.
 --
@@ -69,8 +70,8 @@ import           Geometry.TwoD.Vector
 --
 --   > hruleEx = vcat' (with & sep .~ 0.2) (map hrule [1..5])
 --   >         # centerXY # pad 1.1
-hrule :: (InSpace V2 n t, TrailLike t) => n -> t
-hrule d = trailLike $ trailFromSegments [straight $ r2 (d, 0)] `at` p2 (-d/2,0)
+hrule :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
+hrule d = fromTrail $ fromSegments [straight $ r2 (d, 0)] `at` p2 (-d/2,0)
 
 -- | Create a centered vertical (T-B) line of the given length.
 --
@@ -78,14 +79,14 @@ hrule d = trailLike $ trailFromSegments [straight $ r2 (d, 0)] `at` p2 (-d/2,0)
 --
 --   > vruleEx = hcat' (with & sep .~ 0.2) (map vrule [1, 1.2 .. 2])
 --   >         # centerXY # pad 1.1
-vrule :: (InSpace V2 n t, TrailLike t) => n -> t
-vrule d = trailLike $ trailFromSegments [straight $ r2 (0, -d)] `at` p2 (0,d/2)
+vrule :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
+vrule d = fromTrail $ fromSegments [straight $ r2 (0, -d)] `at` p2 (0,d/2)
 
 -- | A square with its center at the origin and sides of length 1,
 --   oriented parallel to the axes.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_unitSquareEx.svg#diagram=unitSquareEx&width=100>>
-unitSquare :: (InSpace V2 n t, TrailLike t) => t
+unitSquare :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => t
 unitSquare = polygon (def & polyType   .~ PolyRegular 4 (sqrt 2 / 2)
                           & polyOrient .~ OrientH)
 
@@ -95,7 +96,7 @@ unitSquare = polygon (def & polyType   .~ PolyRegular 4 (sqrt 2 / 2)
 --   length, oriented parallel to the axes.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_squareEx.svg#diagram=squareEx&width=200>>
-square :: (InSpace V2 n t, TrailLike t) => n -> t
+square :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 square d = rect d d
 
 -- > squareEx = hcat' (with & sep .~ 0.5) [square 1, square 2, square 3]
@@ -105,8 +106,8 @@ square d = rect d d
 --   @h@, centered at the origin.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_rectEx.svg#diagram=rectEx&width=150>>
-rect :: (InSpace V2 n t, TrailLike t) => n -> n -> t
-rect w h = trailLike . scaleX w . scaleY h $ unitSquare
+rect :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> n -> t
+rect w h = fromTrail . scaleX w . scaleY h $ unitSquare
 
 -- > rectEx = rect 1 0.7 # pad 1.1
 
@@ -114,16 +115,16 @@ rect w h = trailLike . scaleX w . scaleY h $ unitSquare
     --
     --   rect w h = unitSquare # scaleX w # scaleY h
     --
-    -- since unitSquare can produce any TrailLike.  The current code
+    -- since unitSquare can produce any FromTrail.  The current code
     -- instead uses (unitSquare # scaleX w # scaleY h) to specifically
     -- produce a Path, which is then deconstructed and passed back into
-    -- 'trailLike' to create any TrailLike.
+    -- 'fromTrail' to create any FromTrail.
     --
     -- The difference is that while scaling by zero works fine for
     -- Path it does not work very well for, say, Diagrams (leading to
     -- NaNs or worse).  This way, we force the scaling to happen on a
     -- Path, where we know it will behave properly, and then use the
-    -- resulting geometry to construct an arbitrary TrailLike.
+    -- resulting geometry to construct an arbitrary FromTrail.
     --
     -- See https://github.com/diagrams/diagrams-lib/issues/43 .
 
@@ -137,7 +138,7 @@ rect w h = trailLike . scaleX w . scaleY h $ unitSquare
 --   polygons of a given /radius/).
 --
 --   The polygon will be oriented with one edge parallel to the x-axis.
-regPoly :: (InSpace V2 n t, TrailLike t) => Int -> n -> t
+regPoly :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => Int -> n -> t
 regPoly n l = polygon (def & polyType .~
                                PolySides
                                  (repeat (1/fromIntegral n @@ turn))
@@ -157,76 +158,76 @@ regPoly n l = polygon (def & polyType .~
 -- > dodecagonEx  = shapeEx dodecagon
 
 -- | A synonym for 'triangle', provided for backwards compatibility.
-eqTriangle :: (InSpace V2 n t, TrailLike t) => n -> t
+eqTriangle :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 eqTriangle = triangle
 
 -- | An equilateral triangle, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_triangleEx.svg#diagram=triangleEx&width=100>>
-triangle :: (InSpace V2 n t, TrailLike t) => n -> t
+triangle :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 triangle = regPoly 3
 
 -- | A regular pentagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_pentagonEx.svg#diagram=pentagonEx&width=100>>
-pentagon :: (InSpace V2 n t, TrailLike t) => n -> t
+pentagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 pentagon = regPoly 5
 
 -- | A regular hexagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_hexagonEx.svg#diagram=hexagonEx&width=100>>
-hexagon :: (InSpace V2 n t, TrailLike t) => n -> t
+hexagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 hexagon = regPoly 6
 
 -- | A regular heptagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_heptagonEx.svg#diagram=heptagonEx&width=100>>
-heptagon :: (InSpace V2 n t, TrailLike t) => n -> t
+heptagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 heptagon = regPoly 7
 
 -- | A synonym for 'heptagon'.  It is, however, completely inferior,
 --   being a base admixture of the Latin /septum/ (seven) and the
 --   Greek γωνία (angle).
-septagon :: (InSpace V2 n t, TrailLike t) => n -> t
+septagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 septagon = heptagon
 
 -- | A regular octagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_octagonEx.svg#diagram=octagonEx&width=100>>
-octagon :: (InSpace V2 n t, TrailLike t) => n -> t
+octagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 octagon = regPoly 8
 
 -- | A regular nonagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_nonagonEx.svg#diagram=nonagonEx&width=100>>
-nonagon :: (InSpace V2 n t, TrailLike t) => n -> t
+nonagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 nonagon = regPoly 9
 
 -- | A regular decagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_decagonEx.svg#diagram=decagonEx&width=100>>
-decagon :: (InSpace V2 n t, TrailLike t) => n -> t
+decagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 decagon = regPoly 10
 
 -- | A regular hendecagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_hendecagonEx.svg#diagram=hendecagonEx&width=100>>
-hendecagon :: (InSpace V2 n t, TrailLike t) => n -> t
+hendecagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 hendecagon = regPoly 11
 
 -- | A regular dodecagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
 --   <<diagrams/src_Diagrams_TwoD_Shapes_dodecagonEx.svg#diagram=dodecagonEx&width=100>>
-dodecagon :: (InSpace V2 n t, TrailLike t) => n -> t
+dodecagon :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t) => n -> t
 dodecagon = regPoly 12
 
 ------------------------------------------------------------
@@ -264,7 +265,7 @@ instance (Num d) => Default (RoundedRectOpts d) where
 --   >                                & radiusBR .~ 0.1)
 --   >   ]
 
-roundedRect :: (InSpace V2 n t, TrailLike t, RealFloat n) => n -> n -> n -> t
+roundedRect :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t, RealFloat n) => n -> n -> n -> t
 roundedRect w h r = roundedRect' w h (def & radiusTL .~ r
                                           & radiusBR .~ r
                                           & radiusTR .~ r
@@ -274,11 +275,11 @@ roundedRect w h r = roundedRect' w h (def & radiusTL .~ r
 --   each corner indivually, using @RoundedRectOpts@. The default corner radius is 0.
 --   Each radius can also be negative, which results in the curves being reversed
 --   to be inward instead of outward.
-roundedRect' :: (InSpace V2 n t, TrailLike t, RealFloat n) => n -> n -> RoundedRectOpts n -> t
+roundedRect' :: (InSpace V2 n t, OrderedField n, Unbox n, FromTrail t, RealFloat n) => n -> n -> RoundedRectOpts n -> t
 roundedRect' w h opts
-   = trailLike
+   = fromTrail
    . (`at` p2 (w/2, abs rBR - h/2))
-   . wrapTrail
+   . ClosedTrail
    . glueLine
    $ seg (0, h - abs rTR - abs rBR)
    <> mkCorner 0 rTR
@@ -288,7 +289,7 @@ roundedRect' w h opts
    <> mkCorner 2 rBL
    <> seg (w - abs rBL - abs rBR, 0)
    <> mkCorner 3 rBR
-  where seg   = lineFromOffsets . (:[]) . r2
+  where seg   = fromOffsets . (:[]) . r2
         diag  = sqrt (w * w + h * h)
         -- to clamp corner radius, need to compare with other corners that share an
         -- edge. If the corners overlap then reduce the largest corner first, as far

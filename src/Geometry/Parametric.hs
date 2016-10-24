@@ -24,10 +24,25 @@ module Geometry.Parametric
   , Sectionable(..)
   , HasArcLength(..)
 
+    -- ** Tangents
+  , Tangent(..)
+  , tangentAtParam
+  , tangentAtStart
+  , tangentAtEnd
+
+    -- ** Normals
+  , normalAtParam
+  , normalAtStart
+  , normalAtEnd
+
   ) where
 
 import           Geometry.Space
 import qualified Numeric.Interval.Kaucher as I
+
+import           Linear.Vector
+import           Linear.Metric
+import           Linear.V2
 
 -- | Codomain of parametric classes.  This is usually either @(V p)@, for relative
 --   vector results, or @(Point (V p))@, for functions with absolute coordinates.
@@ -180,4 +195,77 @@ class Parametric p => HasArcLength p where
   stdArcLengthToParam :: p -> N p -> N p
   default stdArcLengthToParam :: Fractional (N p) => p -> N p -> N p
   stdArcLengthToParam = arcLengthToParam stdTolerance
+
+------------------------------------------------------------------------
+-- Tangent
+------------------------------------------------------------------------
+
+-- | A newtype wrapper used to give different instances of
+--   'Parametric' and 'EndValues' that compute tangent vectors.
+newtype Tangent t = Tangent t
+
+type instance V (Tangent t) = V t
+type instance N (Tangent t) = N t
+type instance Codomain (Tangent t) = V t
+
+instance DomainBounds t => DomainBounds (Tangent t) where
+  domainLower (Tangent t) = domainLower t
+  domainUpper (Tangent t) = domainUpper t
+
+-- | Compute the tangent vector to a segment or trail at a particular
+--   parameter.
+--
+-- @
+-- 'tangentAtParam' :: 'Segment' 'Closed' 'V2' 'Double' -> 'Double' -> 'V2' 'Double'
+-- 'tangentAtParam' :: 'Located' ('Trail' 'V2')       -> 'Double' -> 'V2' 'Double'
+-- @
+--
+--   See the instances listed for the 'Tangent' newtype for more.
+tangentAtParam :: Parametric (Tangent t) => t -> N t -> Vn t
+tangentAtParam t p = Tangent t `atParam` p
+
+-- | Compute the tangent vector at the start of a segment or trail.
+tangentAtStart :: EndValues (Tangent t) => t -> Vn t
+tangentAtStart = atStart . Tangent
+
+-- | Compute the tangent vector at the end of a segment or trail.
+tangentAtEnd :: EndValues (Tangent t) => t -> Vn t
+tangentAtEnd = atEnd . Tangent
+
+------------------------------------------------------------
+-- Normal
+------------------------------------------------------------
+
+-- | Compute the (unit) normal vector to a segment or trail at a
+--   particular parameter.
+--
+--   Examples of more specific types this function can have include
+--
+--   * @Segment Closed V2 Double -> Double -> V2 Double@
+--
+--   * @Trail' Line V2 Double -> Double -> V2 Double@
+--
+--   * @Located (Trail V2 Double) -> Double -> V2 Double@
+--
+--   See the instances listed for the 'Tangent' newtype for more.
+normalAtParam
+  :: (InSpace V2 n t, Parametric (Tangent t), Floating n)
+  => t -> n -> V2 n
+normalAtParam t p = normize (t `tangentAtParam` p)
+
+-- | Compute the normal vector at the start of a segment or trail.
+normalAtStart
+  :: (InSpace V2 n t, EndValues (Tangent t), Floating n)
+  => t -> V2 n
+normalAtStart = normize . tangentAtStart
+
+-- | Compute the normal vector at the end of a segment or trail.
+normalAtEnd
+  :: (InSpace V2 n t, EndValues (Tangent t), Floating n)
+  => t -> V2 n
+normalAtEnd = normize . tangentAtEnd
+
+-- | Construct a normal vector from a tangent.
+normize :: Floating n => V2 n -> V2 n
+normize = negated . perp . signorm
 

@@ -33,45 +33,44 @@ library
     -- Geometry.Trail.UnboxedTrail
     -- Geometry.Transform.Matrix
     -- Geometry.Transform.ScaleInv
-    Geometry.TwoD.Ellipse
+    -- Geometry.TwoD.Ellipse
     -- Geometry.TwoD.Offset
-    Geometry.TwoD.Arc
-    Geometry
+    -- Geometry.TwoD.Arc
+    -- Geometry
     -- Geometry.Align
     Geometry.Angle
     Geometry.BoundingBox
-    Geometry.Combinators
-    Geometry.Direction
-    Geometry.Envelope
-    Geometry.HasOrigin
-    Geometry.Juxtapose
-    Geometry.Located
-    Geometry.Parametric
+    -- Geometry.Combinators
+    -- Geometry.Direction
+    -- Geometry.Envelope
+    -- Geometry.HasOrigin
+    -- Geometry.Juxtapose
+    -- Geometry.Located
+    -- Geometry.Parametric
     Geometry.Path
-    Geometry.Path.Unboxed
-    Geometry.Points
+    -- Geometry.Path.Unboxed
+    -- Geometry.Points
     Geometry.Query
     Geometry.Segment
     Geometry.Size
     Geometry.Space
-    Geometry.Tangent
     Geometry.Trace
     Geometry.Trail
-    Geometry.Trail.Unboxed
-    Geometry.TrailLike
+    -- Geometry.Trail.Unboxed
+    -- Geometry.TrailLike
     Geometry.Transform
     -- Geometry.TwoD.Align
     Geometry.TwoD.Combinators
-    Geometry.TwoD.Path
-    Geometry.TwoD.Points
+    -- Geometry.TwoD.Path
+    -- Geometry.TwoD.Points
     Geometry.TwoD.Polygons
-    Geometry.TwoD.Segment
-    Geometry.TwoD.Segment.Bernstein
+    -- Geometry.TwoD.Segment
+    -- Geometry.TwoD.Segment.Bernstein
     Geometry.TwoD.Shapes
     Geometry.TwoD.Size
     Geometry.TwoD.Transform
-    Geometry.TwoD.Types
-    Geometry.TwoD.Vector
+    -- Geometry.TwoD.Types
+    -- Geometry.TwoD.Vector
   -- other-modules:       
   other-extensions:
     BangPatterns DeriveFunctor EmptyDataDecls FlexibleContexts
@@ -100,6 +99,7 @@ library
     distributive >=0.5 && <0.6,
     unordered-containers >=0.2 && <0.3,
     array >=0.5 && <0.6,
+    contravariant,
     profunctors,
     intervals
   hs-source-dirs:      src

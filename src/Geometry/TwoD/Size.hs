@@ -26,6 +26,7 @@ module Geometry.TwoD.Size
   ) where
 
 import           Geometry.Space
+import           Geometry.Direction
 import           Geometry.Envelope
 import           Geometry.Size
 import           Geometry.TwoD.Types
@@ -39,11 +40,11 @@ import           Geometry.TwoD.Vector
 --
 --   Note this is just @diameter unitX@.
 width :: (InSpace V2 n a, Enveloped a) => a -> n
-width = diameter unitX
+width = diameter (direction unitX)
 
 -- | Compute the height of an enveloped object.
 height :: (InSpace V2 n a, Enveloped a) => a -> n
-height = diameter unitY
+height = diameter (direction unitY)
 
 -- | Compute the absolute x-coordinate range of an enveloped object in
 --   the form @(lo,hi)@. Return @Nothing@ for objects with an empty
@@ -51,13 +52,13 @@ height = diameter unitY
 --
 --   Note this is just @extent unitX@.
 extentX :: (InSpace v n a, R1 v, Enveloped a) => a -> Maybe (n, n)
-extentX = extent unitX
+extentX = extent (direction unitX)
 
 -- | Compute the absolute y-coordinate range of an enveloped object in
 --   the form @(lo,hi)@. Return @Nothing@ for objects with an empty
 --   envelope.
 extentY :: (InSpace v n a, R2 v, Enveloped a) => a -> Maybe (n, n)
-extentY = extent unitY
+extentY = extent (direction unitY)
 
 -- | Make a 'SizeSpec' from possibly-specified width and height.
 mkSizeSpec2D :: Num n => Maybe n -> Maybe n -> SizeSpec V2 n

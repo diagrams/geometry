@@ -18,6 +18,8 @@ module Geometry
   -- , module Geometry.Solve
   , module Geometry.Space
   -- , module Geometry.TwoD.Align
+
+    -- * TwoD
   , module Geometry.TwoD.Arc
   , module Geometry.TwoD.Combinators
   , module Geometry.TwoD.Curvature
@@ -31,6 +33,15 @@ module Geometry
   , module Geometry.TwoD.Transform
   , module Geometry.TwoD.Types
   , module Geometry.TwoD.Vector
+
+    -- * ThreeD
+  , module Geometry.ThreeD.Combinators
+  , module Geometry.ThreeD.Size
+  , module Geometry.ThreeD.Shapes
+  , module Geometry.ThreeD.Transform
+  , module Geometry.ThreeD.Vector
+  , module Geometry.ThreeD.Types
+
   , module Geometry.Tangent
   , module Geometry.Trace
   , module Geometry.Trail
@@ -70,6 +81,12 @@ import Geometry.TwoD.Size
 import Geometry.TwoD.Transform
 import Geometry.TwoD.Types
 import Geometry.TwoD.Vector
+import Geometry.ThreeD.Combinators
+import Geometry.ThreeD.Size
+import Geometry.ThreeD.Shapes
+import Geometry.ThreeD.Transform
+import Geometry.ThreeD.Vector
+import Geometry.ThreeD.Types
 import Geometry.Tangent
 import Geometry.Trace
 import Geometry.Trail

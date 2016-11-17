@@ -19,15 +19,14 @@ library
     -- Geometry.CubicSpline.Internal
     -- Geometry.Parametric.Adjust
     -- Geometry.SegSequence
-    -- Geometry.ThreeD.Align
-    -- Geometry.ThreeD.Camera
-    -- Geometry.ThreeD.Light
+    Geometry.ThreeD.Camera
+    Geometry.ThreeD.Combinators
     -- Geometry.ThreeD.Projection
-    -- Geometry.ThreeD.Shapes
-    -- Geometry.ThreeD.Size
-    -- Geometry.ThreeD.Transform
-    -- Geometry.ThreeD.Types
-    -- Geometry.ThreeD.Vector
+    Geometry.ThreeD.Shapes
+    Geometry.ThreeD.Size
+    Geometry.ThreeD.Transform
+    Geometry.ThreeD.Types
+    Geometry.ThreeD.Vector
     -- Geometry.Trail.Class
     -- Geometry.Trail.Segment
     -- Geometry.Trail.UnboxedTrail

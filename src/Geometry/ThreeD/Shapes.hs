@@ -20,14 +20,15 @@
 module Geometry.ThreeD.Shapes
   (
     -- * Basic 3D shapes
-    Ellipsoid(..)
-  , sphere
+    Sphere (..)
+  , EllipsoidLike (..)
 
-  , Box(..)
-  , cube
+  , Cube (..)
+  , CuboidLike (..)
+  , cuboid
 
-  , Frustum(..)
-  , frustum
+  , Frustum (..)
+  , FrustumLike (..)
   , cone
   , cylinder
 
@@ -63,24 +64,20 @@ import           Linear.Vector
 
 -- Ellipsoid -----------------------------------------------------------
 
-data Ellipsoid n = Ellipsoid !(Transformation V3 n)
+data Sphere n = Sphere
   deriving Typeable
 
-type instance V (Ellipsoid n) = V3
-type instance N (Ellipsoid n) = n
+type instance V (Sphere n) = V3
+type instance N (Sphere n) = n
 
-instance (Num n, Ord n) => HasQuery (Ellipsoid n) Any where
-  getQuery (Ellipsoid tr) = transform tr $
-    Query $ \v -> Any $ quadrance (v .-. origin) <= 1
+instance (Num n, Ord n) => HasQuery (Sphere n) Any where
+  getQuery Sphere = Query $ \(P v) -> Any $ quadrance v <= 1
 
-instance Fractional n => Transformable (Ellipsoid n) where
-  transform t1 (Ellipsoid t2) = Ellipsoid (t1 <> t2)
+instance OrderedField n => Enveloped (Sphere n) where
+  getEnvelope Sphere = mkEnvelope (const 1)
 
-instance OrderedField n => Enveloped (Ellipsoid n) where
-  getEnvelope (Ellipsoid tr) = transform tr . mkEnvelope (const 1)
-
-instance OrderedField n => Traced (Ellipsoid n) where
-  getTrace (Ellipsoid tr) = transform tr . mkTrace $ \(P p) v -> let
+instance OrderedField n => Traced (Sphere n) where
+  getTrace Sphere = mkTrace $ \(P p) v -> let
     a  =    v `dot` v
     b  = 2 * (p `dot` v)
     c  =    (p `dot` p) - 1
@@ -88,28 +85,28 @@ instance OrderedField n => Traced (Ellipsoid n) where
      -- mkSortedList $ quadForm a b c
      mkSortedList $ error "need quadForm" a b c
 
--- | A sphere of radius 1 with its center at the origin.
-sphere :: Num n => Ellipsoid n
-sphere = Ellipsoid mempty
+class EllipsoidLike t where
+  -- | A sphere of radius 1 with its center at the origin.
+  sphere :: t
 
 -- Cuboid --------------------------------------------------------------
 
-data Box n = Box !(Transformation V3 n)
+data Cube n = Cube
   deriving Typeable
 
-type instance V (Box n) = V3
-type instance N (Box n) = n
+type instance V (Cube n) = V3
+type instance N (Cube n) = n
 
-instance Fractional n => Transformable (Box n) where
-  transform t1 (Box t2) = Box (t1 <> t2)
+-- instance Fractional n => Transformable (Cube n) where
+--   transform t1 (Cube t2) = Cube (t1 <> t2)
 
-instance OrderedField n => Enveloped (Box n) where
-  getEnvelope (Box tr) = transform tr . mkEnvelope $ \v ->
+instance OrderedField n => Enveloped (Cube n) where
+  getEnvelope Cube = mkEnvelope $ \v ->
     maximum (map (v `dot`) corners) where
       corners = mkR3 <$> [0,1] <*> [0,1] <*> [0,1]
 
-instance (Fractional n, Ord n) => Traced (Box n) where
-  getTrace (Box tr) = transform tr . mkTrace $ \p v -> let
+instance (Fractional n, Ord n) => Traced (Cube n) where
+  getTrace Cube = mkTrace $ \p v -> let
     (x0, y0, z0) = unp3 p
     (vx, vy, vz) = unr3 v
     intersections f d = case d of
@@ -120,35 +117,40 @@ instance (Fractional n, Ord n) => Traced (Box n) where
     range u = and [x >= 0, x <= 1, y >= 0, y <= 1, z >= 0, z <= 1] where
       (x, y, z) = unp3 u
     in
-     -- ts gives all intersections with the planes forming the box
-     -- filter keeps only those actually on the box surface
+     -- ts gives all intersections with the planes forming the cube
+     -- filter keeps only those actually on the cube surface
      mkSortedList . filter (range . atT) $ ts where
 
-instance (Num n, Ord n) => HasQuery (Box n) Any where
-  getQuery (Box tr) = transform tr . Query $ Any . range where
+instance (Num n, Ord n) => HasQuery (Cube n) Any where
+  getQuery Cube = Query $ Any . range where
     range u = and [x >= 0, x <= 1, y >= 0, y <= 1, z >= 0, z <= 1] where
       (x, y, z) = unp3 u
 
--- | A cube with side length 1, in the positive octant, with one
--- vertex at the origin.
-cube :: Num n => Box n
-cube = Box mempty
+class CuboidLike t where
+  cube :: t
+
+-- | A cubeoid with corners @a@ and @b@.
+cuboid :: (InSpace V3 n t, CuboidLike t, Transformable t, Fractional n) => P3 n -> P3 n -> t
+cuboid a b = transform t cube
+  where
+    t = scalingV (a .-. b) <> translation (a^._Point)
 
 -- Frustum -------------------------------------------------------------
 
-data Frustum n = Frustum n n (Transformation V3 n)
+-- | A conical frustum.
+data Frustum n = Frustum n n
   deriving Typeable
 
 type instance V (Frustum n) = V3
 type instance N (Frustum n) = n
 
-instance Fractional n => Transformable (Frustum n) where
-  transform t1 (Frustum r0 r1 t2) = Frustum r0 r1 (t1 <> t2)
+-- instance Fractional n => Transformable (Frustum n) where
+--   transform t1 (Frustum r0 r1 t2) = Frustum r0 r1 (t1 <> t2)
 
 instance (OrderedField n, RealFloat n) => Enveloped (Frustum n) where
   -- The plane containing v and the z axis intersects the frustum in a trapezoid
   -- Test the four corners of this trapezoid; one must determine the Envelope
-  getEnvelope (Frustum r0 r1 tr) = transform tr . mkEnvelope $ \v ->
+  getEnvelope (Frustum r0 r1) = mkEnvelope $ \v ->
     let θ       = v ^. _theta
         corners = [(r1,θ,1), (-r1,θ,1), (r0,θ,0), (-r0,θ,0)]
     in  maximum . map (norm . project v . review r3CylindricalIso) $ corners
@@ -159,7 +161,7 @@ instance (RealFloat n, Ord n) => Traced (Frustum n) where
   -- in the parametric form of the ray but disregard any
   -- intersections outside z = [0,1] Similarly, find intersections
   -- with the planes z=0, z=1, but disregard any r>r0, r>r1
-  getTrace (Frustum r0 r1 tr) = transform tr . mkTrace $ \p v -> let
+  getTrace (Frustum r0 r1) = mkTrace $ \p v -> let
     (px, py, pz) = unp3 p
     (vx, vy, vz) = unr3 v
     ray t = p .+^ t *^ v
@@ -177,24 +179,8 @@ instance (RealFloat n, Ord n) => Traced (Frustum n) where
      -- mkSortedList $ filter zbounds (quadForm a b c) ++ ends
      mkSortedList $ filter zbounds (error "Traced Frustum not yet implimented" a b c) ++ ends
 
--- | A frustum of a right circular cone.  It has height 1 oriented
--- along the positive z axis, and radii r0 and r1 at Z=0 and Z=1.
--- 'cone' and 'cylinder' are special cases.
-frustum :: Num n => n -> n -> Frustum n
-frustum r0 r1 = Frustum r0 r1 mempty
-
--- | A cone with its base centered on the origin, with radius 1 at the
--- base, height 1, and it's apex on the positive Z axis.
-cone :: Num n => Frustum n
-cone = frustum 1 0
-
--- | A circular cylinder of radius 1 with one end cap centered on the
--- origin, and extending to Z=1.
-cylinder :: Num n => Frustum n
-cylinder = frustum 1 1
-
 instance OrderedField n => HasQuery (Frustum n) Any where
-  getQuery (Frustum r0 r1 tr) = transform tr $
+  getQuery (Frustum r0 r1) =
     Query $ \p -> let
       z = p^._z
       r = r0 + (r1 - r0)*z
@@ -203,6 +189,27 @@ instance OrderedField n => HasQuery (Frustum n) Any where
       projectXY u = u ^-^ project unitZ u
       in
        Any $ z >= 0 && z <= 1 && a <= r
+
+class Num (N t) => FrustumLike t where
+  frustum :: N t -> N t -> t
+
+instance Num n => FrustumLike (Frustum n) where
+  -- | A frustum of a right circular cone.  It has height 1 oriented
+  -- along the positive z axis, and radii r0 and r1 at Z=0 and Z=1.
+  -- 'cone' and 'cylinder' are special cases.
+  frustum = Frustum
+
+-- | A cone with its base centered on the origin, with radius 1 at the
+-- base, height 1, and it's apex on the positive Z axis.
+-- cone :: Num n => Frustum n
+-- cone = frustum 1 0
+cone :: FrustumLike t => t
+cone = frustum 1 0
+
+-- | A circular cylinder of radius 1 with one end cap centered on the
+-- origin, and extending to Z=1.
+cylinder :: FrustumLike t => t
+cylinder = frustum 1 1
 
 -- CSG -----------------------------------------------------------------
 
@@ -219,9 +226,9 @@ instance OrderedField n => HasQuery (Frustum n) Any where
 -- | A tree of Constructive Solid Geometry operations and the primitives that
 -- can be used in them.
 data CSG n
-  = CsgEllipsoid (Ellipsoid n)
-  | CsgBox (Box n)
-  | CsgFrustum (Frustum n)
+  = CsgEllipsoid (T3 n)
+  | CsgBox !(T3 n)
+  | CsgFrustum !n !n !(T3 n)
   | CsgUnion [CSG n]
   | CsgIntersection [CSG n]
   | CsgDifference (CSG n) (CSG n)
@@ -234,7 +241,7 @@ instance Fractional n => Transformable (CSG n) where
   transform t = \case
     CsgEllipsoid p      -> CsgEllipsoid $ transform t p
     CsgBox p            -> CsgBox $ transform t p
-    CsgFrustum p        -> CsgFrustum $ transform t p
+    CsgFrustum a b p    -> CsgFrustum a b $ transform t p
     CsgUnion ps         -> CsgUnion $ map (transform t) ps
     CsgIntersection ps  -> CsgIntersection $ map (transform t) ps
     CsgDifference p1 p2 -> CsgDifference (transform t p1) (transform t p2)
@@ -243,9 +250,9 @@ instance Fractional n => Transformable (CSG n) where
 -- Envelope of the Union.  This is wrong but easy to implement.
 instance RealFloat n => Enveloped (CSG n) where
   getEnvelope = \case
-    CsgEllipsoid p      -> getEnvelope p
-    CsgBox p            -> getEnvelope p
-    CsgFrustum p        -> getEnvelope p
+    CsgEllipsoid t      -> transform t $ getEnvelope Sphere
+    CsgBox t            -> transform t $ getEnvelope Cube
+    CsgFrustum a b t    -> transform t $ getEnvelope (Frustum a b)
     CsgUnion ps         -> foldMap getEnvelope ps
     CsgIntersection ps  -> foldMap getEnvelope ps
     CsgDifference p1 p2 -> getEnvelope p1 <> getEnvelope p2
@@ -254,9 +261,9 @@ instance RealFloat n => Enveloped (CSG n) where
 
 instance (Floating n, Ord n) => HasQuery (CSG n) Any where
   getQuery = \case
-    CsgEllipsoid prim   -> getQuery prim
-    CsgBox prim         -> getQuery prim
-    CsgFrustum prim     -> getQuery prim
+    CsgEllipsoid t      -> transform t $ getQuery Sphere
+    CsgBox t            -> transform t $ getQuery Cube
+    CsgFrustum a b t    -> transform t $ getQuery (Frustum a b)
     CsgUnion ps         -> foldMap getQuery ps
     CsgIntersection ps  -> Any . getAll <$> foldMap (fmap (All . getAny) . getQuery) ps
     CsgDifference p1 p2 -> inOut <$> getQuery p1 <*> getQuery p2 where
@@ -264,9 +271,9 @@ instance (Floating n, Ord n) => HasQuery (CSG n) Any where
 
 instance (RealFloat n, Ord n) => Traced (CSG n) where
   getTrace = \case
-    CsgEllipsoid p  -> getTrace p
-    CsgBox p        -> getTrace p
-    CsgFrustum p    -> getTrace p
+    CsgEllipsoid t   -> transform t $ getTrace Sphere
+    CsgBox t         -> transform t $ getTrace Cube
+    CsgFrustum a b t -> transform t $ getTrace (Frustum a b)
 
     -- on surface of some p, and not inside any of the others
     CsgUnion []     -> mempty
@@ -291,28 +298,21 @@ instance (RealFloat n, Ord n) => Traced (CSG n) where
         newPt dist = pt .+^ v ^* dist
         within prim = inquire prim . newPt
 
--- | Types which can be included in CSG trees.
-class CsgPrim a where
-  toCsg :: a n -> CSG n
+instance Num n => EllipsoidLike (CSG n) where
+  sphere = CsgEllipsoid mempty
 
-instance CsgPrim Ellipsoid where
-  toCsg = CsgEllipsoid
+instance Num n => CuboidLike (CSG n) where
+  cube = CsgBox mempty
 
-instance CsgPrim Box where
-  toCsg = CsgBox
+instance Num n => FrustumLike (CSG n) where
+  frustum a b = CsgFrustum a b mempty
 
-instance CsgPrim Frustum where
-  toCsg = CsgFrustum
+union :: CSG n -> CSG n -> CSG n
+union a b = CsgUnion [a, b]
 
-instance CsgPrim CSG where
-  toCsg = id
+intersection :: CSG n -> CSG n -> CSG n
+intersection a b = CsgIntersection [a, b]
 
-union :: (CsgPrim a, CsgPrim b) => a n -> b n -> CSG n
-union a b = CsgUnion [toCsg a, toCsg b]
-
-intersection :: (CsgPrim a, CsgPrim b) => a n -> b n -> CSG n
-intersection a b = CsgIntersection [toCsg a, toCsg b]
-
-difference :: (CsgPrim a, CsgPrim b) => a n -> b n -> CSG n
-difference a b = CsgDifference (toCsg a) (toCsg b)
+difference :: CSG n -> CSG n -> CSG n
+difference a b = CsgDifference a b
 

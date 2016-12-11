@@ -27,6 +27,7 @@ module Geometry.Space
   , OrderedField
   ) where
 
+import           Control.Monad.ST
 import           Data.Map
 import           Data.Sequence
 import           Data.Tree
@@ -69,6 +70,8 @@ type instance V (Map k a)     = V a
 type instance V (Tree a)      = V a
 type instance V (IntMap a)    = V a
 type instance V (HashMap k a) = V a
+type instance V (IO a)        = V a
+type instance V (ST s a)      = V a
 
 type instance V (Deletable m) = V m
 type instance V (Split m)     = V m
@@ -90,6 +93,8 @@ type instance N (Map k a)     = N a
 type instance N (Tree a)      = N a
 type instance N (IntMap a)    = N a
 type instance N (HashMap k a) = N a
+type instance N (IO a)        = N a
+type instance N (ST s a)      = N a
 
 type instance N (Deletable m) = N m
 type instance N (Split m)     = N m

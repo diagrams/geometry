@@ -1,10 +1,10 @@
+{-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE ViewPatterns          #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.ThreeD.Transform
@@ -19,51 +19,45 @@
 -----------------------------------------------------------------------------
 
 module Geometry.ThreeD.Transform
-  ( T3
+  -- ( T3
 
-    -- * Rotation
-  , aboutX, aboutY, aboutZ
-  , rotationAbout, rotateAbout
-  -- , pointAt, pointAt'
-  , Euler (..)
-  , Rotational (..)
+  --   -- * Rotation
+  -- , aboutX, aboutY, aboutZ
+  -- , rotationAbout, rotateAbout
+  -- -- , pointAt, pointAt'
+  -- , Euler (..)
+  -- , Rotational (..)
 
-  -- * Scaling
-  , scalingX, scalingY, scalingZ
-  , scaleX, scaleY, scaleZ
-  , scaling, scale
+  -- -- * Scaling
+  -- , scalingX, scalingY, scalingZ
+  -- , scaleX, scaleY, scaleZ
+  -- , scaling, scale
 
-  -- * Translation
-  , translationX, translateX
-  , translationY, translateY
-  , translationZ, translateZ
-  , translation, translate
+  -- -- * Translation
+  -- , translationX, translateX
+  -- , translationY, translateY
+  -- , translationZ, translateZ
+  -- , translation, translate
 
-    -- * Reflection
-  , reflectionX, reflectX
-  , reflectionY, reflectY
-  , reflectionZ, reflectZ
-  , reflectionAcross, reflectAcross
+  --   -- * Reflection
+  -- , reflectionX, reflectX
+  -- , reflectionY, reflectY
+  -- , reflectionZ, reflectZ
+  -- , reflectionAcross, reflectAcross
 
-  ) where
-
-import           Geometry.Transform
+  -- ) where
+  where
 
 import           Geometry.Angle
-import           Geometry.Direction
 import           Geometry.Space
-import           Geometry.TwoD.Transform
 import           Geometry.ThreeD.Types
+import           Geometry.Transform
 
-import           Control.Lens hiding (transform)
--- import           Data.Semigroup
+import           Control.Lens          hiding (transform)
 
-import           Linear.Metric
-import           Linear.Matrix hiding (translation)
-import           Linear.V3 (cross)
-import           Linear.Affine
-import           Linear.Vector
+import           Linear.Matrix         hiding (translation)
 import           Linear.Quaternion
+import           Linear.Vector
 
 -- | Create a transformation which rotates by the given angle about
 --   a line parallel the Z axis passing through the local origin.
@@ -79,61 +73,61 @@ import           Linear.Quaternion
 --   Note that writing @aboutZ (1\/4)@, with no type annotation, will
 --   yield an error since GHC cannot figure out which sort of angle
 --   you want to use.
-aboutZ :: Floating n => Angle n -> T3 n
-aboutZ a = fromOrthogonal $
-  V3 (V3 c    s 0)
-     (V3 (-s) c 0)
-     (V3 0    0 1)
-  where s = sinA a; c = cosA a
+-- aboutZ :: Floating n => Angle n -> T3 n
+-- aboutZ a = fromOrthogonal $
+--   V3 (V3 c    s 0)
+--      (V3 (-s) c 0)
+--      (V3 0    0 1)
+--   where s = sinA a; c = cosA a
 
 -- | Like 'aboutZ', but rotates about the X axis, bringing positive y-values
 -- towards the positive z-axis.
-aboutX :: Floating n => Angle n -> T3 n
-aboutX a = fromOrthogonal $
-  V3 (V3 1   0  0)
-     (V3 0   c  s)
-     (V3 0 (-s) c)
-  where s = sinA a; c = cosA a
+-- aboutX :: Floating n => Angle n -> T3 n
+-- aboutX a = fromOrthogonal $
+--   V3 (V3 1   0  0)
+--      (V3 0   c  s)
+--      (V3 0 (-s) c)
+--   where s = sinA a; c = cosA a
 
 -- | Like 'aboutZ', but rotates about the Y axis, bringing postive
 -- x-values towards the negative z-axis.
-aboutY :: Floating n => Angle n -> T3 n
-aboutY a = fromOrthogonal $
-  V3 (V3 c 0 (-s))
-     (V3 0 1   0 )
-     (V3 s 0   c )
-  where s = sinA a; c = cosA a
+-- aboutY :: Floating n => Angle n -> T3 n
+-- aboutY a = fromOrthogonal $
+--   V3 (V3 c 0 (-s))
+--      (V3 0 1   0 )
+--      (V3 s 0   c )
+--   where s = sinA a; c = cosA a
 
 -- | @rotationAbout p d a@ is a rotation about a line parallel to @d@
 --   passing through @p@.
-rotationAbout
-  :: Floating n
-  => P3 n               -- ^ origin of rotation
-  -> Direction V3 n     -- ^ direction of rotation axis
-  -> Angle n            -- ^ angle of rotation
-  -> T3 n
-rotationAbout (P p) d a = conjugate (translation p) (axisRotation d a)
+-- rotationAbout
+--   :: Floating n
+--   => P3 n               -- ^ origin of rotation
+--   -> Direction V3 n     -- ^ direction of rotation axis
+--   -> Angle n            -- ^ angle of rotation
+--   -> T3 n
+-- rotationAbout (P p) d a = conjugate (translation p) (axisRotation d a)
 
-axisRotation :: Floating n => Direction V3 n -> Angle n -> T3 n
-axisRotation d a = fromOrthogonal $
-  V3 (V3 (t*x*x + c)   (t*x*y - z*s) (t*x*z + y*s))
-     (V3 (t*x*y + z*s) (t*y*y + c)   (t*y*z - x*s))
-     (V3 (t*x*z - y*s) (t*y*z + x*s) (t*z*z + c))
-  where
-  c = cosA a
-  s = sinA a
-  t = 1 - c
-  V3 x y z = fromDirection d
+-- axisRotation :: Floating n => Direction V3 n -> Angle n -> T3 n
+-- axisRotation d a = fromOrthogonal $
+--   V3 (V3 (t*x*x + c)   (t*x*y - z*s) (t*x*z + y*s))
+--      (V3 (t*x*y + z*s) (t*y*y + c)   (t*y*z - x*s))
+--      (V3 (t*x*z - y*s) (t*y*z + x*s) (t*z*z + c))
+--   where
+--   c = cosA a
+--   s = sinA a
+--   t = 1 - c
+--   V3 x y z = fromDirection d
 
 -- | @rotationAbout p d a@ is a rotation about a line parallel to @d@
 --   passing through @p@.
-rotateAbout
-  :: (InSpace V3 n t, Floating n, Transformable t)
-  => P3 n            -- ^ origin of rotation
-  -> Direction V3 n  -- ^ direction of rotation axis
-  -> Angle n         -- ^ angle of rotation
-  -> t -> t
-rotateAbout p d theta = transform (rotationAbout p d theta)
+-- rotateAbout
+--   :: (InSpace V3 n t, Floating n, Transformable t)
+--   => P3 n            -- ^ origin of rotation
+--   -> Direction V3 n  -- ^ direction of rotation axis
+--   -> Angle n         -- ^ angle of rotation
+--   -> t -> t
+-- rotateAbout p d theta = transform (rotationAbout p d theta)
 
 -- | @pointAt about initial final@ produces a rotation which brings
 -- the direction @initial@ to point in the direction @final@ by first
@@ -214,9 +208,9 @@ reflectZ = transform reflectionZ
 --   the point @p@ and normal to vector @v@. This also works as a 2D
 --   transform where @v@ is the normal to the line passing through point
 --   @p@.
-reflectionAcross :: (Metric v, Fractional n)
-  => Point v n -> v n -> Transformation v n
-reflectionAcross = undefined -- p v
+-- reflectionAcross :: (Metric v, Fractional n)
+--   => Point v n -> v n -> Transformation v n
+-- reflectionAcross = undefined -- p v
   -- conjugate (translation (origin .-. p)) reflect
   --   where
   --     reflect = fromLinear t (linv t)
@@ -226,23 +220,26 @@ reflectionAcross = undefined -- p v
 -- | @reflectAcross p v@ reflects a diagram across the plane though
 --   the point @p@ and the vector @v@. This also works as a 2D transform
 --   where @v@ is the normal to the line passing through point @p@.
-reflectAcross :: (InSpace v n t, Metric v, Fractional n, Transformable t)
-  => Point v n -> v n -> t -> t
-reflectAcross p v = transform (reflectionAcross p v)
+-- reflectAcross :: (InSpace v n t, Metric v, Fractional n, Transformable t)
+--   => Point v n -> v n -> t -> t
+-- reflectAcross p v = transform (reflectionAcross p v)
 
--- | Class of things which describe a rotational transformation in 3D
---   space.
+-- | Things representing 3D rotations.
 class Rotational t where
   {-# MINIMAL quaternion | euler #-}
   -- | Lens onto the rotational transform as a quaternion.
   quaternion :: RealFloat n => Lens' (t n) (Quaternion n)
-  quaternion = euler . iso euler_to_quat quat_to_euler
+  quaternion = euler . iso e2q q2e
   {-# INLINE quaternion #-}
 
-  -- | Lens onto the rotational transform as an euler angle.
+  -- | Lens onto the rotational transform as an Euler angle.
   euler :: RealFloat n => Lens' (t n) (Euler n)
-  euler = quaternion . iso quat_to_euler euler_to_quat
+  euler = quaternion . iso q2e e2q
   {-# INLINE euler #-}
+
+  -- | Lens onto the axis angle representation of a rotation.
+  axisAngle :: RealFloat n => Lens' (t n) (AxisAngle n)
+  axisAngle = quaternion . iso q2aa aa2q
 
   -- | The rotational component as a 3x3 matrix.
   rotationMatrix :: RealFloat n => t n -> M33 n
@@ -251,24 +248,63 @@ class Rotational t where
 
   -- | The rotational component as a 'Transformation'.
   rotationTransform :: RealFloat n => t n -> T3 n
-  rotationTransform t = T (fromQuaternion q) (fromQuaternion (recip q)) zero
-    where q = view quaternion t
+  rotationTransform = fromOrthogonal . rotationMatrix
+  {-# INLINE rotationTransform #-}
 
--- -- Euler angles --------------------------------------------------------
+-- | Unit 'Quaternion's only.
+instance Rotational Quaternion where
+  quaternion = iso id id
+  {-# INLINE quaternion #-}
 
--- -- | Describe a rotational transform as a 'yaw', 'pitch' and 'roll'.
--- --   Currently only uses the YXZ convension.
--- --
--- -- XXX Need to state which convension I'm using!
+-- | Rotate something in 3D space.
+rotateWith :: (InSpace V3 n a, Rotational t, Transformable a, RealFloat n) => t n -> a -> a
+rotateWith = transform . rotationTransform
+{-# INLINE rotateWith #-}
+
+------------------------------------------------------------------------
+-- Euler Angles
+------------------------------------------------------------------------
+
+-- | Describe a rotational transform as a 'yaw', 'pitch' and 'roll'.
+--   Currently uses Tait–Bryan YXZ convension. That is, 'yaw' rotates
+--   around the y-axis, then 'pitch' rotates around the x-axis, then
+--   roll rotates around the z-axis (is this the right order?).
 data Euler n = Euler !(Angle n) !(Angle n) !(Angle n)
-  deriving Show
+  deriving (Show, Read, Functor)
 
-quat_to_euler :: RealFloat n => Quaternion n -> Euler n
-quat_to_euler (Quaternion q0 (V3 q1 q2 q3)) = Euler y p r
+q2e :: RealFloat n => Quaternion n -> Euler n
+q2e (Quaternion qw (V3 qx qy qz)) = Euler y p r
   where
-    y = asinA (clamp (-1) 1 (2*(q0*q2 + q3*q1)))
-    p = atan2A (2*(q0*q1 - q2*q3)) (1 - 2*(q1*q1+q2*q2))
-    r = atan2A (2*(q1*q2 - q0*q3)) (1 - 2*(q2*q2+q3*q3))
+    t0 =     2*(qw*qy + qz*qx)
+    t1 = 1 - 2*(qx*qx + qy*qy)
+    t2 =     2*(qw*qx - qz*qy)
+    t3 =     2*(qw*qz + qx*qy)
+    t4 = 1 - 2*(qz*qz + qx*qx)
+    -- account for floating point errors
+    t2' | t2 >  1   =  1
+        | t2 < -1   = -1
+        | otherwise = t2
+    --
+    y = atan2A t0 t1
+    p = asinA t2'
+    r = atan2A t3 t4
+{-# INLINE q2e #-}
+
+e2q :: Floating n => Euler n -> Quaternion n
+e2q (Euler y p r) = Quaternion qw (V3 qx qy qz)
+  where
+    qw = cr*cp*cy + sr*sp*sy
+    qz = sr*cp*cy - cr*sp*sy
+    qx = cr*sp*cy + sr*cp*sy
+    qy = cr*cp*sy - sr*sp*cy
+    --
+    cy = cosA (0.5*^y)
+    sy = sinA (0.5*^y)
+    cp = cosA (0.5*^p)
+    sp = sinA (0.5*^p)
+    cr = cosA (0.5*^r)
+    sr = sinA (0.5*^r)
+{-# INLINE e2q #-}
 
 clamp :: Ord n => n -> n -> n -> n
 clamp a b x
@@ -276,57 +312,59 @@ clamp a b x
   | x > b     = b
   | otherwise = x
 
--- takes a unit vector
-axAngle :: Floating a => V3 a -> Angle a -> Quaternion a
-axAngle axis theta = Quaternion (cosA half) (sinA half *^ axis)
+instance Rotational Euler where
+  euler = iso id id -- stupid redundant constraint checker
+  {-# INLINE euler #-}
+-- is it worth making a unit quaternion type wrapper?
+
+yaw :: (Rotational t, RealFloat n) => Lens' (t n) (Angle n)
+yaw = euler . (\f (Euler y p r) -> f y <&> \y' -> Euler y' p r)
+{-# INLINE yaw #-}
+
+pitch :: (Rotational t, RealFloat n) => Lens' (t n) (Angle n)
+pitch = euler . (\f (Euler y p r) -> f p <&> \p' -> Euler y p' r)
+{-# INLINE pitch #-}
+
+roll :: (Rotational t, RealFloat n) => Lens' (t n) (Angle n)
+roll = euler . (\f (Euler y p r) -> f r <&> \r' -> Euler y p r')
+{-# INLINE roll #-}
+
+------------------------------------------------------------------------
+-- Axis angle
+------------------------------------------------------------------------
+
+-- | An axis angle, represented by a unit vector v and an angle around
+--   that vector.
+data AxisAngle n = AxisAngle !(V3 n) !(Angle n)
+  deriving Show
+
+q2aa :: RealFloat n => Quaternion n -> AxisAngle n
+q2aa (Quaternion q0 v) = AxisAngle (v ^/ t) (2 *^ atan2A t q0)
+  where t = sqrt (1 - q0*q0)
+{-# INLINE q2aa #-}
+
+aa2q :: Floating n => AxisAngle n -> Quaternion n
+aa2q (AxisAngle axis theta) = Quaternion (cosA half) (sinA half *^ axis)
   where half = theta ^/ 2
-{-# INLINE axAngle #-}
+{-# INLINE aa2q #-}
 
-infixl 7 `qm`
-qm :: Num n => Quaternion n -> Quaternion n -> Quaternion n
-Quaternion s1 v1 `qm` Quaternion s2 v2 =
-    Quaternion (s1*s2 - (v1 `dot` v2)) ((v1 `cross` v2) + s1*^v2 + s2*^v1)
+instance Rotational AxisAngle where
+  quaternion = iso aa2q q2aa
+  {-# INLINE quaternion #-}
+  axisAngle = iso id id
+  {-# INLINE axisAngle #-}
 
--- eulerQuat :: RealFloat n => Iso' (Euler n) (Quaternion n)
--- eulerQuat = iso euler_to_quat quat_to_euler
+------------------------------------------------------------------------
+-- Rotation matrix
+------------------------------------------------------------------------
 
-euler_to_quat :: Floating n => Euler n -> Quaternion n
-euler_to_quat (Euler y p r) =
-  axAngle (V3 0 0 1) r `qm`
-  axAngle (V3 1 0 0) p `qm`
-  axAngle (V3 0 1 0) y
+-- Is this worth doing?
 
--- euler_to_quat_inverse :: Floating n => Euler n -> Quaternion n
--- euler_to_quat_inverse (Euler y p r) =
---   axAngle (V3 0 0 1) (negated y) `qm`
---   axAngle (V3 1 0 0) (negated p) `qm`
---   axAngle (V3 0 0 1) (negated r)
+-- | A matrix representing a rotation.
+-- newtype RotationMatrix n = RM (M33 n)
 
--- -- | 'M33' can't be made an instance of Rotational because of type
--- --   parameters. (maybe I should change it to use N?)
--- -- m33Quat :: RealFloat n => Lens' (M33 n) (Quaternion n)
--- -- m33Euler :: RealFloat n => Lens' (M33 n) (Euler n)
-
--- -- instance Rotational T3
--- instance Rotational Euler where
---   euler =  id
---   {-# INLINE euler #-}
-
--- instance Rotational Quaternion where
---   quaternion = id
---   {-# INLINE quaternion #-}
-
--- -- instance Rotational Camera
-
--- -- yaw :: (Rotational t, RealFloat n) => Lens' (t n) (Angle n)
--- -- yaw = euler . (\f (Euler y p r) -> f y <&> y' -> Euler y' p r)
--- -- {-# INLINE yaw #-}
-
--- -- pitch :: (Rotational t, RealFloat n) => Lens' (t n) (Angle n)
--- -- pitch = euler . (\f (Euler y p r) -> f p <&> p' -> Euler y p' r)
--- -- {-# INLINE pitch #-}
-
--- -- roll :: (Rotational t, RealFloat n) => Lens' (t n) (Angle n)
--- -- roll = euler . (\f (Euler y p r) -> f r <&> r' -> Euler y p r')
--- -- {-# INLINE roll #-}
+-- q2rm :: RealFloat n => RotationMatrix n -> Quaternion n
+-- rm2q :: RealFloat n => Quaternion n -> RotationMatrix n
+-- instance Rotational RotationMatrix where
+--   quaternion = iso rm2q q2rm
 

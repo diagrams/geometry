@@ -1,7 +1,9 @@
-{-# LANGUAGE DefaultSignatures    #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures     #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Parametric
@@ -14,23 +16,40 @@
 --
 -----------------------------------------------------------------------------
 module Geometry.Parametric
-  (
-    stdTolerance
-  , Codomain, Parametric(..)
+  ( stdTolerance
+  , Codomain
+  , Parametric (..)
 
-  , DomainBounds(..)
+  , DomainBounds (..)
   , domainBounds
-  , EndValues(..)
-  , Sectionable(..)
-  , HasArcLength(..)
+  , EndValues (..)
+  , Sectionable (..)
+  , HasArcLength (..)
+
+  -- ** Tangents
+  , Tangent(..)
+  , tangentAtParam
+  , tangentAtStart
+  , tangentAtEnd
+
+    -- ** Normals
+  , normalAtParam
+  , normalAtStart
+  , normalAtEnd
 
   ) where
 
-import           Geometry.Space
 import qualified Numeric.Interval.Kaucher as I
 
--- | Codomain of parametric classes.  This is usually either @(V p)@, for relative
---   vector results, or @(Point (V p))@, for functions with absolute coordinates.
+import           Linear
+import           Linear.Affine
+
+import           Geometry.Located
+import           Geometry.Space
+
+-- | Codomain of parametric classes. This is usually either @(V p)@,
+--   for relative vector results, or @(Point (V p))@, for functions with
+--   absolute coordinates.
 type family Codomain p :: * -> *
 
 -- | Type class for parametric functions.
@@ -41,12 +60,12 @@ class Parametric p where
   --   ``atParam`` 0.5@.
   atParam :: p -> N p -> Codomain p (N p)
 
--- | Type class for parametric functions with a bounded domain.  The
+-- | Type class for parametric functions with a bounded domain. The
 --   default bounds are @[0,1]@.
 --
---   Note that this domain indicates the main \"interesting\" portion of the
---   function.  It must be defined within this range, but for some instances may
---   still have sensible values outside.
+--   Note that this domain indicates the main \"interesting\" portion of
+--   the function. It must be defined within this range, but for some
+--   instances may still have sensible values outside.
 class DomainBounds p where
   -- | 'domainLower' defaults to being constantly 0 (for vector spaces with
   --   numeric scalars).
@@ -180,4 +199,112 @@ class Parametric p => HasArcLength p where
   stdArcLengthToParam :: p -> N p -> N p
   default stdArcLengthToParam :: Fractional (N p) => p -> N p -> N p
   stdArcLengthToParam = arcLengthToParam stdTolerance
+
+------------------------------------------------------------------------
+-- Tangent
+------------------------------------------------------------------------
+
+-- | A newtype wrapper used to give different instances of 'Parametric'
+--   and 'EndValues' that compute tangent vectors.
+newtype Tangent t = Tangent t
+
+type instance V (Tangent t) = V t
+type instance N (Tangent t) = N t
+type instance Codomain (Tangent t) = V t
+
+instance DomainBounds t => DomainBounds (Tangent t) where
+  domainLower (Tangent t) = domainLower t
+  domainUpper (Tangent t) = domainUpper t
+
+instance Parametric (Tangent t) => Parametric (Tangent (Located t)) where
+  Tangent l `atParam` p = Tangent (unLoc l) `atParam` p
+
+instance (DomainBounds t, EndValues (Tangent t))
+    => EndValues (Tangent (Located t)) where
+  atStart (Tangent l) = atStart (Tangent (unLoc l))
+  atEnd   (Tangent l) = atEnd   (Tangent (unLoc l))
+
+-- | Compute the tangent vector to a segment or trail at a particular
+--   parameter.
+--
+-- @
+-- 'tangentAtParam' :: 'Segment' 'Closed' 'V2' 'Double' -> 'Double' -> 'V2' 'Double'
+-- 'tangentAtParam' :: 'Located' ('Trail' 'V2')       -> 'Double' -> 'V2' 'Double'
+-- @
+--
+--   See the instances listed for the 'Tangent' newtype for more.
+tangentAtParam :: Parametric (Tangent t) => t -> N t -> Vn t
+tangentAtParam t p = Tangent t `atParam` p
+
+-- | Compute the tangent vector at the start of a segment or trail.
+tangentAtStart :: EndValues (Tangent t) => t -> Vn t
+tangentAtStart = atStart . Tangent
+
+-- | Compute the tangent vector at the end of a segment or trail.
+tangentAtEnd :: EndValues (Tangent t) => t -> Vn t
+tangentAtEnd = atEnd . Tangent
+
+------------------------------------------------------------
+-- Normal
+------------------------------------------------------------
+
+-- | Compute the (unit) normal vector to a segment or trail at a
+--   particular parameter.
+--
+--   Examples of more specific types this function can have include
+--
+--   * @Segment Closed V2 Double -> Double -> V2 Double@
+--
+--   * @Trail' Line V2 Double -> Double -> V2 Double@
+--
+--   * @Located (Trail V2 Double) -> Double -> V2 Double@
+--
+--   See the instances listed for the 'Tangent' newtype for more.
+normalAtParam
+  :: (InSpace V2 n t, Parametric (Tangent t), Floating n)
+  => t -> n -> V2 n
+normalAtParam t p = normize (t `tangentAtParam` p)
+
+-- | Compute the normal vector at the start of a segment or trail.
+normalAtStart
+  :: (InSpace V2 n t, EndValues (Tangent t), Floating n)
+  => t -> V2 n
+normalAtStart = normize . tangentAtStart
+
+-- | Compute the normal vector at the end of a segment or trail.
+normalAtEnd
+  :: (InSpace V2 n t, EndValues (Tangent t), Floating n)
+  => t -> V2 n
+normalAtEnd = normize . tangentAtEnd
+
+-- | Construct a normal vector from a tangent.
+normize :: Floating n => V2 n -> V2 n
+normize = negated . perp . signorm
+
+
+
+type instance Codomain (Located a) = Point (Codomain a)
+
+instance (InSpace v n a, Parametric a, Codomain a ~ v)
+    => Parametric (Located a) where
+  Loc x a `atParam` p = x .+^ (a `atParam` p)
+
+instance DomainBounds a => DomainBounds (Located a) where
+  domainLower (Loc _ a) = domainLower a
+  domainUpper (Loc _ a) = domainUpper a
+
+instance (InSpace v n a, EndValues a, Codomain a ~ v) => EndValues (Located a)
+
+instance (InSpace v n a, Fractional n, Parametric a, Sectionable a, Codomain a ~ v)
+    => Sectionable (Located a) where
+  splitAtParam (Loc x a) p = (Loc x a1, Loc (x .+^ (a `atParam` p)) a2)
+    where (a1,a2) = splitAtParam a p
+
+  reverseDomain (Loc x a) = Loc (x .+^ y) (reverseDomain a)
+    where y = a `atParam` domainUpper a
+
+instance (InSpace v n a, Fractional n, HasArcLength a, Codomain a ~ v)
+    => HasArcLength (Located a) where
+  arcLengthBounded eps (Loc _ a) = arcLengthBounded eps a
+  arcLengthToParam eps (Loc _ a) = arcLengthToParam eps a
 

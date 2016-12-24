@@ -46,7 +46,6 @@ import           Geometry.Envelope
 import           Geometry.Juxtapose
 import           Geometry.Trace
 import           Geometry.Transform
-import           Geometry.Parametric
 
 import           GHC.Generics (Generic)
 -- import           Data.Serialize (Serialize)
@@ -166,29 +165,4 @@ instance (Traced a, Num (N a)) => Traced (Located a) where
 
 -- instance Qualifiable a => Qualifiable (Located a) where
 --   n .>> Loc p a = Loc p (n .>> a)
-
-type instance Codomain (Located a) = Point (Codomain a)
-
-instance (InSpace v n a, Parametric a, Codomain a ~ v)
-    => Parametric (Located a) where
-  Loc x a `atParam` p = x .+^ (a `atParam` p)
-
-instance DomainBounds a => DomainBounds (Located a) where
-  domainLower (Loc _ a) = domainLower a
-  domainUpper (Loc _ a) = domainUpper a
-
-instance (InSpace v n a, EndValues a, Codomain a ~ v) => EndValues (Located a)
-
-instance (InSpace v n a, Fractional n, Parametric a, Sectionable a, Codomain a ~ v)
-    => Sectionable (Located a) where
-  splitAtParam (Loc x a) p = (Loc x a1, Loc (x .+^ (a `atParam` p)) a2)
-    where (a1,a2) = splitAtParam a p
-
-  reverseDomain (Loc x a) = Loc (x .+^ y) (reverseDomain a)
-    where y = a `atParam` domainUpper a
-
-instance (InSpace v n a, Fractional n, HasArcLength a, Codomain a ~ v)
-    => HasArcLength (Located a) where
-  arcLengthBounded eps (Loc _ a) = arcLengthBounded eps a
-  arcLengthToParam eps (Loc _ a) = arcLengthToParam eps a
 

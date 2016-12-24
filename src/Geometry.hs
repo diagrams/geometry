@@ -42,7 +42,6 @@ module Geometry
   , module Geometry.ThreeD.Vector
   , module Geometry.ThreeD.Types
 
-  , module Geometry.Tangent
   , module Geometry.Trace
   , module Geometry.Trail
   , module Geometry.Trail.Unboxed
@@ -87,7 +86,6 @@ import Geometry.ThreeD.Shapes
 import Geometry.ThreeD.Transform
 import Geometry.ThreeD.Vector
 import Geometry.ThreeD.Types
-import Geometry.Tangent
 import Geometry.Trace
 import Geometry.Trail
 import Geometry.Trail.Unboxed

@@ -120,7 +120,7 @@ import qualified Data.Foldable            as F
 import           Data.Monoid.MList
 import           Data.Semigroup
 import qualified Numeric.Interval.Kaucher as I
-import Data.Functor.Classes
+import           Data.Functor.Classes
 
 import           Geometry.Space
 import           Geometry.Transform
@@ -128,7 +128,6 @@ import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
 import           Geometry.Segment
-import           Geometry.Tangent
 
 import           Linear.Affine
 import           Linear.Metric

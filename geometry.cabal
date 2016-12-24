@@ -53,7 +53,6 @@ library
     Geometry.Segment
     Geometry.Size
     Geometry.Space
-    Geometry.Tangent
     Geometry.Trace
     Geometry.Trail
     Geometry.Trail.Unboxed

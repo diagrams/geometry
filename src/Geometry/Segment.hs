@@ -318,6 +318,18 @@ instance (Additive v, Num n) => Parametric (Segment Closed v n) where
     where t' = 1-t
   {-# INLINE atParam #-}
 
+instance (Additive v, Num n) => Parametric (Tangent (Segment Closed v n)) where
+  Tangent (Linear (OffsetClosed v)) `atParam` _ = v
+  Tangent (Cubic c1 c2 (OffsetClosed x2)) `atParam` p
+    = (3*(3*p*p-4*p+1))*^c1 ^+^ (3*(2-3*p)*p)*^c2 ^+^ (3*p*p)*^x2
+
+instance (Additive v, Num n) => EndValues (Tangent (Segment Closed v n)) where
+  atStart (Tangent (Linear (OffsetClosed v)))      = v
+  atStart (Tangent (Cubic c1 _ _))                 = c1
+  atEnd   (Tangent (Linear (OffsetClosed v)))      = v
+  atEnd   (Tangent (Cubic _ c2 (OffsetClosed x2))) = x2 ^-^ c2
+
+
 instance Num n => DomainBounds (Segment Closed v n)
 
 instance (Additive v, Num n) => EndValues (Segment Closed v n) where
@@ -541,6 +553,13 @@ data FixedSegment v n
 
 type instance V (FixedSegment v n) = v
 type instance N (FixedSegment v n) = n
+
+instance (Additive v, Num n) => Parametric (Tangent (FixedSegment v n)) where
+  atParam (Tangent fSeg) = atParam $ Tangent (view fixed fSeg)
+
+instance (Additive v, Num n) => EndValues (Tangent (FixedSegment v n)) where
+  atStart (Tangent fSeg) = atStart $ Tangent (view fixed fSeg)
+  atEnd (Tangent fSeg)   = atEnd $ Tangent (view fixed fSeg)
 
 instance Each (FixedSegment v n) (FixedSegment v' n') (Point v n) (Point v' n') where
   each f (FLinear p0 p1)      = FLinear <$> f p0 <*> f p1

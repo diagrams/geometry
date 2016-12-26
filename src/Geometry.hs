@@ -1,5 +1,4 @@
 module Geometry
-  -- ( module Geometry.Align
   ( module Geometry.Angle
   , module Geometry.BoundingBox
   , module Geometry.Combinators
@@ -10,14 +9,11 @@ module Geometry
   , module Geometry.Located
   , module Geometry.Parametric
   , module Geometry.Path
-  , module Geometry.Path.Unboxed
   , module Geometry.Points
   , module Geometry.Query
   , module Geometry.Segment
   , module Geometry.Size
-  -- , module Geometry.Solve
   , module Geometry.Space
-  -- , module Geometry.TwoD.Align
 
     -- * TwoD
   , module Geometry.TwoD.Arc
@@ -44,51 +40,43 @@ module Geometry
 
   , module Geometry.Trace
   , module Geometry.Trail
-  , module Geometry.Trail.Unboxed
-  , module Geometry.TrailLike
   , module Geometry.Transform
   ) where
 
--- import Geometry.Align
-import Geometry.Angle
-import Geometry.BoundingBox
-import Geometry.Combinators
-import Geometry.Direction
-import Geometry.Envelope
-import Geometry.HasOrigin
-import Geometry.Juxtapose
-import Geometry.Located
-import Geometry.Parametric
-import Geometry.Path
-import Geometry.Path.Unboxed
-import Geometry.Points
-import Geometry.Query
-import Geometry.Segment
-import Geometry.Size
--- import Geometry.Solve
-import Geometry.Space
--- import Geometry.TwoD.Align
-import Geometry.TwoD.Arc
-import Geometry.TwoD.Combinators
-import Geometry.TwoD.Curvature
-import Geometry.TwoD.Ellipse
-import Geometry.TwoD.Path
-import Geometry.TwoD.Points
-import Geometry.TwoD.Polygons
-import Geometry.TwoD.Segment
-import Geometry.TwoD.Size
-import Geometry.TwoD.Transform
-import Geometry.TwoD.Types
-import Geometry.TwoD.Vector
-import Geometry.ThreeD.Combinators
-import Geometry.ThreeD.Size
-import Geometry.ThreeD.Shapes
-import Geometry.ThreeD.Transform
-import Geometry.ThreeD.Vector
-import Geometry.ThreeD.Types
-import Geometry.Trace
-import Geometry.Trail
-import Geometry.Trail.Unboxed
-import Geometry.TrailLike
-import Geometry.TwoD.Shapes
-import Geometry.Transform
+import           Geometry.Angle
+import           Geometry.BoundingBox
+import           Geometry.Combinators
+import           Geometry.Direction
+import           Geometry.Envelope
+import           Geometry.HasOrigin
+import           Geometry.Juxtapose
+import           Geometry.Located
+import           Geometry.Parametric
+import           Geometry.Path
+import           Geometry.Points
+import           Geometry.Query
+import           Geometry.Segment
+import           Geometry.Size
+import           Geometry.Space
+import           Geometry.ThreeD.Combinators
+import           Geometry.ThreeD.Shapes
+import           Geometry.ThreeD.Size
+import           Geometry.ThreeD.Transform
+import           Geometry.ThreeD.Types
+import           Geometry.ThreeD.Vector
+import           Geometry.Trace
+import           Geometry.Trail
+import           Geometry.Transform
+import           Geometry.TwoD.Arc
+import           Geometry.TwoD.Combinators
+import           Geometry.TwoD.Curvature
+import           Geometry.TwoD.Ellipse
+import           Geometry.TwoD.Path
+import           Geometry.TwoD.Points
+import           Geometry.TwoD.Polygons
+import           Geometry.TwoD.Segment
+import           Geometry.TwoD.Shapes
+import           Geometry.TwoD.Size
+import           Geometry.TwoD.Transform
+import           Geometry.TwoD.Types
+import           Geometry.TwoD.Vector

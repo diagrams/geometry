@@ -47,8 +47,7 @@ module Geometry.TwoD.Polygons (
 
   ) where
 
-import           Control.Lens            (Lens', generateSignatures, lensRules,
-                                          makeLensesWith, view, (.~), (^.), _2)
+import           Control.Lens hiding (at, transform)
 import           Control.Monad           (forM, liftM)
 import           Control.Monad.ST        (ST, runST)
 import           Data.Array.ST           (STUArray, newArray, readArray,
@@ -69,7 +68,7 @@ import           Geometry.Path
 import           Geometry.Points         (centroid)
 import           Geometry.Trail
 import           Geometry.Transform
-import           Geometry.TrailLike
+-- import           Geometry.TrailLike
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector    (leftTurn, unitX, unitY, unit_Y)
@@ -171,17 +170,17 @@ polyTrail po = transform ori tr where
       NoOrient     -> mempty
 
 -- | Generate the polygon described by the given options.
-polygon :: (InSpace V2 n t, TrailLike t) => PolygonOpts n -> t
-polygon = trailLike . polyTrail
+polygon :: (InSpace V2 n t, FromTrail t, OrderedField n) => PolygonOpts n -> t
+polygon = fromLocTrail . polyTrail
 
 -- | Generate the located trail of a polygon specified by polar data
 --   (central angles and radii). See 'PolyPolar'.
-polyPolarTrail :: OrderedField n =>  [Angle n] -> [n] -> Located (Trail V2 n)
-polyPolarTrail []  _      = emptyTrail `at` origin
-polyPolarTrail _   []     = emptyTrail `at` origin
+polyPolarTrail :: OrderedField n => [Angle n] -> [n] -> Located (Trail V2 n)
+polyPolarTrail []  _      = Empty `at` origin
+polyPolarTrail _   []     = Empty `at` origin
 polyPolarTrail ans (r:rs) = tr `at` p1 where
   p1 = mkP2 r 0
-  tr = closeTrail . trailFromVertices $
+  tr = closeTrail . fromVertices $
          zipWith
            (\a l -> papply (rotation a <> scaling l) $ p2 (1,0))
            (scanl (^+^) zero ans)
@@ -190,13 +189,13 @@ polyPolarTrail ans (r:rs) = tr `at` p1 where
 -- | Generate the vertices of a polygon specified by side length and
 --   angles, and a starting point for the trail such that the origin
 --   is at the centroid of the vertices.  See 'PolySides'.
-polySidesTrail :: OrderedField n =>  [Angle n] -> [n] -> Located (Trail V2 n)
+polySidesTrail :: OrderedField n => [Angle n] -> [n] -> Located (Trail V2 n)
 polySidesTrail ans ls = tr `at` (papply (scaling (-1)) $ centroid ps)
   where
     ans'    = scanl (^+^) zero ans
     offsets = zipWith rotate ans' (map (unitY ^*) ls)
     ps      = scanl (.+^) origin offsets
-    tr      = closeTrail . trailFromOffsets $ offsets
+    tr      = closeTrail $ fromOffsets offsets
 
 -- | Generate the vertices of a regular polygon.  See 'PolyRegular'.
 polyRegularTrail :: OrderedField n => Int -> n -> Located (Trail V2 n)
@@ -210,7 +209,7 @@ polyRegularTrail n r =
 --   adjacent to the vertex furthest in the direction of @v@ is
 --   perpendicular to @v@.
 orient :: OrderedField n => V2 n -> Located (Trail V2 n) -> Transformation V2 n
-orient v = orientPoints v . trailVertices
+orient v = orientPoints v . undefined -- trailVertices
 
 orientPoints :: OrderedField n => V2 n -> [Point V2 n] -> Transformation V2 n
 orientPoints _ [ ] = mempty
@@ -355,7 +354,7 @@ star sOpts vs = graphToPath $ mkGraph f vs
 
     graphToPath = foldMap partToPath
 
-    partToPath (Cycle ps) = pathFromLocTrail
+    partToPath (Cycle ps) = fromLocTrail
                           . mapLoc closeTrail
                           . fromVertices
                           $ ps

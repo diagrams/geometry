@@ -53,6 +53,7 @@ import           Geometry.Points
 import           Geometry.Query
 import           Geometry.Space
 import           Geometry.Trace
+import           Geometry.BoundingBox
 import           Geometry.Transform
 -- import           Geometry.Solve.Polynomial
 import           Geometry.ThreeD.Types
@@ -61,6 +62,7 @@ import           Geometry.ThreeD.Vector
 import           Linear.Affine
 import           Linear.Metric
 import           Linear.Vector
+import Numeric.Interval.NonEmpty.Internal hiding (intersection)
 
 -- Ellipsoid -----------------------------------------------------------
 
@@ -74,7 +76,7 @@ instance (Num n, Ord n) => HasQuery (Sphere n) Any where
   getQuery Sphere = Query $ \(P v) -> Any $ quadrance v <= 1
 
 instance OrderedField n => Enveloped (Sphere n) where
-  getEnvelope Sphere = mkEnvelope (const 1)
+  getEnvelope Sphere = Envelope (const $ I (-1) 1)
 
 instance OrderedField n => Traced (Sphere n) where
   getTrace Sphere = mkTrace $ \(P p) v -> let
@@ -101,9 +103,10 @@ type instance N (Cube n) = n
 --   transform t1 (Cube t2) = Cube (t1 <> t2)
 
 instance OrderedField n => Enveloped (Cube n) where
-  getEnvelope Cube = mkEnvelope $ \v ->
-    maximum (map (v `dot`) corners) where
-      corners = mkR3 <$> [0,1] <*> [0,1] <*> [0,1]
+  getEnvelope Cube = getEnvelope (fromCorners origin (mkP3 1 1 1))
+    -- mkEnvelope $ \v ->
+    -- maximum (map (v `dot`) corners) where
+    --   corners = mkR3 <$> [0,1] <*> [0,1] <*> [0,1]
 
 instance (Fractional n, Ord n) => Traced (Cube n) where
   getTrace Cube = mkTrace $ \p v -> let
@@ -147,13 +150,16 @@ type instance N (Frustum n) = n
 -- instance Fractional n => Transformable (Frustum n) where
 --   transform t1 (Frustum r0 r1 t2) = Frustum r0 r1 (t1 <> t2)
 
+envelope :: OrderedField n => [n] -> Interval n
+envelope = foldr (\x (I a b) -> I (min x a) (max x b)) (I (1/0) (-1/0))
+
 instance (OrderedField n, RealFloat n) => Enveloped (Frustum n) where
   -- The plane containing v and the z axis intersects the frustum in a trapezoid
   -- Test the four corners of this trapezoid; one must determine the Envelope
-  getEnvelope (Frustum r0 r1) = mkEnvelope $ \v ->
+  getEnvelope (Frustum r0 r1) = Envelope $ \v ->
     let θ       = v ^. _theta
         corners = [(r1,θ,1), (-r1,θ,1), (r0,θ,0), (-r0,θ,0)]
-    in  maximum . map (norm . project v . review r3CylindricalIso) $ corners
+    in  envelope . map (norm . project v . review r3CylindricalIso) $ corners
 
 instance (RealFloat n, Ord n) => Traced (Frustum n) where
   -- The trace can intersect the sides of the cone or one of the end

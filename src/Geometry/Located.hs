@@ -1,10 +1,11 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE DeriveGeneric         #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Located
@@ -30,24 +31,25 @@ module Geometry.Located
   )
   where
 
-import           Control.Lens            (Lens, Lens')
+import           Control.Lens         (Lens, Lens')
 #if __GLASGOW_HASKELL__ < 710
-import           Data.Functor            ((<$>))
+import           Data.Functor         ((<$>))
 #endif
 import           Text.Read
 
+import           Data.Functor.Classes
+import           Data.Typeable
 import           Linear.Affine
 import           Linear.Vector
-import Data.Typeable
-import Data.Functor.Classes
 
-import           Geometry.Space
 import           Geometry.Envelope
 import           Geometry.Juxtapose
+import           Geometry.Query
+import           Geometry.Space
 import           Geometry.Trace
 import           Geometry.Transform
 
-import           GHC.Generics (Generic)
+import           GHC.Generics         (Generic)
 -- import           Data.Serialize (Serialize)
 
 -- | \"Located\" things, /i.e./ things with a concrete location:
@@ -154,6 +156,10 @@ instance (InSpace v n a, Foldable v, Transformable a) => Transformable (Located 
 instance Enveloped a => Enveloped (Located a) where
   getEnvelope (Loc p a) = moveTo p (getEnvelope a)
   {-# INLINE getEnvelope #-}
+
+instance (Additive (V a), Num (N a), HasQuery a m) => HasQuery (Located a) m where
+  getQuery (Loc p a) = moveTo p (getQuery a)
+  {-# INLINE getQuery #-}
 
 instance Enveloped a => Juxtaposable (Located a) where
   juxtapose = juxtaposeDefault

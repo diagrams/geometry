@@ -47,7 +47,7 @@ library
     Geometry.Located
     Geometry.Parametric
     Geometry.Path
-    Geometry.Path.Unboxed
+    -- Geometry.Path.Unboxed
     Geometry.Points
     Geometry.Query
     Geometry.Segment
@@ -55,8 +55,8 @@ library
     Geometry.Space
     Geometry.Trace
     Geometry.Trail
-    Geometry.Trail.Unboxed
-    Geometry.TrailLike
+    -- Geometry.Trail.Unboxed
+    -- Geometry.TrailLike
     Geometry.Transform
     -- Geometry.TwoD.Align
     Geometry.TwoD.Combinators
@@ -82,7 +82,7 @@ library
     ConstraintKinds TypeSynonymInstances
   build-depends:
     base >=4.9 && <4.10,
-    lens >=4.14 && <4.15,
+    lens,
     monoid-extras >=0.4 && <0.5,
     linear >=1.20 && <1.21,
     cereal >=0.5 && <0.6,
@@ -93,7 +93,8 @@ library
     diagrams-solve,
     adjunctions >=4.3 && <4.4,
     primitive >=0.6 && <0.7,
-    vector >=0.11 && <0.12,
+    vector,
+    contravariant,
     hashable >=1.2 && <1.3,
     distributive >=0.5 && <0.6,
     unordered-containers >=0.2 && <0.3,

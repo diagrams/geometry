@@ -35,7 +35,6 @@ import           Geometry.Direction
 import           Geometry.Located        (at)
 import           Geometry.Segment
 import           Geometry.Trail
-import           Geometry.TrailLike
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector    (unitX, unitY, unit_Y, e)
@@ -54,7 +53,7 @@ import           Linear.Vector
 --  the positive y direction and sweeps counterclockwise through an
 --  angle @s@.  The approximation is only valid for angles in the
 --  first quadrant.
-bezierFromSweepQ1 :: Floating n => Angle n -> Segment Closed V2 n
+bezierFromSweepQ1 :: Floating n => Angle n -> Segment V2 n
 bezierFromSweepQ1 s = over each (^-^ unitX) . rotate (s ^/ 2) $ bezier3 c2 c1 p0
   where p0@(V2 x y) = e (s ^/ 2)
         c1          = V2 ((4-x)/3) ((1-x)*(3-x)/(3*y))
@@ -66,7 +65,7 @@ bezierFromSweepQ1 s = over each (^-^ unitX) . rotate (s ^/ 2) $ bezier3 c2 c1 p0
 --   negative y direction and sweep clockwise.  When @s@ is less than
 --   0.0001 the empty list results.  If the sweep is greater than @fullTurn@
 --   later segments will overlap earlier segments.
-bezierFromSweep :: OrderedField n => Angle n -> [Segment Closed V2 n]
+bezierFromSweep :: OrderedField n => Angle n -> [Segment V2 n]
 bezierFromSweep s
   | s < zero          = fmap reflectY . bezierFromSweep $ negated s
   | s < 0.0001 @@ rad = []
@@ -99,7 +98,7 @@ the approximation error.
 --   the angle @s@ counterclockwise (for positive s).  The resulting
 --   @Trail@ is allowed to wrap around and overlap itself.
 arcT :: OrderedField n => Direction V2 n -> Angle n -> Trail V2 n
-arcT start sweep = trailFromSegments bs
+arcT start sweep = fromSegments bs
   where
     bs = map (rotateTo start) . bezierFromSweep $ sweep
 
@@ -107,8 +106,8 @@ arcT start sweep = trailFromSegments bs
 --   path of a radius one arc starting at @d@ and sweeping out the angle
 --   @s@ counterclockwise (for positive s).  The resulting
 --   @Trail@ is allowed to wrap around and overlap itself.
-arc :: (InSpace V2 n t, OrderedField n, TrailLike t) => Direction V2 n -> Angle n -> t
-arc start sweep = trailLike $ arcT start sweep `at` P (fromDirection start)
+arc :: (InSpace V2 n t, OrderedField n, FromTrail t) => Direction V2 n -> Angle n -> t
+arc start sweep = fromLocTrail $ arcT start sweep `at` P (fromDirection start)
 
 -- | Given a radus @r@, a start direction @d@ and an angle @s@,
 --   @'arc'' r d s@ is the path of a radius @(abs r)@ arc starting at
@@ -119,12 +118,12 @@ arc start sweep = trailLike $ arcT start sweep `at` P (fromDirection start)
 --
 --   > arc'Ex = mconcat [ arc' r xDir (1/4 @@ turn) | r <- [0.5,-1,1.5] ]
 --   >        # centerXY # pad 1.1
-arc' :: (InSpace V2 n t, OrderedField n, TrailLike t) => n -> Direction V2 n -> Angle n -> t
-arc' (abs -> r) start sweep = trailLike $ scale r ts `at` P (r *^ fromDirection start)
+arc' :: (InSpace V2 n t, OrderedField n, FromTrail t) => n -> Direction V2 n -> Angle n -> t
+arc' (abs -> r) start sweep = fromLocTrail $ scale r ts `at` P (r *^ fromDirection start)
   where ts = arcT start sweep
 
 arcCCWT :: RealFloat n => Direction V2 n -> Direction V2 n -> Trail V2 n
-arcCCWT start end = trailFromSegments bs
+arcCCWT start end = fromSegments bs
   where
     bs    = map (rotateTo start) . bezierFromSweep $ sweep
     sweep = normalizeAngle $ end ^. _theta ^-^ start ^. _theta
@@ -132,12 +131,12 @@ arcCCWT start end = trailFromSegments bs
 -- | Given a start direction @s@ and end direction @e@, @arcCCW s e@ is the
 --   path of a radius one arc counterclockwise between the two directions.
 --   The origin of the arc is its center.
-arcCCW :: (InSpace V2 n t, RealFloat n, TrailLike t) => Direction V2 n -> Direction V2 n -> t
-arcCCW start end = trailLike $ arcCCWT start end `at` P (fromDirection start)
+arcCCW :: (InSpace V2 n t, RealFloat n, FromTrail t) => Direction V2 n -> Direction V2 n -> t
+arcCCW start end = fromLocTrail $ arcCCWT start end `at` P (fromDirection start)
 
 -- | Like 'arcAngleCCW' but clockwise.
-arcCW :: (InSpace V2 n t, RealFloat n, TrailLike t) => Direction V2 n -> Direction V2 n -> t
-arcCW start end = trailLike $
+arcCW :: (InSpace V2 n t, RealFloat n, FromTrail t) => Direction V2 n -> Direction V2 n -> t
+arcCW start end = fromLocTrail $
   -- flipped arguments to get the path we want
   -- then reverse the trail to get the cw direction.
   reverseTrail (arcCCWT end start) `at` P (fromDirection start)
@@ -154,8 +153,8 @@ arcCW start end = trailLike $
 --   >   ]
 --   >   # fc blue
 --   >   # centerXY # pad 1.1
-wedge :: (InSpace V2 n t, OrderedField n, TrailLike t) => n -> Direction V2 n -> Angle n -> t
-wedge r d s = trailLike . (`at` origin) . glueTrail . wrapLine
+wedge :: (InSpace V2 n t, OrderedField n, FromTrail t) => n -> Direction V2 n -> Angle n -> t
+wedge r d s = fromLocTrail . (`at` origin) . glueTrail . wrapLine
               $ fromOffsets [r *^ fromDirection d]
                 <> scale r (arc d s)
                 <> fromOffsets [r *^ negated (rotate s $ fromDirection d)]
@@ -171,8 +170,8 @@ wedge r d s = trailLike . (`at` origin) . glueTrail . wrapLine
 --   > arcBetweenEx = mconcat
 --   >   [ arcBetween origin (p2 (2,1)) ht | ht <- [-0.2, -0.1 .. 0.2] ]
 --   >   # centerXY # pad 1.1
-arcBetween :: (TrailLike t, V t ~ V2, N t ~ n, RealFloat n) => Point V2 n -> Point V2 n -> n -> t
-arcBetween p q ht = trailLike (a & rotate (v^._theta) & moveTo p)
+arcBetween :: (InSpace V2 n t, FromTrail t, RealFloat n) => Point V2 n -> Point V2 n -> n -> t
+arcBetween p q ht = fromLocTrail (a & rotate (v^._theta) & moveTo p)
   where
     h = abs ht
     isStraight = h < 0.00001
@@ -205,9 +204,9 @@ arcBetween p q ht = trailLike (a & rotate (v^._theta) & moveTo p)
 --   >   ]
 --   >   # fc blue
 --   >   # centerXY # pad 1.1
-annularWedge :: (TrailLike t, V t ~ V2, N t ~ n, RealFloat n) =>
+annularWedge :: (InSpace V2 n t, FromTrail t, RealFloat n) =>
                 n -> n -> Direction V2 n -> Angle n -> t
-annularWedge r1' r2' d1 s = trailLike . (`at` o) . glueTrail . wrapLine
+annularWedge r1' r2' d1 s = fromLocTrail . (`at` o) . glueTrail . wrapLine
               $ fromOffsets [(r1' - r2') *^ fromDirection d1]
                 <> scale r1' (arc d1 s)
                 <> fromOffsets [(r1' - r2') *^ negated (fromDirection d2)]

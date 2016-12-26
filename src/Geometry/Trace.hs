@@ -90,11 +90,13 @@ unsafeMkSortedList = SortedList
 --   input to ensure the 'SortedList' invariant.
 mkSortedList :: Ord a => [a] -> SortedList a
 mkSortedList = SortedList . sort
+{-# INLINE mkSortedList #-}
 
 -- | Project the (guaranteed sorted) list out of a 'SortedList'
 --   wrapper.
 getSortedList :: SortedList a -> [a]
 getSortedList (SortedList as) = as
+{-# INLINE getSortedList #-}
 
 -- | Apply a list function to a 'SortedList'.  The function need not
 --   result in a sorted list; the result will be sorted before being

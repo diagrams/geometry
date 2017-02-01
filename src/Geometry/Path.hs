@@ -77,7 +77,7 @@ import qualified Data.Sequence                      as Seq
 
 import Geometry.Trace
 import Geometry.Query
--- import           Geometry.Juxtapose
+import           Geometry.BoundingBox
 import           Geometry.Located
 import           Geometry.Points
 import           Geometry.Space
@@ -348,5 +348,4 @@ instance ToPath a => ToPath [a] where
 -- -- | Same as 'reversePath'.
 -- instance (Metric v, OrderedField n) => Reversing (Path v n) where
 --   reversing = _Wrapped' . mapped %~ reversing
-
 

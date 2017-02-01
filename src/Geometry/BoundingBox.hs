@@ -37,7 +37,7 @@ module Geometry.BoundingBox
   , getCorners, getAllCorners
   , boxExtents, boxCenter
   -- , mCenterPoint, centerPoint
-  -- , boxTransform, boxFit
+  , boxTransform -- , boxFit
 
     -- * Operations on bounding boxes
   -- , union, intersection
@@ -345,16 +345,18 @@ boxCenter = fmap (uncurry (lerp 0.5)) . getCorners
 --             => a -> Point v n
 -- centerPoint = fromMaybe origin . mCenterPoint
 
--- | Create a transformation mapping points from one bounding box to the
---   other. Returns 'Nothing' if either of the boxes are empty.
--- boxTransform
---   :: (Additive v, Fractional n)
---   => BoundingBox v n -> BoundingBox v n -> Maybe (Transformation v n)
--- boxTransform u v = do
---   (P ul, _) <- getCorners u
---   (P vl, _) <- getCorners v
---   let -- i  = s (v, u) <-> s (u, v)
---       s = liftU2 (*) . uncurry (liftU2 (/)) . mapT boxExtents
---       m = undefined -- fmap s eye
---   return $ T m m (vl ^-^ s (v, u) ul)
+-- | Create a transformation mapping points from the first bounding box to the
+--   second. Returns 'Nothing' if either of the boxes are empty.
+boxTransform
+  :: (HasLinearMap v, Fractional n)
+  => BoundingBox v n -> BoundingBox v n -> Maybe (Transformation v n)
+boxTransform u v = do
+  (P ul, _) <- getCorners u
+  (P vl, _) <- getCorners v
+  let -- i  = s (v, u) <-> s (u, v)
+      vec = liftU2 (/) (boxExtents v) (boxExtents u)
+      -- s = liftU2 (*) . uncurry (liftU2 (/)) . over both boxExtents
+      T m m_ _  = scalingV vec
+  return $ T m m_ (vl ^-^ liftU2 (*) vec ul)
+  -- XXX IS THIS CORRECT?
 

@@ -28,12 +28,15 @@ module Geometry.Envelope
   ( -- * Envelopes
     Envelope (..)
   , Enveloped (..)
+  , pointEnvelope
+  , onEnvelope
 
     -- * Utility functions
   , diameter
   -- , radius
   , extent
   , size
+  , boxFit
   -- , envelopeVMay
   -- , envelopeV
   -- , envelopePMay
@@ -54,6 +57,7 @@ import           Data.Typeable
 import           Linear.Metric
 import           Numeric.Interval.NonEmpty.Internal
 
+import Linear
 import           Geometry.BoundingBox
 -- import           Geometry.Direction
 import           Geometry.HasOrigin
@@ -122,6 +126,12 @@ shift :: Num a => a -> Interval a -> Interval a
 shift x (I a b) = I (a + x) (b + x)
 {-# INLINE shift #-}
 
+-- | Create an envelope for the given point. This has fewer constraints
+--   than using the 'getEnvelope' instance for points.
+pointEnvelope :: (Metric v, Fractional n) => Point v n -> Envelope v n
+pointEnvelope (P p) = Envelope $ \v -> singleton (p `dot` v)
+{-# INLINE pointEnvelope #-}
+
 onEnvelope :: ((v n -> Interval n) -> v n -> Interval n) -> Envelope v n -> Envelope v n
 onEnvelope _ EmptyEnvelope = EmptyEnvelope
 onEnvelope m (Envelope f)  = Envelope (m f)
@@ -140,12 +150,13 @@ instance Show (Envelope v n) where
 
 instance (Metric v, HasBasis v, Foldable v, Floating n)
     => Transformable (Envelope v n) where
-  transform = undefined
-  -- transform t = moveOriginTo (P . negated . transl $ t) . onEnvelope g where
-  --   g f v = f v' ^/ (v' `dot` vi)
-  --     where
-  --       v' = signorm $ transp t !* v
-  --       vi = apply (inv t) v
+  transform t = moveOriginTo (P . negated . transl $ t) . onEnvelope g where
+    g f v = I (mul*a) (mul*b)
+      where
+        v' = signorm $ transp t !* v
+        vi = apply (inv t) v
+        I a b = f v'
+        mul   = 1 / (v' `dot` vi)
   {-# INLINE transform #-}
 
 ------------------------------------------------------------------------
@@ -287,11 +298,8 @@ size a = fmap (\v -> diameter v a) eye
 
 -- | Transforms an enveloped thing to fit within a @BoundingBox@.  If the
 --   bounding box is empty, then the result is also @mempty@.
--- boxFit
---   :: (InSpace v n a, HasBasis v, Enveloped a, Transformable a, Monoid a)
---   => BoundingBox v n -> a -> a
--- boxFit b x = maybe mempty (`transform` x) $ boxTransform (boundingBox x) b
-
-
-
+boxFit
+  :: (InSpace v n a, HasLinearMap v, Typeable v, Applicative v, Enveloped a, Transformable a, Monoid a)
+  => BoundingBox v n -> a -> a
+boxFit b x = maybe mempty (`transform` x) $ boxTransform (boundingBox x) b
 

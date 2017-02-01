@@ -51,6 +51,7 @@ module Geometry.Trail
   , loopClosingSegment
   , Trail (..)
   , wrapLine, wrapLoop
+  , fixTrail
 
     -- * Prisms
   , _Line
@@ -96,6 +97,7 @@ import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 -- import           Data.Word
 import           Numeric.Interval.NonEmpty.Internal
+import Data.Traversable (mapAccumL)
 
 import           Linear.Affine
 import           Linear.Metric
@@ -529,6 +531,21 @@ fromOffsets vs = fromLine (lineFromSegments $ map Linear vs)
 fromSegments :: (InSpace v n t, FromTrail t) => [Segment v n] -> t
 fromSegments segs = fromLocTrail (OpenTrail (lineFromSegments segs) `at` origin)
 {-# INLINE fromSegments #-}
+
+-- XXX not efficient
+locatedSegments
+  :: (InSpace v n t, HasSegments t)
+  => Point v n
+  -> t
+  -> [Located (Segment v n)]
+locatedSegments p0 = snd . mapAccumL f p0 . toListOf segments
+  where
+    f p seg = (p .+^ offset seg, seg `at` p)
+
+fixTrail
+  :: (Metric v, OrderedField n)
+  => Located (Trail v n) -> [FixedSegment v n]
+fixTrail (Loc p t)  = map (review fixed) (locatedSegments p t)
 
 -- -- -- | Construct a trail-like thing from a located list of segments.
 -- -- fromLocSegments :: FromTrail t => Located [Segment Closed (V t) (N t)] -> t

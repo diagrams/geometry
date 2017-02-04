@@ -67,6 +67,7 @@ import           Geometry.Located
 import           Geometry.Path
 import           Geometry.Points         (centroid)
 import           Geometry.Trail
+import           Geometry.Segment
 import           Geometry.Transform
 -- import           Geometry.TrailLike
 import           Geometry.TwoD.Transform
@@ -209,7 +210,10 @@ polyRegularTrail n r =
 --   adjacent to the vertex furthest in the direction of @v@ is
 --   perpendicular to @v@.
 orient :: OrderedField n => V2 n -> Located (Trail V2 n) -> Transformation V2 n
-orient v = orientPoints v . undefined -- trailVertices
+orient v (Loc p t) = orientPoints v $ segmentPoints p (t ^.. segments)
+
+segmentPoints :: (Additive v, Num n) => Point v n -> [Segment v n] -> [Point v n]
+segmentPoints p = scanl (.+^) p . map offset
 
 orientPoints :: OrderedField n => V2 n -> [Point V2 n] -> Transformation V2 n
 orientPoints _ [ ] = mempty

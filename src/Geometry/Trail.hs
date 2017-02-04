@@ -49,6 +49,7 @@ module Geometry.Trail
     Line (..)
   , Loop (..)
   , loopClosingSegment
+  , lineFromSegments
   , Trail (..)
   , wrapLine, wrapLoop
   , fixTrail

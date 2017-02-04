@@ -305,14 +305,13 @@ envelopeOf
   -> v n
   -> Interval n
 envelopeOf l = \ !t !w ->
-  let f !seg (Pair p e) = Pair (p .+^ offset seg) e'
+  let f (Pair p e) !seg = Pair (p .+^ offset seg) e'
         where
           e' = combine e (moveBy (view _Point p `dot` w) $ segmentEnvelope seg w)
           --
           combine (I a1 b1) (I a2 b2) = I (min a1 a2) (max b1 b2)
           moveBy n (I a b)            = I (a + n) (b + n)
-  -- in  getB $ foldrOf l f (Pair origin (I 0 0)) t where
-  in  getB $ foldrOf l f (Pair origin (I 0 0)) t
+  in  getB $ foldlOf' l f (Pair origin (I 0 0)) t
 {-# INLINE envelopeOf #-}
 
 ------------------------------------------------------------------------

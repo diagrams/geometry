@@ -9,8 +9,8 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Core.HasOrigin
--- Copyright   :  (c) 2011 diagrams-core team (see LICENSE)
+-- Module      :  Geometry.HasOrigin
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

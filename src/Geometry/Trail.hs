@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE ViewPatterns               #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
@@ -18,28 +16,26 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.Trail
--- Copyright   :  (c) 2013-2016 diagrams-lib team (see LICENSE)
+-- Copyright   :  (c) 2013-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- This module defines /trails/, translationally invariant paths
--- through space.  Trails form a central part of the diagrams-lib API,
--- so the documentation for this module merits careful study.
+-- This module defines /trails/, translationally invariant paths through
+-- space. Trails form a central part of the geometry API, so the
+-- documentation for this module merits careful study.
 --
 -- Related modules include:
 --
--- * The 'FromTrail' class ("Diagrams.FromTrail") exposes a generic
---   API for building a wide range of things out of trails.
+-- * 'Path's ("Geometry.Path") are collections of 'Located'
+--   ("Geometry.Located") trails.
 --
--- * 'Path's ("Diagrams.Path") are collections of 'Located'
---   ("Diagrams.Located") trails.
---
--- * Trails are composed of 'Segment's (see "Diagrams.Segment"),
---   though most users should not need to work with segments directly.
+-- * Trails are composed of 'Segment's (see "Geometry.Segment"), though
+--   most users should not need to work with segments directly.
 --
 -----------------------------------------------------------------------------
 
@@ -87,8 +83,6 @@ module Geometry.Trail
   ) where
 
 import           Control.Lens                       hiding (at, transform)
--- import           Control.Lens.Internal              (noEffect)
--- import           Data.Bits
 import           Data.Coerce
 import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
@@ -96,9 +90,8 @@ import           Data.Functor.Contravariant         (phantom)
 import           Data.Semigroup
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
--- import           Data.Word
+import           Data.Traversable                   (mapAccumL)
 import           Numeric.Interval.NonEmpty.Internal
-import Data.Traversable (mapAccumL)
 
 import           Linear.Affine
 import           Linear.Metric
@@ -107,15 +100,14 @@ import           Linear.V3
 import           Linear.Vector
 
 
+import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
-import           Geometry.Space
-import           Geometry.Transform
 import           Geometry.Query
-import           Geometry.Trace
-
-import           Geometry.Envelope
 import           Geometry.Segment
+import           Geometry.Space
+import           Geometry.Trace
+import           Geometry.Transform
 
 ------------------------------------------------------------------------
 -- The line type
@@ -249,6 +241,7 @@ type instance V (Loop v n) = v
 type instance N (Loop v n) = n
 type instance Codomain (Loop v n) = v
 
+-- | The 'Segment' that closes the loop.
 loopClosingSegment :: (Functor v, Num n) => Loop v n -> Segment v n
 loopClosingSegment (Loop t c) = closingSegment (offset t) c
 
@@ -332,9 +325,11 @@ instance Show1 v => Show1 (Trail v) where
 instance (Show1 v, Show n) => Show (Trail v n) where
   showsPrec = showsPrec1
 
+-- | Convert a 'Line' into a 'Trail'.
 wrapLine :: Line v n -> Trail v n
 wrapLine = OpenTrail
 
+-- | Convert a 'Loop' into a 'Trail'.
 wrapLoop :: Loop v n -> Trail v n
 wrapLoop = ClosedTrail
 
@@ -354,6 +349,8 @@ _LocLine = prism' (mapLoc OpenTrail) $ located (preview _Line)
 _LocLoop :: Prism' (Located (Trail v n)) (Located (Loop v n))
 _LocLoop = prism' (mapLoc ClosedTrail) $ located (preview _Loop)
 
+-- | A generic eliminator for 'Trail', taking functions specifying what to
+--   do in the case of a line or a loop.
 withTrail :: (Line v n -> r) -> (Loop v n -> r) -> Trail v n -> r
 withTrail lineR loopR = \case
   OpenTrail line   -> lineR line
@@ -398,14 +395,38 @@ cutLoop (Loop line c)  = line |> closingSegment (offset line) c
 closeLine :: Line v n -> Loop v n
 closeLine line = Loop line LinearClosing
 
+-- | 'closeTrail' is a variant of 'closeLine' for 'Trail', which
+--   performs 'closeLine' on lines and is the identity on loops.
 closeTrail :: Trail v n -> Trail v n
 closeTrail = withTrail (ClosedTrail . closeLine) ClosedTrail
 
+-- | Make a line into a loop by \"gluing\" the endpoint to the
+--   starting point.  In particular, the offset of the final segment
+--   is modified so that it ends at the starting point of the entire
+--   trail.  Typically, you would first construct a line which you
+--   know happens to end where it starts, and then call 'glueLine' to
+--   turn it into a loop.
+--
+--   <<diagrams/src_Diagrams_Trail_glueLineEx.svg#diagram=glueLineEx&width=500>>
+--
+--   > glueLineEx = pad 1.1 . hsep 1
+--   >   $ [almostClosed # strokeLine, almostClosed # glueLine # strokeLoop]
+--   >
+--   > almostClosed :: Line V2 Double
+--   > almostClosed = fromOffsets $ map r2 [(2, -1), (-3, -0.5), (-2, 1), (1, 0.5)]
+--
+--   @glueLine@ is left inverse to 'cutLoop', that is,
+--
+--   @
+--   glueLine . cutLoop === id
+--   @
 glueLine :: (Additive v, Num n) => Line v n -> Loop v n
 glueLine (t :> Linear _)      = Loop t LinearClosing
 glueLine (t :> Cubic c1 c2 _) = Loop t (CubicClosing c1 c2)
 glueLine _                    = Loop Empty LinearClosing
 
+-- | @glueTrail@ is a variant of 'glueLine' which works on 'Trail's.
+--   It performs 'glueLine' on lines and is the identity on loops.
 glueTrail :: (Additive v, Num n) => Trail v n -> Trail v n
 glueTrail = withTrail (ClosedTrail . glueLine) ClosedTrail
 

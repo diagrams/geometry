@@ -2,8 +2,8 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.ThreeD.Align
--- Copyright   :  (c) 2013 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.ThreeD.Combinators
+-- Copyright   :  (c) 2013-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

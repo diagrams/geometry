@@ -13,7 +13,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.Path
--- Copyright   :  (c) 2011-2017 diagrams-lib team (see LICENSE)
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -67,28 +67,24 @@ import           Data.Coerce
 import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
 import           Data.Semigroup
-import           Data.Typeable
-import           Numeric.Interval.NonEmpty.Internal
-import           Text.Show                          (showListWith)
-import           GHC.Generics                       (Generic)
--- import           Data.Serialize (Serialize)
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
-
-import Geometry.Trace
-import Geometry.Query
-import           Geometry.BoundingBox
-import           Geometry.Located
-import           Geometry.Points
-import           Geometry.Space
-import           Geometry.Transform
-import           Geometry.Envelope
-import           Geometry.Segment
-import           Geometry.Trail
-
+import           Data.Typeable
+import           GHC.Generics                       (Generic)
+import           Numeric.Interval.NonEmpty.Internal
+import           Text.Show                          (showListWith)
 
 import           Linear
 
+import           Geometry.Envelope
+import           Geometry.Located
+import           Geometry.Points
+import           Geometry.Query
+import           Geometry.Segment
+import           Geometry.Space
+import           Geometry.Trace
+import           Geometry.Trail
+import           Geometry.Transform
 
 ------------------------------------------------------------------------
 -- Paths

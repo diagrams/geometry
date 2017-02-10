@@ -8,8 +8,8 @@
 {-# LANGUAGE UndecidableInstances  #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Located
--- Copyright   :  (c) 2013-2015 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.Located
+-- Copyright   :  (c) 2013-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

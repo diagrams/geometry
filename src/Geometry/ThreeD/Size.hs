@@ -4,7 +4,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.ThreeD.Size
--- Copyright   :  (c) 2014 diagrams-lib team (see LICENSE)
+-- Copyright   :  (c) 2014-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

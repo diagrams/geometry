@@ -10,8 +10,8 @@
 {-# LANGUAGE UndecidableInstances       #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Geometry.Envelope
--- Copyright   :  (c) 2016 diagrams team (see LICENSE)
+-- Module      :  Geometry.Envelope
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -37,13 +37,9 @@ module Geometry.Envelope
   , extent
   , size
   , boxFit
-  -- , envelopeVMay
-  -- , envelopeV
-  -- , envelopePMay
-  -- , envelopeP
-  -- , envelopeSMay
-  -- , envelopeS
 
+  , mCenterPoint
+  , centerPoint
   ) where
 
 #if __GLASGOW_HASKELL__ < 710
@@ -51,19 +47,19 @@ import           Control.Applicative                ((<$>))
 #endif
 import           Control.Lens                       (op)
 import qualified Data.Map                           as M
+import           Data.Maybe                         (fromMaybe)
 import           Data.Semigroup
 import qualified Data.Set                           as S
 import           Data.Typeable
 import           Linear.Metric
 import           Numeric.Interval.NonEmpty.Internal
 
-import Linear
 import           Geometry.BoundingBox
--- import           Geometry.Direction
 import           Geometry.HasOrigin
 import           Geometry.Points
 import           Geometry.Space
 import           Geometry.Transform
+import           Linear
 
 ------------------------------------------------------------------------
 -- Envelopes
@@ -102,7 +98,11 @@ import           Geometry.Transform
 --
 --   The idea for envelopes came from
 --   Sebastian Setzer; see
---   <http://byorgey.wordpress.com/2009/10/28/collecting-attributes/#comment-2030>.  See also Brent Yorgey, /Monoids: Theme and Variations/, published in the 2012 Haskell Symposium: <http://www.cis.upenn.edu/~byorgey/pub/monoid-pearl.pdf>; video: <http://www.youtube.com/watch?v=X-8NCkD2vOw>.
+--   <http://byorgey.wordpress.com/2009/10/28/collecting-attributes/#comment-2030>.
+--   See also Brent Yorgey, /Monoids: Theme and Variations/, published
+--   in the 2012 Haskell Symposium:
+--   <http://www.cis.upenn.edu/~byorgey/pub/monoid-pearl.pdf>; video:
+--   <http://www.youtube.com/watch?v=X-8NCkD2vOw>.
 data Envelope v n
   = EmptyEnvelope
   | Envelope (v n -> Interval n)
@@ -177,7 +177,7 @@ class (Metric (V a), OrderedField (N a)) => Enveloped a where
   getEnvelope = foldMap getEnvelope
   {-# INLINE getEnvelope #-}
 
-  boundingBox :: (Typeable (V a), HasBasis (V a), Applicative (V a)) => a -> BoundingBox (V a) (N a)
+  boundingBox :: HasBasis (V a) => a -> BoundingBox (V a) (N a)
   boundingBox a =
     case getEnvelope a of
       EmptyEnvelope  -> EmptyBox
@@ -223,32 +223,6 @@ instance Enveloped b => Enveloped (S.Set b)
 --  Computing with envelopes
 ------------------------------------------------------------------------
 
--- -- | Compute the vector from the local origin to a separating
--- --   hyperplane in the given direction, or @Nothing@ for the empty
--- --   envelope.
--- envelopeVMay :: Enveloped a => Vn a -> a -> Maybe (Vn a)
--- envelopeVMay v = fmap ((*^ v) . ($ v)) . appEnvelope . getEnvelope
--- {-# INLINE envelopeVMay #-}
-
--- -- | Compute the vector from the local origin to a separating
--- --   hyperplane in the given direction.  Returns the zero vector for
--- --   the empty envelope.
--- envelopeV :: Enveloped a => Vn a -> a -> Vn a
--- envelopeV v = fromMaybe zero . envelopeVMay v
--- {-# INLINE envelopeV #-}
-
--- -- | Compute the point on a separating hyperplane in the given
--- --   direction, or @Nothing@ for the empty envelope.
--- envelopePMay :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (Point v n)
--- envelopePMay v = fmap P . envelopeVMay v
--- {-# INLINE envelopePMay #-}
-
--- -- | Compute the point on a separating hyperplane in the given
--- --   direction.  Returns the origin for the empty envelope.
--- envelopeP :: (InSpace v n a, Enveloped a) => v n -> a -> Point v n
--- envelopeP v = P . envelopeV v
--- {-# INLINE envelopeP #-}
-
 -- | Compute the diameter of a enveloped object along a particular
 --   vector.  Returns zero for the empty envelope.
 diameter :: (InSpace v n a, Enveloped a) => v n -> a -> n
@@ -273,28 +247,15 @@ size a = fmap (\v -> diameter v a) eye
 
 -- | Get the center of a the bounding box of an enveloped object, return
 --   'Nothing' for object with empty envelope.
--- mCenterPoint :: (InSpace v n a, HasBasis v, Enveloped a)
---             => a -> Maybe (Point v n)
--- mCenterPoint = boxCenter . boundingBox
+mCenterPoint :: (InSpace v n a, HasBasis v, Enveloped a)
+            => a -> Maybe (Point v n)
+mCenterPoint = boxCenter . boundingBox
 
 -- | Get the center of a the bounding box of an enveloped object, return
 --   the origin for object with empty envelope.
--- centerPoint :: (InSpace v n a, HasBasis v, Enveloped a)
---             => a -> Point v n
--- centerPoint = fromMaybe origin . mCenterPoint
-
--- | Create a transformation mapping points from one bounding box to the
---   other. Returns 'Nothing' if either of the boxes are empty.
--- boxTransform
---   :: (Additive v, Fractional n)
---   => BoundingBox v n -> BoundingBox v n -> Maybe (Transformation v n)
--- boxTransform u v = do
---   (P ul, _) <- getCorners u
---   (P vl, _) <- getCorners v
---   let -- i  = s (v, u) <-> s (u, v)
---       s = liftU2 (*) . uncurry (liftU2 (/)) . mapT boxExtents
---       m = undefined -- fmap s eye
---   return $ T m m (vl ^-^ s (v, u) ul)
+centerPoint :: (InSpace v n a, HasBasis v, Enveloped a)
+            => a -> Point v n
+centerPoint = fromMaybe origin . mCenterPoint
 
 -- | Transforms an enveloped thing to fit within a @BoundingBox@.  If the
 --   bounding box is empty, then the result is also @mempty@.

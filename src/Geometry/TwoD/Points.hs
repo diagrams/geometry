@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.TwoD.Points
--- Copyright   :  (c) 2014 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.TwoD.Points
+-- Copyright   :  (c) 2014-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

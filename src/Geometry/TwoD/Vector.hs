@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.TwoD.Vector
--- Copyright   :  (c) 2011 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.TwoD.Vector
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

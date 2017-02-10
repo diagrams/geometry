@@ -9,8 +9,8 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Core.Trace
--- Copyright   :  (c) 2012-2015 diagrams-core team (see LICENSE)
+-- Module      :  Geometry.Trace
+-- Copyright   :  (c) 2012-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

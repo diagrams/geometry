@@ -12,8 +12,8 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.BoundingBox
--- Copyright   :  (c) 2011-2015 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.BoundingBox
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -31,16 +31,12 @@ module Geometry.BoundingBox
 
     -- * Constructing bounding boxes
   , emptyBox, fromCorners
-  -- , boundingBox
 
     -- * Queries on bounding boxes
   , getCorners, getAllCorners
   , boxExtents, boxCenter
-  -- , mCenterPoint, centerPoint
   , boxTransform -- , boxFit
-
-    -- * Operations on bounding boxes
-  -- , union, intersection
+  , boxIntersection
   ) where
 
 -- import           Control.Lens            (AsEmpty (..), Each (..), contains, nearly)
@@ -126,7 +122,6 @@ instance Ord a => Semigroup (Intersect a) where
   Range a1 b1 <> Range a2 b2 = check Range (max a1 a2) (min b1 b2)
   Range a1 b1 <> Two a2 b2   = if a1 < a2 && b1 > b2 then Two a2 b2 else None
   Two a1 b1   <> Range a2 b2 = if a2 < a1 && b2 > b1 then Two a1 b1 else None
-    where
   {-# INLINE (<>) #-}
 
 check :: Ord a => (a -> a -> Intersect a) -> a -> a -> Intersect a
@@ -166,7 +161,6 @@ bbIntersection (BoundingBox l u) p v = foldr (<>) AllT (liftI4 l u p v)
      | otherwise = two ((a-s)/d) ((b-s)/d)
 
    -- utilities
-   -- liftI4 :: Additive f => (a -> a -> a -> a -> b) -> Point f a -> Point f a -> Point f a -> f a -> f b
    liftI4 (P a) (P b) (P c) = liftI2 id (liftI2 id (liftI2 f a b) c)
    {-# INLINE liftI4 #-}
 
@@ -180,93 +174,6 @@ instance (HasLinearMap v, Fractional n, Ord n) => Traced (BoundingBox v n) where
       Range a b -> unsafeMkSortedList [a,b]
       Two a b   -> unsafeMkSortedList [a,b]
       _         -> mempty
-
-  -- getTrace EmptyBox        = mempty
-  -- getTrace BoundingBox l u = mkTrace $ \p v ->
-    -- XXX deal with colinear case
-
-    -- Near and far are lower and upper points of the bounding box
-    -- aligned the to the trace vector. If a coordinate of the trace
-    -- vector is negative, the lower and upper values for that
-    -- coordinate are swaped.
-    -- tNear and tFar are vectors containing the times at which that
-    -- coordinate intersects the near and far points respectively
-    -- let near  = liftI3 (\l u d -> if d > 0 then l else u) a b v
-    --     far   = liftI3 (\l u d -> if d > 0 then u else l) a b v
-    --     tNear = liftI2 (/) (near .-. p) v
-    --     tFar  = liftI2 (/) (far .-. p) v
-
-    -- xs = liftI2 (whenever (d < 0) swap) v $ liftI2 (,) a b
-    -- ts = liftI2 (\(l,u) x -> (l /
-
-   -- The near coordinate is the first intersection from coming from
-   -- -Infinity *^ v. The far intersection is the first intersection
-   -- coming from +Infinity *^ v. The the direcion is negative, the
-   -- means the near and far coordinates are flipped.
-   -- We return the time where the near and far intersections occur.
-   --
-   -- a - lower point of bounding box
-   -- b - upper point of bounding box
-   -- s - trace starting point
-   -- d - direction of trace
-   -- let f a b s d
-        --  -- | d == 0    = if s >= a && s <= b then All else None
-         -- -- | otherwise = two ((a-s)/d) ((b-s)/d)
-
-   -- let f a b s d = ((near - s) / d, (far - s) / d)
-   --       where
-   --         (near,far) = if d < 0 then (a,b) else (b,a)
-       -- times = liftI4 f l u p v
-
-   -- the near and far times for each coordinate
-   -- times = tabulate $ \l ->
-   --   let g = view (el l)
-   --   in  f (g a) (g b) (g p) (g v)
-
-   -- The times at which the line intersects the box will be the maximum
-   -- near time and the minimum far time.
-       -- folder None    _            = None
-       -- folder (Two n' f') (Two n f) = Two (max n1 n2) (min f1 f2)
-       -- folder (n',f') (Just (n,f)) = Just (max a aa, min b bb)
-       -- folder x       Nothing      = x
-
-       -- folder (n',f') (Just (n,f)) = Just (max a aa, min b bb)
-       -- folder x       Nothing      = x
-
-   -- No intersections if there's no coordintes (V0). If the far
-   -- intersecion time is less than the near intersection time, it
-   -- hasn't intersected the box.
-   -- in  case F.foldr g Nothing times of
-   --       Nothing      -> mempty
-   --       Just (tn,tf) -> if tf > tn then mempty
-   --                                  else unsafeMkSortedList [tn,tf]
-
-   -- For each coordinate we wish to calculate the times at which they
-   -- intersect the bounding box.
-   -- tabulate $ \l ->
-   --   let d = v ^. el l
-   --   let (l,u) = if d > 0 then (a^.el l, b^.el l) else (b^.el l,a^.el l)
-
-
-  -- The intersecion occur at the maximum near time and minimum far
-  -- time.
-  -- if | False     -> mempty -- X no intersection case
-  --    | otherwise -> mkSortedList [F.maximum tNear, F.minimum tFar]
-
-
--- Feels like cheating.
--- Should be possible to generalise this.
--- instance RealFloat n => Traced (BoundingBox V2 n) where
---   getTrace = getTrace
---            . ((`boxFit` rect 1 1) . boundingBox :: Envelope V2 n -> Path V2 n)
---            . getEnvelope
-
--- instance TypeableFloat n => Traced (BoundingBox V3 n) where
---   getTrace bb = foldMap (\tr -> getTrace $ transform tr cube) $
---                 boxTransform (boundingBox cube) bb
-
--- instance (Metric v, Traversable v, OrderedField n) => Alignable (BoundingBox v n) where
---   defaultBoundary = envelopeP
 
 instance (Show1 v, Show n) => Show (BoundingBox v n) where
   showsPrec d b = case b of
@@ -331,20 +238,6 @@ boxCenter :: (Additive v, Fractional n) => BoundingBox v n -> Maybe (Point v n)
 boxCenter = fmap (uncurry (lerp 0.5)) . getCorners
 {-# INLINE boxCenter #-}
 
--- moved to envelope module
-
--- | Get the center of a the bounding box of an enveloped object, return
---   'Nothing' for object with empty envelope.
--- mCenterPoint :: (InSpace v n a, HasBasis v, Enveloped a)
---             => a -> Maybe (Point v n)
--- mCenterPoint = boxCenter . boundingBox
-
--- | Get the center of a the bounding box of an enveloped object, return
---   the origin for object with empty envelope.
--- centerPoint :: (InSpace v n a, HasBasis v, Enveloped a)
---             => a -> Point v n
--- centerPoint = fromMaybe origin . mCenterPoint
-
 -- | Create a transformation mapping points from the first bounding box to the
 --   second. Returns 'Nothing' if either of the boxes are empty.
 boxTransform
@@ -359,4 +252,15 @@ boxTransform u v = do
       T m m_ _  = scalingV vec
   return $ T m m_ (vl ^-^ liftU2 (*) vec ul)
   -- XXX IS THIS CORRECT?
+
+-- | Form the largest bounding box contained within this given two
+--   bounding boxes, or @Nothing@ if the two bounding boxes do not
+--   overlap at all.
+boxIntersection
+  :: (Additive v, Foldable v, Ord n)
+  => BoundingBox v n -> BoundingBox v n -> BoundingBox v n
+boxIntersection u v = maybe mempty (uncurry fromCorners) $ do
+  (ul, uh) <- getCorners u
+  (vl, vh) <- getCorners v
+  return (liftI2 max ul vl, liftI2 min uh vh)
 

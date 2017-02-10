@@ -22,24 +22,22 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.Segment
--- Copyright   :  (c) 2016 diagrams-lib team (see LICENSE)
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- This module defines /trails/, translationally invariant paths
--- through space.  Trails form a central part of the diagrams-lib API,
--- so the documentation for this module merits careful study.
+-- A /segment/ is a translation-invariant, atomic path.  Currently,
+-- there are two types: linear (/i.e./ just a straight line to the
+-- endpoint) and cubic Bézier curves (/i.e./ a curve to an endpoint
+-- with two control points).  This module contains tools for creating
+-- and manipulating segments, as well as a definition of segments with
+-- a fixed location (useful for backend implementors).
 --
--- Related modules include:
---
--- * The 'TrailLike' class ("Diagrams.TrailLike") exposes a generic
---   API for building a wide range of things out of trails.
---
--- * 'Path's ("Diagrams.Path") are collections of 'Located'
---   ("Diagrams.Located") trails.
---
--- * Trails are composed of 'Segment's (see "Diagrams.Segment"),
---   though most users should not need to work with segments directly.
+-- Generally speaking, casual users of diagrams should not need this
+-- module; the higher-level functionality provided by
+-- "Diagrams.Trail", "Diagrams.TrailLike", and "Diagrams.Path" should
+-- usually suffice.  However, directly manipulating segments can
+-- occasionally be useful.
 --
 -----------------------------------------------------------------------------
 
@@ -117,10 +115,20 @@ import           Numeric.Interval.NonEmpty.Internal (Interval (..), singleton)
 -- Closed segments
 ------------------------------------------------------------------------
 
+-- | The atomic constituents of the concrete representation currently
+--   used for trails are /segments/, currently limited to single
+--   straight lines or cubic Bézier curves. Segments are
+--   /translationally invariant/, that is, they have no particular
+--   \"location\" and are unaffected by translations. They are, however,
+--   affected by other transformations such as rotations and scales.
 data Segment v n
   = Linear !(v n)
   | Cubic !(v n) !(v n) !(v n)
   deriving (Functor, Eq)
+
+type instance V (Segment v n) = v
+type instance N (Segment v n) = n
+type instance Codomain (Segment v n) = v
 
 instance Show1 v => Show1 (Segment v) where
   liftShowsPrec x y d seg = case seg of
@@ -139,21 +147,24 @@ instance Each (Segment v n) (Segment v n) (v n) (v n) where
   each f (Cubic c1 c2 c3) = Cubic <$> f c1 <*> f c2 <*> f c3
   {-# INLINE each #-}
 
+-- | @'straight' v@ constructs a translationally invariant linear
+--   segment with direction and length given by the vector @v@.
 straight :: v n -> Segment v n
 straight = Linear
 {-# INLINE straight #-}
 
+-- | @bezier3 c1 c2 x@ constructs a translationally invariant cubic
+--   Bézier curve where the offsets from the first endpoint to the
+--   first and second control point and endpoint are respectively
+--   given by @c1@, @c2@, and @x@.
 bezier3 :: v n -> v n -> v n -> Segment v n
 bezier3 = Cubic
 {-# INLINE bezier3 #-}
 
+-- | @bézier3@ is the same as @bezier3@, but with more snobbery.
 bézier3 :: v n -> v n -> v n -> Segment v n
 bézier3 = Cubic
 {-# INLINE bézier3 #-}
-
-type instance V (Segment v n) = v
-type instance N (Segment v n) = n
-type instance Codomain (Segment v n) = v
 
 -- | Things where the segments can be folded over.
 class HasSegments t where
@@ -372,43 +383,6 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,[])
         nearEnd = any (>0.9999) ts'
 {-# INLINE traceOf #-}
 
--- traceOf
---   :: (InSpace V2 n t, OrderedField n)
---   => IndexedFold (Point V2 n) t (Segment V2 n)
---   -> t -- trail
---   -> Point V2 n -- start trace
---   -> V2 n -- trace vector
---   -> SortedList n -- list of values
--- traceOf fld t p v@(V2 !vx !vy) = ifoldrOf fld f mempty t
---   where
---     !theta = atan2A' vy vx
---     !rot   = rotation theta
---     !t2    = rotation theta <> translation (p^._Point) <> scaling (1/norm v)
-
---     f q (Linear w) l
---       | x1 == 0 && x2 /= 0 = l  -- parallel
---       | otherwise          = l <> unsafeMkSortedList [t] -- intersecting or collinear
---       where
---         t  = x3 / x1
---         x1 =  v `cross2` w
---         x2 = pq `cross2` v
---         x3 = pq `cross2` w
---         pq  = q .-. p
-
---     f q (Cubic c1 c2 c3) l = l <> mkSortedList ts -- completely wrong
---       where
---         qy = papply t2 q ^. _y
---         y1 = apply t2 c1 ^. _y
---         y2 = apply t2 c2 ^. _y
---         y3 = apply t2 c3 ^. _y
---         --
---         a  =  3*y1 - 3*y2 + y3
---         b  = -6*y1 + 3*y2
---         c  =  3*y1
---         d  =  qy
---         ts = filter (liftA2 (&&) (>= 0) (<= 1)) (cubForm'' 1e-8 a b c d)
--- {-# INLINE traceOf #-}
-
 -- crossings -----------------------------------------------------------
 
 -- | The sum of /signed/ crossings of a path as we travel in the
@@ -536,13 +510,6 @@ splitAtParams = go 1 where
       (s1,s2) = seg `splitAtParam` (t - t0)
       t' = (t - t0) / (1 - t0)
 
-  -- section x t1 t2 = snd (splitAtParam (fst (splitAtParam x t2)) (t1/t2))
-  -- section s0 t1 t2 = snd (splitAtParam (fst (splitAtParam x t2)) (t1/t2))
-  --   where
-  --     (_,s1) = s0 `splitAtParam` t1
-  --     (s2,_) = s1 `splitAtParam` m'
-
-
 -- | Return False if some points fall outside a line with a thickness of
 --   the given tolerance.  fat line calculation taken from the
 --   bezier-clipping algorithm (Sederberg)
@@ -571,7 +538,7 @@ segmentsEqual eps (Cubic a1 a2 a3) (Cubic b1 b2 b3)
     distance a2 b2 < eps &&
     distance a3 b3 < eps = True
   -- compare if both are colinear and close together
-  -- | dist < eps                  &&
+  -- - | dist < eps                  &&
   --   colinear ((eps-dist)/2) cb1 &&
   --   colinear ((eps-dist)/2) cb2 = True
   | otherwise = False

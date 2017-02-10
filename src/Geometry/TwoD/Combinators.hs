@@ -4,8 +4,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.TwoD.Combinators
--- Copyright   :  (c) 2011-2016 diagrams team (see LICENSE)
+-- Module      :  Geometry.TwoD.Combinators
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

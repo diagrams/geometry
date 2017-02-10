@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.ThreeD.Vector
--- Copyright   :  (c) 2013 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.ThreeD.Vector
+-- Copyright   :  (c) 2013-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

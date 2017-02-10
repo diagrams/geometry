@@ -1,3 +1,14 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Geometry
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
+-- License     :  BSD-style (see LICENSE)
+-- Maintainer  :  diagrams-discuss@googlegroups.com
+--
+-- This module reexports the geometry library.
+--
+-----------------------------------------------------------------------------
+
 module Geometry
   ( module Geometry.Angle
   , module Geometry.BoundingBox

@@ -1,7 +1,5 @@
 {-# LANGUAGE CPP                        #-}
-#if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable         #-}
-#endif
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -15,8 +13,8 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Size
--- Copyright   :  (c) 2014 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.Size
+-- Copyright   :  (c) 2014-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -70,14 +68,7 @@ import           Linear.Vector
 -- | A 'SizeSpec' is a way of specifying a size without needed lengths for all
 --   the dimensions.
 newtype SizeSpec v n = SizeSpec (v (Maybe n))
-  deriving (
-#if __GLASGOW_HASKELL__ >= 707
-  Typeable,
-#endif
-  Functor,
-  Generic)
-  -- Hashable,
-  -- Show)
+  deriving (Typeable, Functor, Generic)
 
 -- instance (Hashable1 v, Hashable n) => Hashable (SizeSpec v n) where
 instance (Hashable (v (Maybe n))) => Hashable (SizeSpec v n) where

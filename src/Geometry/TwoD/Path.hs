@@ -12,8 +12,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.TwoD.Path
--- Copyright   :  (c) 2011-2015 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.TwoD.Path
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

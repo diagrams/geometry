@@ -12,8 +12,8 @@
 -- the special case of R2.
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.TwoD.Segment
--- Copyright   :  (c) 2012 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.TwoD.Segment
+-- Copyright   :  (c) 2012-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

@@ -9,7 +9,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.ThreeD.Shapes
--- Copyright   :  (c) 2016 diagrams team (see LICENSE)
+-- Copyright   :  (c) 2016-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --

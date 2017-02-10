@@ -9,8 +9,8 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.ThreeD.Camera
--- Copyright   :  (c) 2013 diagrams-lib team (see LICENSE)
+-- Module      :  Geometry.ThreeD.Camera
+-- Copyright   :  (c) 2013-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -193,7 +193,7 @@ facing_ZCamera = Camera origin (Euler zero zero zero) (V3 0 1 0)
 camForwardRight :: RealFloat n => Camera l n -> (V3 n, V3 n)
 camForwardRight cam = (fw, V3 cy 0 (-sy))
   where
-    fw = V3 (-sy*cp) sp (-cy*cp) -- ^/ sqrt (1 + sp*sp)
+    fw = V3 (-sy*cp) sp (-cy*cp) -- - ^/ sqrt (1 + sp*sp)
     y  = cam^.yaw
     p  = cam^.pitch
     sy = sinA y

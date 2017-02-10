@@ -5,8 +5,8 @@
 {-# LANGUAGE UndecidableInstances  #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Core.Juxtapose
--- Copyright   :  (c) 2011 diagrams-core team (see LICENSE)
+-- Module      :  Geometry.Juxtapose
+-- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -26,7 +26,6 @@ import qualified Data.Set            as S
 import           Geometry.Envelope
 import           Geometry.HasOrigin
 import           Geometry.Space
--- import           Geometry.Direction
 
 import           Linear.Metric
 import           Linear.Vector

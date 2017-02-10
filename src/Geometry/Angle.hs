@@ -1,5 +1,10 @@
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 -----------------------------------------------------------------------------
@@ -36,15 +41,31 @@ module Geometry.Angle
   ) where
 
 import           Control.Applicative
-import           Control.Lens        (AReview, Iso', Lens', iso, over, review, (^.))
+import           Control.Lens                (AReview, Iso', Lens', iso, over,
+                                              review, (^.))
 import           Data.Fixed
-import           Data.Monoid         hiding ((<>))
+import           Data.Monoid                 hiding ((<>))
 import           Data.Semigroup
-import           Text.Read
+import           GHC.Generics                (Generic, Generic1)
 import           Prelude
+import           Text.Read
 
-import           Geometry.Space
+import           Control.DeepSeq             (NFData)
+import           Control.Monad
+import           Data.Binary                 as Binary
+import           Data.Bytes.Serial
+import           Data.Data
+import           Data.Functor.Classes
+import           Data.Hashable
+import           Data.Serialize              as Cereal
+import           Foreign.Storable
+
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed.Base    as U
+
 import           Geometry.Points
+import           Geometry.Space
 
 import           Linear.Metric
 import           Linear.Vector
@@ -52,11 +73,22 @@ import           Linear.Vector
 -- | Angles can be expressed in a variety of units.  Internally,
 --   they are represented in radians.
 newtype Angle n = Radians n
-  deriving (Eq, Ord, Enum, Functor)
+  deriving (Typeable, Data, Eq, Ord, Enum, Functor, Foldable,
+            Traversable, Storable, NFData, Generic, Generic1)
+
+type instance N (Angle n) = n
+
+instance Eq1 Angle where
+  liftEq f (Radians a) (Radians b) = f a b
+instance Ord1 Angle where
+  liftCompare f (Radians a) (Radians b) = f a b
+
+instance Show1 Angle where
+  liftShowsPrec f _ d (Radians a) = showParen (d > 5) $
+    f 6 a . showString " @@ rad"
 
 instance Show n => Show (Angle n) where
-  showsPrec d (Radians a) = showParen (d > 5) $
-    showsPrec 6 a . showString " @@ rad"
+  showsPrec = showsPrec1
 
 instance Read n => Read (Angle n) where
   readPrec = parens . prec 5 $ do
@@ -65,7 +97,57 @@ instance Read n => Read (Angle n) where
     Ident "rad" <- lexP
     pure (Radians x)
 
-type instance N (Angle n) = n
+instance Hashable a => Hashable (Angle a) where
+  hashWithSalt s (Radians a) = s `hashWithSalt` a
+  {-# INLINE hashWithSalt #-}
+
+newtype instance U.Vector    (Angle a) = V_Angle  (U.Vector    a)
+newtype instance U.MVector s (Angle a) = MV_Angle (U.MVector s a)
+instance U.Unbox a => U.Unbox (Angle a)
+
+instance U.Unbox a => M.MVector U.MVector (Angle a) where
+  {-# INLINE basicLength #-}
+  {-# INLINE basicUnsafeSlice #-}
+  {-# INLINE basicOverlaps #-}
+  {-# INLINE basicUnsafeNew #-}
+  {-# INLINE basicUnsafeRead #-}
+  {-# INLINE basicUnsafeWrite #-}
+  basicLength (MV_Angle v) = M.basicLength v
+  basicUnsafeSlice m n (MV_Angle v) = MV_Angle (M.basicUnsafeSlice m n v)
+  basicOverlaps (MV_Angle v) (MV_Angle u) = M.basicOverlaps v u
+  basicUnsafeNew n = liftM MV_Angle (M.basicUnsafeNew n)
+  basicUnsafeRead (MV_Angle v) i = liftM Radians (M.basicUnsafeRead v i)
+  basicUnsafeWrite (MV_Angle v) i (Radians x) = M.basicUnsafeWrite v i x
+  basicInitialize (MV_Angle v) = M.basicInitialize v
+  {-# INLINE basicInitialize #-}
+
+instance U.Unbox a => G.Vector U.Vector (Angle a) where
+  {-# INLINE basicUnsafeFreeze #-}
+  {-# INLINE basicUnsafeThaw   #-}
+  {-# INLINE basicLength       #-}
+  {-# INLINE basicUnsafeSlice  #-}
+  {-# INLINE basicUnsafeIndexM #-}
+  basicUnsafeFreeze (MV_Angle v) = liftM V_Angle (G.basicUnsafeFreeze v)
+  basicUnsafeThaw (V_Angle v) = liftM MV_Angle (G.basicUnsafeThaw v)
+  basicLength (V_Angle v) = G.basicLength v
+  basicUnsafeSlice m n (V_Angle v) = V_Angle (G.basicUnsafeSlice m n v)
+  basicUnsafeIndexM (V_Angle v) i = liftM Radians (G.basicUnsafeIndexM v i)
+
+instance Serial1 Angle where
+  serializeWith f (Radians a) = f a
+  deserializeWith m = Radians `liftM` m
+
+instance Serial a => Serial (Angle a) where
+  serialize (Radians a) = serialize a
+  deserialize = Radians `liftM` deserialize
+
+instance Binary a => Binary (Angle a) where
+  put = serializeWith Binary.put
+  get = deserializeWith Binary.get
+
+instance Serialize a => Serialize (Angle a) where
+  put = serializeWith Cereal.put
+  get = deserializeWith Cereal.get
 
 instance Applicative Angle where
   pure = Radians

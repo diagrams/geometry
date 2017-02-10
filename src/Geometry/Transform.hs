@@ -110,6 +110,12 @@ import           Data.Functor.Rep
 import           Linear                hiding (conjugate, translation)
 
 import           Data.Functor.Classes
+import           Data.Hashable
+import           Data.Hashable.Lifted
+import           Data.Binary                 as Binary
+import           Data.Bytes.Serial
+import           Control.DeepSeq             (NFData(..))
+import           Data.Serialize              as Cereal
 
 ------------------------------------------------------------------------
 --  Affine transformations
@@ -203,21 +209,62 @@ instance (Transformable a, V a ~ v, N a ~ n) => Action (Transformation v n) a wh
   act = transform
   {-# INLINE act #-}
 
+-- This isn't strictly correct because you could have a @v@ that isn't
+-- entirly defined by its element. But this wouldn't make much sense to
+-- use with a Transformation. We really need an NFData1 class
+instance (Foldable v, NFData n) => NFData (Transformation v n) where
+  rnf (T m n v) = rnfMat m `seq` rnfMat n `seq` rnfVec v
+    where
+      rnfVec = foldMap rnf
+      rnfMat = foldMap rnfVec
+
+instance Hashable1 v => Hashable1 (Transformation v) where
+  liftHashWithSalt f s (T m n v) =
+    liftHashWithSalt f (hashMatWithSalt (hashMatWithSalt s m) n) v
+    where
+      hashMatWithSalt = liftHashWithSalt (liftHashWithSalt f)
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (Transformation v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (Transformation v) where
+  serializeWith f (T m n v) = do
+    let serializeMat = serializeWith (serializeWith f)
+    serializeMat m
+    serializeMat n
+    serializeWith f v
+  deserializeWith f = do
+    let deserializeMat = deserializeWith (deserializeWith f)
+    m <- deserializeMat
+    n <- deserializeMat
+    v <- deserializeWith f
+    return (T m n v)
+
+instance (Serial1 v, Serial n) => Serial (Transformation v n) where
+  serialize = serializeWith serialize
+  deserialize = deserializeWith deserialize
+
+instance (Serial1 v, Binary n) => Binary (Transformation v n) where
+  put = serializeWith Binary.put
+  get = deserializeWith Binary.get
+
+instance (Serial1 v, Serialize n) => Serialize (Transformation v n) where
+  put = serializeWith Cereal.put
+  get = deserializeWith Cereal.get
+
 -- | Apply a transformation to a vector.  Note that any translational
 --   component of the transformation will not affect the vector, since
 --   vectors are invariant under translation.
 apply :: (Additive v, Foldable v, Num n) => Transformation v n -> v n -> v n
 apply (T m _ _) = (m !*)
 {-# INLINE apply #-}
-{-# SPECIALIZE INLINE apply :: Num n => Transformation V2 n -> V2 n -> V2 n #-}
-{-# SPECIALIZE INLINE apply :: Num n => Transformation V3 n -> V3 n -> V3 n #-}
 
 -- | Apply a transformation to a point.
 papply :: (Additive v, Foldable v, Num n) => Transformation v n -> Point v n -> Point v n
 papply (T t _ v) = \(P p) -> P (t !* p ^+^ v)
 {-# INLINE papply #-}
-{-# SPECIALIZE INLINE papply :: Num n => Transformation V2 n -> Point V2 n -> Point V2 n #-}
-{-# SPECIALIZE INLINE papply :: Num n => Transformation V3 n -> Point V3 n -> Point V3 n #-}
 
 -- | Create a general affine transformation from an linear
 --   transformation and its inverse. The translational component is

@@ -92,6 +92,15 @@ import           Linear.Metric
 import           Linear.V2
 import           Linear.V3
 import           Linear.Vector
+import           Data.Hashable
+import           Data.Hashable.Lifted
+import qualified Data.Binary                 as Binary
+import           Data.Bytes.Serial
+import           Data.Bytes.Put (putWord8)
+import           Data.Bytes.Get (getWord8)
+import           Control.DeepSeq             (NFData(..))
+import qualified Data.Serialize              as Cereal
+import Control.Monad
 
 import           Data.Coerce
 
@@ -135,9 +144,9 @@ instance Show1 v => Show1 (Segment v) where
     Linear v       -> showParen (d > 10) $
       showString "straight " . liftShowsPrec x y 11 v
     Cubic v1 v2 v3 -> showParen (d > 10) $
-      showString "bézier3  " . liftShowsPrec x y 11 v1 . showChar ' '
-                             . liftShowsPrec x y 11 v2 . showChar ' '
-                             . liftShowsPrec x y 11 v3
+      showString "bézier3 " . liftShowsPrec x y 11 v1 . showChar ' '
+                            . liftShowsPrec x y 11 v2 . showChar ' '
+                            . liftShowsPrec x y 11 v3
 
 instance (Show1 v, Show n) => Show (Segment v n) where
   showsPrec = showsPrec1
@@ -146,6 +155,59 @@ instance Each (Segment v n) (Segment v n) (v n) (v n) where
   each f (Linear v) = Linear <$> f v
   each f (Cubic c1 c2 c3) = Cubic <$> f c1 <*> f c2 <*> f c3
   {-# INLINE each #-}
+
+-- Not strictly correct
+instance (Foldable v, NFData n) => NFData (Segment v n) where
+  rnf = \case
+    Linear v       -> rnfVec v
+    Cubic c1 c2 c3 -> rnfVec c1 `seq` rnfVec c2 `seq` rnfVec c3
+    where rnfVec = foldMap rnf
+  {-# INLINE rnf #-}
+
+instance Hashable1 v => Hashable1 (Segment v) where
+  liftHashWithSalt f s = \case
+    Linear v       -> hws s0 v
+    Cubic c1 c2 c3 -> hws (hws (hws s1 c1) c2) c3
+    where
+      s0 = hashWithSalt s (0::Int)
+      s1 = hashWithSalt s (1::Int)
+      hws = liftHashWithSalt f
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (Segment v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (Segment v) where
+  serializeWith f = \case
+    Linear v       -> putWord8 0 >> fv v
+    Cubic c1 c2 c3 -> putWord8 1 >> fv c1 >> fv c2 >> fv c3
+    where fv = serializeWith f
+  {-# INLINE serializeWith #-}
+
+  deserializeWith m = getWord8 >>= \case
+    0 -> Linear `liftM` mv
+    _ -> Cubic `liftM` mv `ap` mv `ap` mv
+    where mv = deserializeWith m
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (Segment v n) where
+  serialize = serializeWith serialize
+  {-# INLINE serialize #-}
+  deserialize = deserializeWith deserialize
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (Segment v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Segment v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
 
 -- | @'straight' v@ constructs a translationally invariant linear
 --   segment with direction and length given by the vector @v@.
@@ -574,6 +636,59 @@ instance (Metric v, Foldable v, OrderedField n) => Transformable (ClosingSegment
   transform t (CubicClosing c1 c2) = CubicClosing (apply t c1) (apply t c2)
   transform _ LinearClosing        = LinearClosing
   {-# INLINE transform #-}
+
+-- Not strictly correct
+instance (Foldable v, NFData n) => NFData (ClosingSegment v n) where
+  rnf = \case
+    LinearClosing      -> ()
+    CubicClosing c1 c2 -> rnfVec c1 `seq` rnfVec c2
+    where rnfVec = foldMap rnf
+  {-# INLINE rnf #-}
+
+instance Hashable1 v => Hashable1 (ClosingSegment v) where
+  liftHashWithSalt f s = \case
+    LinearClosing      -> s0
+    CubicClosing c1 c2 -> hws (hws s1 c1) c2
+    where
+      s0 = hashWithSalt s (0::Int)
+      s1 = hashWithSalt s (1::Int)
+      hws = liftHashWithSalt f
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (ClosingSegment v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (ClosingSegment v) where
+  serializeWith f = \case
+    LinearClosing      -> putWord8 0
+    CubicClosing c1 c2 -> putWord8 1 >> fv c1 >> fv c2
+    where fv = serializeWith f
+  {-# INLINE serializeWith #-}
+
+  deserializeWith m = getWord8 >>= \case
+    0 -> return LinearClosing
+    _ -> CubicClosing `liftM` mv `ap` mv
+    where mv = deserializeWith m
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (ClosingSegment v n) where
+  serialize = serializeWith serialize
+  {-# INLINE serialize #-}
+  deserialize = deserializeWith deserialize
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (ClosingSegment v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (ClosingSegment v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
 
 -- | Create a linear closing segment.
 linearClosing :: ClosingSegment v n

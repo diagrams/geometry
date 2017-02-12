@@ -82,14 +82,23 @@ module Geometry.Trail
   , lineSegParam
   ) where
 
+import           Control.DeepSeq                    (NFData (..))
 import           Control.Lens                       hiding (at, transform)
+import           Control.Monad
+import qualified Data.Binary                        as Binary
+import           Data.Bytes.Get                     (getWord8)
+import           Data.Bytes.Put                     (putWord8)
+import           Data.Bytes.Serial
 import           Data.Coerce
 import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
 import           Data.Functor.Contravariant         (phantom)
+import           Data.Hashable
+import           Data.Hashable.Lifted
 import           Data.Semigroup
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
+import qualified Data.Serialize                     as Cereal
 import           Data.Traversable                   (mapAccumL)
 import           Numeric.Interval.NonEmpty.Internal
 
@@ -216,6 +225,60 @@ instance Num n => DomainBounds (Line v n) where
   domainUpper (Line ss _) = fromIntegral (Seq.length ss)
   {-# INLINE domainUpper #-}
 
+instance NFData (v n) => NFData (Line v n) where
+  rnf (Line ss o) = rnf ss `seq` rnf o
+  {-# INLINE rnf #-}
+
+data SPInt = SP !Int !Int
+
+-- hash something foldable with variable length where the data type is
+-- completely defined by its elements
+hashFoldableWith :: Foldable f => (Int -> a -> Int) -> Int -> f a -> Int
+hashFoldableWith h salt arr = finalise (F.foldl' step (SP salt 0) arr)
+  where
+    finalise (SP s l) = hashWithSalt s l
+    step (SP s l) x   = SP (h s x) (l + 1)
+
+instance Hashable1 v => Hashable1 (Line v) where
+  liftHashWithSalt f s (Line ss o) =
+    hashFoldableWith (liftHashWithSalt f) s ss `hws` o
+    where hws = liftHashWithSalt f
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (Line v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (Line v) where
+  serializeWith f (Line ss o) = do
+    serializeWith (serializeWith f) ss
+    serializeWith f o
+  {-# INLINE serializeWith #-}
+
+  deserializeWith m = do
+    ss <- deserializeWith (deserializeWith m)
+    o  <- deserializeWith m
+    return (Line ss o)
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (Line v n) where
+  serialize = serialize1
+  {-# INLINE serialize #-}
+  deserialize = deserialize1
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (Line v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Line v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
+
 -- instance Num n => EndValues (Line v n) where
 --   atStart _ = zero
 --   {-# INLINE atStart #-}
@@ -223,8 +286,8 @@ instance Num n => DomainBounds (Line v n) where
 --   {-# INLINE atEnd #-}
 
 lineSegParam :: (Additive v, OrderedField n) => Int -> n -> Line v n -> v n
-lineSegParam n p (Line ss _) = ifoldr f zero ss where
-  f i s v
+lineSegParam n p (Line ss _) = ifoldl f zero ss where
+  f i v s
     | i == n    = s `atParam` p
     | otherwise = offset s ^+^ v
 
@@ -303,6 +366,50 @@ instance OrderedField n => HasQuery (Loop V2 n) Crossings where
 instance (MetricSpace v n, Foldable v) => Transformable (Loop v n) where
   {-# SPECIALISE instance Transformable (Loop V2 Double) #-}
   transform t (Loop l c) = Loop (transform t l) (transform t c)
+
+instance NFData (v n) => NFData (Loop v n) where
+  rnf (Loop l c) = rnf l `seq` rnf c
+  {-# INLINE rnf #-}
+
+instance Hashable1 v => Hashable1 (Loop v) where
+  liftHashWithSalt f s (Loop l c) =
+    liftHashWithSalt f s l `hws` c
+    where hws = liftHashWithSalt f
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (Loop v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (Loop v) where
+  serializeWith f (Loop l c) = do
+    serializeWith f l
+    serializeWith f c
+  {-# INLINE serializeWith #-}
+
+  deserializeWith m = do
+    l <- deserializeWith m
+    c <- deserializeWith m
+    return (Loop l c)
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (Loop v n) where
+  serialize = serialize1
+  {-# INLINE serialize #-}
+  deserialize = deserialize1
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (Loop v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Loop v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
 
 ------------------------------------------------------------------------
 -- Trail type
@@ -469,6 +576,54 @@ instance (Metric v, Foldable v, OrderedField n) => Transformable (Trail v n) whe
   {-# SPECIALISE instance Transformable (Trail V2 Double) #-}
   transform t (OpenTrail l) = OpenTrail (transform t l)
   transform t (ClosedTrail l) = ClosedTrail (transform t l)
+
+instance NFData (v n) => NFData (Trail v n) where
+  rnf = \case
+    OpenTrail l   -> rnf l
+    ClosedTrail l -> rnf l
+  {-# INLINE rnf #-}
+
+instance Hashable1 v => Hashable1 (Trail v) where
+  liftHashWithSalt f s = \case
+    OpenTrail l   -> liftHashWithSalt f s1 l
+    ClosedTrail l -> liftHashWithSalt f s2 l
+    where
+      s1 = hashWithSalt s (0::Int)
+      s2 = hashWithSalt s (1::Int)
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (Trail v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (Trail v) where
+  serializeWith f = \case
+    OpenTrail l   -> putWord8 0 >> serializeWith f l
+    ClosedTrail l -> putWord8 1 >> serializeWith f l
+  {-# INLINE serializeWith #-}
+
+  deserializeWith m = getWord8 >>= \case
+    0 -> OpenTrail `liftM` deserializeWith m
+    _ -> ClosedTrail `liftM` deserializeWith m
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (Trail v n) where
+  serialize = serialize1
+  {-# INLINE serialize #-}
+  deserialize = deserialize1
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (Trail v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Trail v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
 
 reverseTrail :: (Metric v, OrderedField n) => Trail v n -> Trail v n
 reverseTrail = withTrail (OpenTrail . reverseLine) (OpenTrail . reverseLoop)

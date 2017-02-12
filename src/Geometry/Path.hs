@@ -61,14 +61,21 @@ module Geometry.Path
 
   ) where
 
+import           Control.DeepSeq                    (NFData (..))
 import           Control.Lens                       hiding (at, transform,
                                                      ( # ))
+import           Control.Monad
+import qualified Data.Binary                        as Binary
+import           Data.Bytes.Serial
 import           Data.Coerce
 import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
+import           Data.Hashable
+import           Data.Hashable.Lifted
 import           Data.Semigroup
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
+import qualified Data.Serialize                     as Cereal
 import           Data.Typeable
 import           GHC.Generics                       (Generic)
 import           Numeric.Interval.NonEmpty.Internal
@@ -182,6 +189,54 @@ instance RealFloat n => Traced (Path V2 n) where
 instance RealFloat n => HasQuery (Path V2 n) Crossings where
   getQuery = F.foldMap getQuery . op Path
   {-# INLINE getQuery #-}
+
+instance NFData (v n) => NFData (Path v n) where
+  rnf (Path ts) = rnf ts
+  {-# INLINE rnf #-}
+
+data SPInt = SP !Int !Int
+
+-- hash something foldable with variable length where the data type is
+-- completely defined by its elements
+hashFoldableWith :: Foldable f => (Int -> a -> Int) -> Int -> f a -> Int
+hashFoldableWith h salt arr = finalise (F.foldl' step (SP salt 0) arr)
+  where
+    finalise (SP s l) = hashWithSalt s l
+    step (SP s l) x   = SP (h s x) (l + 1)
+
+instance (Hashable1 v, Hashable n) => Hashable (Path v n) where
+  hashWithSalt s (Path ts) = hashFoldableWith hashWithSalt s ts
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (Path v) where
+  serializeWith f (Path ts) = serializeWith serialLocTrail ts
+    where
+      serialLocTrail = serializeLocWith f serialTrail
+      serialTrail    = serializeWith f
+  {-# INLINE serializeWith #-}
+  deserializeWith m = Path `liftM` deserializeWith deserialLocTrail
+    where
+      deserialLocTrail = deserializeLocWith m deserialTrail
+      deserialTrail    = deserializeWith m
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (Path v n) where
+  serialize = serialize1
+  {-# INLINE serialize #-}
+  deserialize = deserialize1
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (Path v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Path v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
 
 -- instance (Metric v, OrderedField n) => Juxtaposable (Path v n) where
 --   juxtapose = juxtaposeDefault

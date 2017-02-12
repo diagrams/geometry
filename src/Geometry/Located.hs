@@ -28,6 +28,10 @@ module Geometry.Located
   , mapLoc
   , located
   , location
+
+  -- * Internals
+  , serializeLocWith
+  , deserializeLocWith
   )
   where
 
@@ -35,6 +39,14 @@ import           Control.Lens         (Lens, Lens')
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Functor         ((<$>))
 #endif
+import           Control.DeepSeq      (NFData (..))
+import qualified Data.Binary          as Binary
+import           Data.Bytes.Get       (MonadGet)
+import           Data.Bytes.Put       (MonadPut)
+import           Data.Bytes.Serial
+import           Data.Hashable
+import           Data.Hashable.Lifted
+import qualified Data.Serialize       as Cereal
 import           Text.Read
 
 import           Data.Functor.Classes
@@ -50,7 +62,6 @@ import           Geometry.Trace
 import           Geometry.Transform
 
 import           GHC.Generics         (Generic)
--- import           Data.Serialize (Serialize)
 
 -- | \"Located\" things, /i.e./ things with a concrete location:
 --   intuitively, @Located a ~ (Point, a)@.  Wrapping a translationally
@@ -171,4 +182,49 @@ instance (Traced a, Num (N a)) => Traced (Located a) where
 
 -- instance Qualifiable a => Qualifiable (Located a) where
 --   n .>> Loc p a = Loc p (n .>> a)
+
+instance (NFData (Vn a), NFData a) => NFData (Located a) where
+  rnf (Loc p a) = rnf p `seq` rnf a
+  {-# INLINE rnf #-}
+
+instance (Hashable1 (V a), Hashable (N a), Hashable a) => Hashable (Located a) where
+  hashWithSalt s (Loc (P p) a) = hashWithSalt1 s p `hashWithSalt` a
+  {-# INLINE hashWithSalt #-}
+
+serializeLocWith
+  :: (MonadPut m, Serial1 (V a))
+  => (N a -> m ()) -> (a -> m ()) -> Located a -> m ()
+serializeLocWith nf af (Loc (P p) a) = do
+  serializeWith nf p
+  af a
+{-# INLINE serializeLocWith #-}
+
+deserializeLocWith
+  :: (MonadGet m, Serial1 (V a))
+  => m (N a) -> m a -> m (Located a)
+deserializeLocWith mn ma = do
+  p <- deserializeWith mn
+  a <- ma
+  return (Loc (P p) a)
+{-# INLINE deserializeLocWith #-}
+
+instance (Serial1 (V a), Serial (N a), Serial a) => Serial (Located a) where
+  serialize = serializeLocWith serialize serialize
+  {-# INLINE serialize #-}
+  deserialize = deserializeLocWith deserialize deserialize
+  {-# INLINE deserialize #-}
+
+instance (Serial1 (V a), Binary.Binary (N a), Binary.Binary a)
+    => Binary.Binary (Located a) where
+  put = serializeLocWith Binary.put Binary.put
+  {-# INLINE put #-}
+  get = deserializeLocWith Binary.get Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 (V a), Cereal.Serialize (N a), Cereal.Serialize a)
+    => Cereal.Serialize (Located a) where
+  put = serializeLocWith Cereal.put Cereal.put
+  {-# INLINE put #-}
+  get = deserializeLocWith Cereal.get Cereal.get
+  {-# INLINE get #-}
 

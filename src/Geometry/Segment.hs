@@ -83,42 +83,41 @@ module Geometry.Segment
   ) where
 
 import           Control.Applicative                (liftA2)
+import           Control.DeepSeq                    (NFData (..))
 import           Control.Lens                       hiding (at, transform, (<|),
                                                      (|>))
+import           Control.Monad
+import qualified Data.Binary                        as Binary
+import           Data.Bytes.Get                     (getWord8)
+import           Data.Bytes.Put                     (putWord8)
+import           Data.Bytes.Serial
 import           Data.Functor.Classes
+import           Data.Hashable
+import           Data.Hashable.Lifted
 import           Data.Semigroup
+import qualified Data.Serialize                     as Cereal
 import           Linear.Affine
 import           Linear.Metric
 import           Linear.V2
 import           Linear.V3
 import           Linear.Vector
-import           Data.Hashable
-import           Data.Hashable.Lifted
-import qualified Data.Binary                 as Binary
-import           Data.Bytes.Serial
-import           Data.Bytes.Put (putWord8)
-import           Data.Bytes.Get (getWord8)
-import           Control.DeepSeq             (NFData(..))
-import qualified Data.Serialize              as Cereal
-import Control.Monad
+import qualified Numeric.Interval.Kaucher           as K
+import           Numeric.Interval.NonEmpty.Internal (Interval (..), singleton)
 
 import           Data.Coerce
 
 import           Diagrams.Solve.Polynomial
 
+import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
 import           Geometry.Query
 import           Geometry.Space
 import           Geometry.Transform
 import           Geometry.TwoD.Transform
-import           Geometry.Envelope
-
 import           Geometry.Angle
 import           Geometry.TwoD.Vector               hiding (e)
 
-import qualified Numeric.Interval.Kaucher           as K
-import           Numeric.Interval.NonEmpty.Internal (Interval (..), singleton)
 
 ------------------------------------------------------------------------
 -- Closed segments
@@ -156,12 +155,10 @@ instance Each (Segment v n) (Segment v n) (v n) (v n) where
   each f (Cubic c1 c2 c3) = Cubic <$> f c1 <*> f c2 <*> f c3
   {-# INLINE each #-}
 
--- Not strictly correct
-instance (Foldable v, NFData n) => NFData (Segment v n) where
+instance NFData (v n) => NFData (Segment v n) where
   rnf = \case
-    Linear v       -> rnfVec v
-    Cubic c1 c2 c3 -> rnfVec c1 `seq` rnfVec c2 `seq` rnfVec c3
-    where rnfVec = foldMap rnf
+    Linear v       -> rnf v
+    Cubic c1 c2 c3 -> rnf c1 `seq` rnf c2 `seq` rnf c3
   {-# INLINE rnf #-}
 
 instance Hashable1 v => Hashable1 (Segment v) where
@@ -638,11 +635,10 @@ instance (Metric v, Foldable v, OrderedField n) => Transformable (ClosingSegment
   {-# INLINE transform #-}
 
 -- Not strictly correct
-instance (Foldable v, NFData n) => NFData (ClosingSegment v n) where
+instance NFData (v n) => NFData (ClosingSegment v n) where
   rnf = \case
     LinearClosing      -> ()
-    CubicClosing c1 c2 -> rnfVec c1 `seq` rnfVec c2
-    where rnfVec = foldMap rnf
+    CubicClosing c1 c2 -> rnf c1 `seq` rnf c2
   {-# INLINE rnf #-}
 
 instance Hashable1 v => Hashable1 (ClosingSegment v) where
@@ -760,6 +756,60 @@ instance (Metric v, OrderedField n) => HasSegments (FixedSegment v n) where
   {-# INLINE offset #-}
   numSegments _ = 1
   {-# INLINE numSegments #-}
+
+-- Not strictly correct
+instance (Foldable v, NFData n) => NFData (FixedSegment v n) where
+  rnf = \case
+    FLinear p1 p2      -> rnfVec p1 `seq` rnfVec p2
+    FCubic p1 p2 p3 p4 -> rnfVec p1 `seq` rnfVec p2 `seq` rnfVec p3
+                          `seq` rnfVec p4
+    where rnfVec = foldMap rnf
+  {-# INLINE rnf #-}
+
+instance Hashable1 v => Hashable1 (FixedSegment v) where
+  liftHashWithSalt f s = \case
+    FLinear p1 p2      -> hws (hws s0 p1) p2
+    FCubic p1 p2 p3 p4 -> hws (hws (hws (hws s1 p1) p2) p3) p4
+    where
+      s0 = hashWithSalt s (0::Int)
+      s1 = hashWithSalt s (1::Int)
+      hws s' = liftHashWithSalt f s' . view _Point
+  {-# INLINE liftHashWithSalt #-}
+
+instance (Hashable1 v, Hashable n) => Hashable (FixedSegment v n) where
+  hashWithSalt = hashWithSalt1
+  {-# INLINE hashWithSalt #-}
+
+instance Serial1 v => Serial1 (FixedSegment v) where
+  serializeWith f = \case
+    FLinear p1 p2      -> putWord8 0 >> fv p1 >> fv p2
+    FCubic p1 p2 p3 p4 -> putWord8 1 >> fv p1 >> fv p2 >> fv p3 >> fv p4
+    where fv = serializeWith f
+  {-# INLINE serializeWith #-}
+
+  deserializeWith m = getWord8 >>= \case
+    0 -> FLinear `liftM` mv `ap` mv
+    _ -> FCubic `liftM` mv `ap` mv `ap` mv `ap` mv
+    where mv = deserializeWith m
+  {-# INLINE deserializeWith #-}
+
+instance (Serial1 v, Serial n) => Serial (FixedSegment v n) where
+  serialize = serializeWith serialize
+  {-# INLINE serialize #-}
+  deserialize = deserializeWith deserialize
+  {-# INLINE deserialize #-}
+
+instance (Serial1 v, Binary.Binary n) => Binary.Binary (FixedSegment v n) where
+  put = serializeWith Binary.put
+  {-# INLINE put #-}
+  get = deserializeWith Binary.get
+  {-# INLINE get #-}
+
+instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (FixedSegment v n) where
+  put = serializeWith Cereal.put
+  {-# INLINE put #-}
+  get = deserializeWith Cereal.get
+  {-# INLINE get #-}
 
 -- | Fixed segments and a located segments are isomorphic.
 fixed :: (Additive v, Num n) => Iso' (FixedSegment v n) (Located (Segment v n))

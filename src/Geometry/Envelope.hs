@@ -50,7 +50,6 @@ import qualified Data.Map                           as M
 import           Data.Maybe                         (fromMaybe)
 import           Data.Semigroup
 import qualified Data.Set                           as S
-import           Data.Typeable
 import           Linear.Metric
 import           Numeric.Interval.NonEmpty.Internal
 
@@ -260,7 +259,7 @@ centerPoint = fromMaybe origin . mCenterPoint
 -- | Transforms an enveloped thing to fit within a @BoundingBox@.  If the
 --   bounding box is empty, then the result is also @mempty@.
 boxFit
-  :: (InSpace v n a, HasLinearMap v, Typeable v, Applicative v, Enveloped a, Transformable a, Monoid a)
+  :: (InSpace v n a, HasLinearMap v, Enveloped a, Transformable a, Monoid a)
   => BoundingBox v n -> a -> a
 boxFit b x = maybe mempty (`transform` x) $ boxTransform (boundingBox x) b
 

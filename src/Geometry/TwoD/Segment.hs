@@ -40,6 +40,7 @@ module Geometry.TwoD.Segment
     -- ** Low level functions
   , segmentSegment
   , lineSegment
+  , bezierFindRoot
   )
   where
 

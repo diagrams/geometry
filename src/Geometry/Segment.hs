@@ -346,7 +346,6 @@ cubicEnvelope !c1 !c2 !c3 !v
     a = 3 * ((3 *^ c1 ^-^ 3 *^ c2 ^+^ c3) `dot` v)
     b = 6 * (((-2) *^ c1 ^+^ c2) `dot` v)
     c = (3 *^ c1) `dot` v
-{-# INLINEABLE [0] cubicEnvelope #-}
 {-# SPECIALISE cubicEnvelope :: V2 Double -> V2 Double -> V2 Double -> V2 Double -> Interval Double #-}
 {-# SPECIALISE cubicEnvelope :: V3 Double -> V3 Double -> V3 Double -> V3 Double -> Interval Double #-}
 

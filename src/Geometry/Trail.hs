@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
@@ -90,6 +91,7 @@ import           Data.Bytes.Get                     (getWord8)
 import           Data.Bytes.Put                     (putWord8)
 import           Data.Bytes.Serial
 import           Data.Coerce
+import           Data.Foldable
 import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
 import           Data.Functor.Contravariant         (phantom)
@@ -160,13 +162,24 @@ instance HasSegments (Line v n) where
   numSegments (Line ss _) = Seq.length ss
   {-# INLINE numSegments #-}
 
+data Pair a b = Pair !a !b
+
+getB :: Pair a b -> b
+getB (Pair _ b) = b
+
 -- | Envelope of a line without a 'Envelope' wrapper. This is specialsed
---   to @V2 Double@ and @V3 Double@ and marked as @INLINEABLE@.
+--   to @V2 Double@ and @V3 Double@.
 lineEnv :: MetricSpace v n => Line v n -> v n -> Interval n
-lineEnv = envelopeOf segments
+lineEnv = \ !(Line t _) !w ->
+  let f (Pair p e) !seg = Pair (p .+^ offset seg) e'
+        where
+          e' = combine e (moveBy (view _Point p `dot` w) $ segmentEnvelope seg w)
+          --
+          combine (I a1 b1) (I a2 b2) = I (min a1 a2) (max b1 b2)
+          moveBy n (I a b)            = I (a + n) (b + n)
+  in  getB $ foldl' f (Pair origin (I 0 0)) t
 {-# SPECIALIZE lineEnv :: Line V2 Double -> V2 Double -> Interval Double #-}
 {-# SPECIALIZE lineEnv :: Line V3 Double -> V3 Double -> Interval Double #-}
-{-# INLINEABLE [0] lineEnv #-}
 
 instance MetricSpace v n => Enveloped (Line v n) where
   getEnvelope l = Envelope (lineEnv l)

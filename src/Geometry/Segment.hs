@@ -76,10 +76,11 @@ module Geometry.Segment
     -- ** Segment calculations
   , paramsTangentTo
   , splitAtParams
+  , unsafeSplitAtParams
   , colinear
   , segmentsEqual
-  , segmentPerametersAtDirection
-  , bezierPerametersAtDirection
+  , segmentParametersAtDirection
+  , bezierParametersAtDirection
   ) where
 
 import           Control.Applicative                (liftA2)
@@ -94,8 +95,10 @@ import           Data.Bytes.Serial
 import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Hashable.Lifted
+import           Data.List                          (nub, sort)
 import           Data.Semigroup
 import qualified Data.Serialize                     as Cereal
+import           GHC.Exts                           (build)
 import           Linear.Affine
 import           Linear.Metric
 import           Linear.V2
@@ -108,6 +111,7 @@ import           Data.Coerce
 
 import           Diagrams.Solve.Polynomial
 
+import           Geometry.Angle
 import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
@@ -115,7 +119,6 @@ import           Geometry.Query
 import           Geometry.Space
 import           Geometry.Transform
 import           Geometry.TwoD.Transform
-import           Geometry.Angle
 import           Geometry.TwoD.Vector               hiding (e)
 
 
@@ -559,14 +562,30 @@ paramsTangentTo (V2 tx ty) (Cubic (V2 x1 y1) (V2 x2 y2) (V2 x3 y3)) =
       c = tx*y1 - ty*x1
 paramsTangentTo _ (Linear {}) = []
 
-splitAtParams
-  :: (Metric v, OrderedField n) => Segment v n -> [n] -> [Segment v n]
-splitAtParams = go 1 where
-  go !_ seg []     = [seg]
-  go t0 seg (t:ts) = s1 : go t' s2 ts
-    where
-      (s1,s2) = seg `splitAtParam` (t - t0)
-      t' = (t - t0) / (1 - t0)
+splitAtParams :: (InSpace v n t, Ord n, Fractional n, Sectionable t) => t -> [n] -> [t]
+splitAtParams t = unsafeSplitAtParams t . nub . sort . filter (\x -> x >= 0 && x < 1)
+
+-- splitAtParams
+--   :: (Metric v, OrderedField n) => Segment v n -> [n] -> [Segment v n]
+-- splitAtParams = go 1 where
+--   go !_ seg []     = [seg]
+--   go t0 seg (t:ts) = s1 : go t' s2 ts
+--     where
+--       (s1,s2) = seg `splitAtParam` (t - t0)
+--       t' = (t - t0) / (1 - t0)
+
+-- | Split a sectionable between a list of times. The list should be
+--   sorted, distinct and between 0 and 1.
+unsafeSplitAtParams :: (InSpace v n t, Fractional n, Sectionable t) => t -> [n] -> [t]
+unsafeSplitAtParams seg0 ts0 = build $ \(|>) z ->
+  let go !_ seg []     = seg |> z
+      go t0 seg (t:ts) = s1 |> go t' s2 ts
+        where
+          (s1,s2) = seg `splitAtParam` (t - t0)
+          t' = (t - t0) / (1 - t0)
+  in go 1 seg0 ts0
+  -- does fusion actually help here?
+  -- would probably be better if ts was given as a (unboxed) vector
 
 -- | Return False if some points fall outside a line with a thickness of
 --   the given tolerance.  fat line calculation taken from the
@@ -880,12 +899,12 @@ instance (Additive v, Fractional n) => Sectionable (FixedSegment v n) where
 -- closest :: FixedSegment v n -> Point v n -> [n]
 -- closest = undefined
 
-segmentPerametersAtDirection
+segmentParametersAtDirection
   :: OrderedField n
   => V2 n
   -> Segment V2 n
   -> [n]
-segmentPerametersAtDirection
+segmentParametersAtDirection
   (V2 tx ty)
   (Cubic (V2 x1 y1) (V2 x2 y2) (V2 x3 y3)) =
   filter (\x -> x >= 0 && x <= 1) $ quadForm a b c
@@ -893,15 +912,15 @@ segmentPerametersAtDirection
       a = tx*(y3 + 3*(y1 - y2)) - ty*(x3 + 3*(x1 - x2))
       b = 2*(tx*(y2 - 2*y1) - ty*(x2 - 2*x1))
       c = tx*y1 - ty*x1
-segmentPerametersAtDirection _ _ = []
-{-# INLINE segmentPerametersAtDirection#-}
+segmentParametersAtDirection _ _ = []
+{-# INLINE segmentParametersAtDirection#-}
 
-bezierPerametersAtDirection
+bezierParametersAtDirection
   :: OrderedField n
   => V2 n
   -> FixedSegment V2 n
   -> [n]
-bezierPerametersAtDirection
+bezierParametersAtDirection
   (V2 tx ty)
   (FCubic (P (V2 x0 y0)) (P (V2 x1 y1)) (P (V2 x2 y2)) (P (V2 x3 y3))) =
   filter (\x -> x >= 0 && x <= 1) $ quadForm a b c
@@ -909,6 +928,6 @@ bezierPerametersAtDirection
       a = tx*((y3 - y0) + 3*(y1 - y2)) - ty*((x3 - x0) + 3*(x1 - x2))
       b = 2*(tx*((y2 + y0) - 2*y1) - ty*((x2 + x0) - 2*x1))
       c = tx*(y1 - y0) - ty*(x1 - x0)
-bezierPerametersAtDirection _ _ = []
-{-# INLINE bezierPerametersAtDirection#-}
+bezierParametersAtDirection _ _ = []
+{-# INLINE bezierParametersAtDirection#-}
 

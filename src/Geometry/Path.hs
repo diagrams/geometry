@@ -167,7 +167,7 @@ locTrailEnv (Loc p t) v = shift (trailEnv t v)
 {-# INLINE locTrailEnv #-}
 
 pathEnv :: (Metric v, OrderedField n) => Interval n -> Path v n -> v n -> Interval n
-pathEnv i0 (Path ts) = \v -> foldr (\t i -> hull (locTrailEnv t v) i) i0 ts
+pathEnv i0 (Path ts) = \v -> F.foldl' (\i t -> hull (locTrailEnv t v) i) i0 ts
 {-# INLINE pathEnv #-}
 
 pathEnvelope :: (Metric v, OrderedField n) => Path v n -> Envelope v n

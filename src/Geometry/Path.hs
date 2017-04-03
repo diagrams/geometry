@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
@@ -170,11 +171,11 @@ pathEnv i0 (Path ts) = \v -> foldr (\t i -> hull (locTrailEnv t v) i) i0 ts
 {-# INLINE pathEnv #-}
 
 pathEnvelope :: (Metric v, OrderedField n) => Path v n -> Envelope v n
-pathEnvelope (Path (t :< ts)) = Envelope $ \v -> pathEnv (locTrailEnv t v) (Path ts) v
-pathEnvelope _                = EmptyEnvelope
+pathEnvelope = \case
+  Path (t :< ts) -> Envelope $ \v -> pathEnv (locTrailEnv t v) (Path ts) v
+  _              -> EmptyEnvelope
 -- This could be defined as @foldMap getEnvelope ts@ but this would be
--- much less efficient.
-{-# INLINEABLE [0] pathEnvelope #-}
+-- less efficient.
 {-# SPECIALISE pathEnvelope :: Path V2 Double -> Envelope V2 Double #-}
 {-# SPECIALISE pathEnvelope :: Path V3 Double -> Envelope V3 Double #-}
 

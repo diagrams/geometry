@@ -187,18 +187,16 @@ instance MetricSpace v n => Enveloped (Line v n) where
 
 -- | Unsorted line trace, specialised to @Double@.
 lineTrace :: OrderedField n => Line V2 n -> Point V2 n -> V2 n -> [n]
-lineTrace l = traceOf segments origin l
+lineTrace = \l p v -> traceOf segments origin l p v
 {-# SPECIALIZE lineTrace :: Line V2 Double -> Point V2 Double -> V2 Double -> [Double] #-}
-{-# INLINEABLE [0] lineTrace #-}
 
 instance OrderedField n => Traced (Line V2 n) where
-  getTrace l = Trace (\p v -> mkSortedList $ lineTrace l p v)
+  getTrace = \l -> Trace (\p v -> mkSortedList $ lineTrace l p v)
   {-# INLINE getTrace #-}
 
 lineCrossings :: OrderedField n => Line V2 n -> Point V2 n -> Crossings
 lineCrossings = crossingsOf segments origin
 {-# SPECIALIZE lineCrossings :: Line V2 Double -> Point V2 Double -> Crossings #-}
-{-# INLINEABLE [0] lineCrossings #-}
 
 instance OrderedField n => HasQuery (Line V2 n) Crossings where
   getQuery = coerce (lineCrossings :: Line V2 n -> Point V2 n -> Crossings)
@@ -359,9 +357,8 @@ instance MetricSpace v n => Enveloped (Loop v n) where
   {-# INLINE getEnvelope #-}
 
 loopTrace :: OrderedField n => Loop V2 n -> Point V2 n -> V2 n -> [n]
-loopTrace l = traceOf segments origin l
+loopTrace = \l p v -> traceOf segments origin l p v
 {-# SPECIALIZE loopTrace :: Loop V2 Double -> Point V2 Double -> V2 Double -> [Double] #-}
-{-# INLINEABLE [0] loopTrace #-}
 
 instance OrderedField n => Traced (Loop V2 n) where
   getTrace l = Trace (\p v -> mkSortedList $ loopTrace l p v)
@@ -370,7 +367,6 @@ instance OrderedField n => Traced (Loop V2 n) where
 loopCrossings :: OrderedField n => Loop V2 n -> Point V2 n -> Crossings
 loopCrossings = crossingsOf segments origin
 {-# SPECIALIZE loopCrossings :: Loop V2 Double -> Point V2 Double -> Crossings #-}
-{-# INLINEABLE [0] loopCrossings #-}
 
 instance OrderedField n => HasQuery (Loop V2 n) Crossings where
   getQuery l = Query (loopCrossings l)
@@ -561,8 +557,9 @@ instance (Metric v, OrderedField n) => Enveloped (Trail v n) where
   {-# INLINE getEnvelope #-}
 
 instance OrderedField n => Traced (Trail V2 n) where
-  getTrace (OpenTrail l) = getTrace l
-  getTrace (ClosedTrail l) = getTrace l
+  getTrace = \case
+    OpenTrail l   -> getTrace l
+    ClosedTrail l -> getTrace l
   {-# INLINE getTrace #-}
 
 instance OrderedField n => HasQuery (Trail V2 n) Crossings where

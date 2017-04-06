@@ -185,7 +185,7 @@ instance (Metric v, OrderedField n) => Enveloped (Path v n) where
 
 pathTrace :: OrderedField n => Path V2 n -> Point V2 n -> V2 n -> [n]
 pathTrace = \(Path ts) p0 v ->
-  F.foldMap (\(Loc (P p) l) -> trailTrace l (p0 .-^ p) v) ts
+  F.concatMap (\(Loc (P p) l) -> trailTrace l (p0 .-^ p) v) ts
 {-# SPECIALISE pathTrace :: Path V2 Double -> Point V2 Double -> V2 Double -> [Double] #-}
 
 instance RealFloat n => Traced (Path V2 n) where

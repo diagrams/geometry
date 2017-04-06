@@ -80,6 +80,9 @@ module Geometry.Trail
   , lineEnv
   , loopEnv
   , trailEnv
+  , lineTrace
+  , loopTrace
+  , trailTrace
   , lineSegParam
   ) where
 
@@ -556,10 +559,15 @@ instance (Metric v, OrderedField n) => Enveloped (Trail v n) where
   getEnvelope t = Envelope (trailEnv t)
   {-# INLINE getEnvelope #-}
 
+trailTrace :: OrderedField n => Trail V2 n -> Point V2 n -> V2 n -> [n]
+trailTrace = \t p v -> case t of
+  OpenTrail l   -> lineTrace l p v
+  ClosedTrail l -> loopTrace l p v
+{-# SPECIALISE trailTrace :: Trail V2 Double -> Point V2 Double -> V2
+   Double -> [Double] #-}
+
 instance OrderedField n => Traced (Trail V2 n) where
-  getTrace = \case
-    OpenTrail l   -> getTrace l
-    ClosedTrail l -> getTrace l
+  getTrace = \l -> Trace (\p v -> mkSortedList $ trailTrace l p v)
   {-# INLINE getTrace #-}
 
 instance OrderedField n => HasQuery (Trail V2 n) Crossings where

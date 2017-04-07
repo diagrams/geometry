@@ -80,23 +80,30 @@ module Geometry.Transform
 
   ) where
 
+import           Control.DeepSeq       (NFData (..))
 import           Control.Lens          hiding (transform)
-import           Data.Semigroup
--- import           Diagrams.Core
-import           Geometry.HasOrigin
-import           Geometry.Space
-
 import           Control.Lens          (Rewrapped, Traversable, Wrapped (..),
                                         iso, (&), (.~))
+import           Data.Binary           as Binary
+import           Data.Bytes.Serial
 import           Data.Distributive
+import           Data.Foldable         (Foldable, toList)
+import           Data.Functor.Classes
+import           Data.Functor.Rep
+import           Data.Hashable
+import           Data.Hashable.Lifted
 import           Data.HashMap.Lazy     (HashMap)
 import           Data.IntMap           (IntMap)
 import           Data.Map              (Map)
--- import           Data.Semigroup
+import           Data.Proxy
+import           Data.Semigroup
 import           Data.Sequence         (Seq)
+import           Data.Serialize        as Cereal
 import qualified Data.Set              as S
 import           Data.Tree             (Tree)
 import           Data.Typeable
+import           Geometry.HasOrigin
+import           Geometry.Space
 
 import           Data.Monoid.Action
 import           Data.Monoid.Deletable
@@ -104,18 +111,7 @@ import           Data.Monoid.Deletable
 import           Linear.Affine
 import           Linear.Vector
 
-import           Data.Foldable         (Foldable, toList)
-import           Data.Functor.Rep
-
 import           Linear                hiding (conjugate, translation)
-
-import           Data.Functor.Classes
-import           Data.Hashable
-import           Data.Hashable.Lifted
-import           Data.Binary                 as Binary
-import           Data.Bytes.Serial
-import           Control.DeepSeq             (NFData(..))
-import           Data.Serialize              as Cereal
 
 ------------------------------------------------------------------------
 --  Affine transformations
@@ -148,14 +144,7 @@ type instance N (Transformation v n) = n
 -- | Identity matrix.
 eye :: (HasBasis v, Num n) => v (v n)
 eye = tabulate $ \(E e) -> zero & e .~ 1
-{-# INLINE [0] eye #-}
-
-{-# RULES
-  "eye1" eye = V1 (V1 1);
-  "eye2" eye = V2 (V2 1 0) (V2 0 1);
-  "eye3" eye = V3 (V3 1 0 0) (V3 0 1 0) (V3 0 0 1);
-  "eye4" eye = V4 (V4 1 0 0 0) (V4 0 1 0 0) (V4 0 0 1 0) (V4 0 0 0 1);
- #-}
+{-# INLINE eye #-}
 
 -- | Invert a transformation.
 inv :: (Additive v, Foldable v, Num n) => Transformation v n -> Transformation v n
@@ -182,15 +171,12 @@ tappend :: (Additive v, Foldable v, Num n)
         => Transformation v n -> Transformation v n -> Transformation v n
 tappend (T m1 m1Inv v1) (T m2 m2Inv v2)
     = T (m1 !*! m2) (m2Inv !*! m1Inv) (v1 ^+^ m1 !* v2)
-{-# SPECIALIZE INLINE tappend :: Num n =>
-  Transformation V2 n -> Transformation V2 n -> Transformation V2 n #-}
-{-# SPECIALIZE INLINE tappend :: Num n =>
-  Transformation V3 n -> Transformation V3 n -> Transformation V3 n #-}
+{-# SPECIALIZE INLINE tappend :: Transformation V2 Double -> Transformation V2 Double -> Transformation V2 Double #-}
+{-# SPECIALIZE INLINE tappend :: Transformation V3 Double -> Transformation V3 Double -> Transformation V3 Double #-}
 
 tempty :: (HasBasis v, Num n) => Transformation v n
 tempty = T eye eye zero
-{-# SPECIALIZE INLINE tempty :: Num n => Transformation V2 n #-}
-{-# SPECIALIZE INLINE tempty :: Num n => Transformation V3 n #-}
+{-# INLINE tempty #-}
 
 -- | Transformations are closed under composition; @t1 <> t2@ is the
 --   transformation which performs first @t2@, then @t1@.
@@ -286,7 +272,19 @@ fromOrthogonal t = fromLinear t (transpose t)
 -- | Get the dimension of an object whose vector space is an instance of
 --   @HasLinearMap@, e.g. transformations, paths, diagrams, etc.
 dimension :: forall a. (Additive (V a), Traversable (V a)) => a -> Int
-dimension _ = length (basis :: [V a Int])
+dimension = const (dimen (Proxy :: Proxy (V a)))
+{-# INLINE dimension #-}
+
+dimen :: forall (v :: * -> *) . (Additive v, Traversable v) => Proxy v -> Int
+dimen = \_ -> length (basis :: [v Int])
+{-# NOINLINE dimen #-}
+
+{-# RULES
+  "dimenV1" dimen = const 1 :: Proxy V1 -> Int;
+  "dimenV2" dimen = const 2 :: Proxy V2 -> Int;
+  "dimenV3" dimen = const 3 :: Proxy V3 -> Int;
+  "dimenV4" dimen = const 4 :: Proxy V4 -> Int;
+ #-}
 
 -- | Get the matrix equivalent of the linear transform, (as a list of
 --   columns) and the translation vector. This is mostly useful for
@@ -336,7 +334,7 @@ matrixHomRep t = mr ++ [toList tl]
 -- | The determinant of (the linear part of) a `Transformation`.
 determinant :: (Additive v, Traversable v, Num n) => Transformation v n -> n
 determinant = det . matrixRep
-{-# INLINE [0] determinant #-}
+{-# NOINLINE determinant #-}
 
 {-# RULES
   "det22" determinant = \(T m _ _) -> det22 m;
@@ -348,6 +346,7 @@ determinant = det . matrixRep
 --   component, that is, whether it reverses orientation.
 isReflection :: (Additive v, Traversable v, Num n, Ord n) => Transformation v n -> Bool
 isReflection = (<0) . determinant
+{-# INLINE isReflection #-}
 
 -- | Compute the \"average\" amount of scaling performed by a
 --   transformation.  Satisfies the properties
@@ -357,8 +356,9 @@ isReflection = (<0) . determinant
 --   avgScale (t1 <> t2)  == avgScale t1 * avgScale t2
 --   @
 --
-avgScale :: (Additive v, Traversable v, Floating n) => Transformation v n -> n
-avgScale t = (abs . determinant) t ** (recip . fromIntegral . dimension) t
+avgScale :: forall v n. (Additive v, Traversable v, Floating n) => Transformation v n -> n
+avgScale = \t -> (abs . determinant) t ** (recip . fromIntegral $ dimen (Proxy :: Proxy v))
+{-# INLINE avgScale #-}
 
 {-
 
@@ -509,6 +509,7 @@ scaleV s = transform $ scalingV s
 conjugate :: (Additive v, Foldable v, Num n)
           => Transformation v n -> Transformation v n -> Transformation v n
 conjugate t1 t2 = inv t1 <> t2 <> t1
+{-# INLINE conjugate #-}
 
 -- | Carry out some transformation \"under\" another one: @f ``underT``
 --   t@ first applies @t@, then @f@, then the inverse of @t@.  For
@@ -529,6 +530,7 @@ conjugate t1 t2 = inv t1 <> t2 <> t1
 underT :: (InSpace v n a, Foldable v, SameSpace a b, Transformable a, Transformable b)
       => (a -> b) -> Transformation v n -> a -> b
 f `underT` t = transform (inv t) . f . transform t
+{-# INLINE underT #-}
 
 -- | Use a 'Transformation' to make an 'Iso' between an object
 --   transformed and untransformed. This is useful for carrying out
@@ -588,3 +590,4 @@ translated :: (InSpace v n a, HasBasis v, Foldable v, SameSpace a b, Transformab
            => v n -> Iso a b a b
 translated = transformed . translation
 {-# INLINE translated #-}
+

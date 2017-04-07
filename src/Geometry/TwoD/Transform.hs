@@ -52,16 +52,14 @@ module Geometry.TwoD.Transform
   ) where
 
 import           Geometry.Angle
+import           Geometry.Direction
+import           Geometry.Envelope
 import           Geometry.Space
 import           Geometry.Transform
-import           Geometry.Direction
--- import           Geometry.Transform
 import           Geometry.TwoD.Types
-import           Geometry.Envelope
--- import           Geometry.ThreeD.Types
 import           Geometry.TwoD.Vector
 
-import           Control.Lens            hiding (at, transform)
+import           Control.Lens         hiding (at, transform)
 import           Data.Semigroup
 
 import           Linear.Affine
@@ -79,6 +77,7 @@ rotation theta = fromOrthogonal (V2 (V2 c (-s)) (V2 s c))
   where
     c = cosA theta
     s = sinA theta
+{-# INLINE rotation #-}
 
 -- | Rotate about the local origin by the given angle. Positive angles
 --   correspond to counterclockwise rotation, negative to
@@ -96,12 +95,14 @@ rotation theta = fromOrthogonal (V2 (V2 c (-s)) (V2 s c))
 
 rotate :: (InSpace V2 n t, Transformable t, Floating n) => Angle n -> t -> t
 rotate = transform . rotation
+{-# INLINE rotate #-}
 
 -- | A synonym for 'rotate', interpreting its argument in units of
 -- turns; it can be more convenient to write @rotateBy (1\/4)@ than
 -- @'rotate' (1\/4 \@\@ 'turn')@.
 rotateBy :: (InSpace V2 n t, Transformable t, Floating n) => n -> t -> t
 rotateBy = transform . rotation . review turn
+{-# INLINE rotateBy #-}
 
 -- | Use an 'Angle' to make an 'Iso' between an object
 --   rotated and unrotated. This us useful for performing actions
@@ -116,27 +117,32 @@ rotateBy = transform . rotation . review turn
 rotated :: (InSpace V2 n a, Floating n, SameSpace a b, Transformable a, Transformable b)
         => Angle n -> Iso a b a b
 rotated = transformed . rotation
+{-# INLINE rotated #-}
 
 -- | @rotationAbout p@ is a rotation about the point @p@ (instead of
 --   around the local origin).
 rotationAround :: Floating n => P2 n -> Angle n -> T2 n
 rotationAround p theta =
   conjugate (translation (origin .-. p)) (rotation theta)
+{-# INLINE rotationAround #-}
 
 -- | @rotateAbout p@ is like 'rotate', except it rotates around the
 --   point @p@ instead of around the local origin.
 rotateAround :: (InSpace V2 n t, Transformable t, Floating n)
              => P2 n -> Angle n -> t -> t
 rotateAround p theta = transform (rotationAround p theta)
+{-# INLINE rotateAround #-}
 
 -- | The rotation that aligns the x-axis with the given direction.
 rotationTo :: OrderedField n => Direction V2 n -> T2 n
 rotationTo (view _Dir -> V2 x y) = rotation (atan2A' y x)
+{-# INLINE rotationTo #-}
 
 -- | Rotate around the local origin such that the x axis aligns with the
 --   given direction.
 rotateTo :: (InSpace V2 n t, OrderedField n, Transformable t) => Direction V2 n -> t -> t
 rotateTo = transform . rotationTo
+{-# INLINE rotateTo #-}
 
 -- Scaling -------------------------------------------------
 
@@ -147,19 +153,13 @@ scalingX c =
   fromLinear
     (eye & _x . _x .~ c)
     (eye & _x . _x //~ c)
-  -- fromLinear
-  --   (V2 (V2 c     0) (V2 0 1))
-  --   (V2 (V2 (1/c) 0) (V2 0 1))
-
-{-# SPECIALIZE scalingX :: Double -> T2 Double #-}
--- {-# SPECIALIZE scalingX :: Double -> T3 Double #-}
-{-# SPECIALIZE scalingX :: Fractional n => n -> T2 n #-}
--- {-# SPECIALIZE scalingX :: Fractional n => n -> T3 n #-}
+{-# INLINE scalingX #-}
 
 -- | Scale a diagram by the given factor in the x (horizontal)
 --   direction.  To scale uniformly, use 'scale'.
 scaleX :: (InSpace v n t, HasBasis v, R1 v, Fractional n, Transformable t) => n -> t -> t
 scaleX = transform . scalingX
+{-# INLINE scaleX #-}
 
 -- | Construct a transformation which scales by the given factor in
 --   the y (vertical) direction.
@@ -168,18 +168,14 @@ scalingY c =
   fromLinear
     (eye & _y . _y .~ c)
     (eye & _y . _y //~ c)
-  -- fromLinear
-  --   (V2 (V2 1 0) (V2 0 c    ))
-  --   (V2 (V2 1 0) (V2 0 (1/c)))
-
-{-# SPECIALIZE scalingY :: Double -> T2 Double #-}
--- {-# SPECIALIZE scalingY :: Double -> T3 Double #-}
+{-# INLINE scalingY #-}
 
 -- | Scale a diagram by the given factor in the y (vertical)
 --   direction.  To scale uniformly, use 'scale'.
 scaleY :: (InSpace v n t, HasBasis v, R2 v, Fractional n, Transformable t)
   => n -> t -> t
 scaleY = transform . scalingY
+{-# INLINE scaleY #-}
 
 -- | @scaleToX w@ scales a diagram in the x (horizontal) direction by
 --   whatever factor required to make its width @w@.  @scaleToX@
@@ -187,6 +183,7 @@ scaleY = transform . scalingY
 --   'vrule'.
 scaleToX :: (InSpace v n t, HasBasis v, R1 v, Enveloped t, Transformable t) => n -> t -> t
 scaleToX w d = scaleX (w / diameter unitX d) d
+{-# INLINE scaleToX #-}
 
 -- | @scaleToY h@ scales a diagram in the y (vertical) direction by
 --   whatever factor required to make its height @h@.  @scaleToY@
@@ -194,18 +191,21 @@ scaleToX w d = scaleX (w / diameter unitX d) d
 --   'hrule'.
 scaleToY :: (InSpace v n t, HasBasis v, R2 v, Enveloped t, Transformable t) => n -> t -> t
 scaleToY h d = scaleY (h / diameter unitY d) d
+{-# INLINE scaleToY #-}
 
 -- | @scaleUToX w@ scales a diagram /uniformly/ by whatever factor
 --   required to make its width @w@.  @scaleUToX@ should not be
 --   applied to diagrams with a width of 0, such as 'vrule'.
 scaleUToX :: (InSpace v n t, HasBasis v, R1 v, Enveloped t, Transformable t) => n -> t -> t
 scaleUToX w d = scale (w / diameter unitX d) d
+{-# INLINE scaleUToX #-}
 
 -- | @scaleUToY h@ scales a diagram /uniformly/ by whatever factor
 --   required to make its height @h@.  @scaleUToY@ should not be applied
 --   to diagrams with a height of 0, such as 'hrule'.
 scaleUToY :: (InSpace v n t, HasBasis v, R2 v, Enveloped t, Transformable t) => n -> t -> t
 scaleUToY h d = scale (h / diameter unitY d) d
+{-# INLINE scaleUToY #-}
 
 -- Translation ---------------------------------------------
 
@@ -213,28 +213,26 @@ scaleUToY h d = scale (h / diameter unitY d) d
 --   in the x (horizontal) direction.
 translationX :: (HasBasis v, R1 v, Num n) => n -> Transformation v n
 translationX x = translation (zero & _x .~ x)
-
-{-# SPECIALIZE translationX :: Num n => n -> T2 n #-}
--- {-# SPECIALIZE translationX :: Num n => n -> T3 n #-}
+{-# INLINE translationX #-}
 
 -- | Translate a diagram by the given distance in the x (horizontal)
 --   direction.
 translateX :: (InSpace v n t, HasBasis v, R1 v, Transformable t) => n -> t -> t
 translateX = transform . translationX
+{-# INLINE translateX #-}
 
 -- | Construct a transformation which translates by the given distance
 --   in the y (vertical) direction.
 translationY :: (HasBasis v, R2 v, Num n) => n -> Transformation v n
 translationY y = translation (zero & _y .~ y)
-
-{-# SPECIALIZE translationY :: Num n => n -> T2 n #-}
--- {-# SPECIALIZE translationY :: Num n => n -> T3 n #-}
+{-# INLINE translationY #-}
 
 -- | Translate a diagram by the given distance in the y (vertical)
 --   direction.
 translateY :: (InSpace v n t, HasBasis v, R2 v, Transformable t)
   => n -> t -> t
 translateY = transform . translationY
+{-# INLINE translateY #-}
 
 -- Reflection ----------------------------------------------
 
@@ -242,36 +240,36 @@ translateY = transform . translationY
 --   right, i.e. sends the point (x,y) to (-x,y).
 reflectionX :: (HasBasis v, R1 v, Num n) => Transformation v n
 reflectionX = fromInvoluted (eye & _x . _x .~ -1) -- (V2 (V2 (-1) 0) (V2 0 1))
-
-{-# SPECIALIZE reflectionX :: Num n => T2 n #-}
--- {-# SPECIALIZE reflectionX :: Num n => T3 n #-}
+{-# INLINE reflectionX #-}
 
 -- | Flip a diagram from left to right, i.e. send the point (x,y) to
 --   (-x,y).
 reflectX :: (InSpace v n t, HasBasis v, R1 v, Transformable t) => t -> t
 reflectX = transform reflectionX
+{-# INLINE reflectX #-}
 
 -- | Construct a transformation which flips a diagram from top to
 --   bottom, i.e. sends the point (x,y) to (x,-y).
 reflectionY :: (HasBasis v, R2 v, Num n) => Transformation v n
 reflectionY = fromInvoluted (eye & _y . _y .~ -1) -- (V2 (V2 1 0) (V2 0 (-1)))
-
-{-# SPECIALIZE reflectionY :: Num n => T2 n #-}
--- {-# SPECIALIZE reflectionY :: Num n => T3 n #-}
+{-# INLINE reflectionY #-}
 
 -- | Flip a diagram from top to bottom, i.e. send the point (x,y) to
 --   (x,-y).
 reflectY :: (InSpace v n t, HasBasis v, R2 v, Transformable t) => t -> t
 reflectY = transform reflectionY
+{-# INLINE reflectY #-}
 
 -- | Construct a transformation which flips the diagram about x=y, i.e.
 --   sends the point (x,y) to (y,x).
 reflectionXY :: Num n => Transformation V2 n
 reflectionXY = fromInvoluted (V2 (V2 0 1) (V2 1 0))
+{-# INLINE reflectionXY #-}
 
 -- | Flips the diagram about x=y, i.e. send the point (x,y) to (y,x).
 reflectXY :: (InSpace V2 n t, Transformable t) => t -> t
 reflectXY = transform reflectionXY
+{-# INLINE reflectXY #-}
 
 -- | @reflectionAbout p d@ is a reflection in the line determined by
 --   the point @p@ and direction @d@.
@@ -279,12 +277,14 @@ reflectionAbout :: OrderedField n => P2 n -> Direction V2 n -> T2 n
 reflectionAbout p d =
   conjugate (rotationTo (reflectY d) <> translation (origin .-. p))
             reflectionY
+{-# INLINE reflectionAbout #-}
 
 -- | @reflectAbout p d@ reflects a diagram in the line determined by
 --   the point @p@ and direction @d@.
 reflectAbout :: (InSpace V2 n t, OrderedField n, Transformable t)
              => P2 n -> Direction V2 n -> t -> t
 reflectAbout p v = transform (reflectionAbout p v)
+{-# INLINE reflectAbout #-}
 
 -- Shears --------------------------------------------------
 
@@ -295,11 +295,13 @@ shearingX d =
   fromLinear
     (V2 (V2 1   d)  (V2 1 0))
     (V2 (V2 1 (-d)) (V2 1 0))
+{-# INLINE shearingX #-}
 
 -- | @shearX d@ performs a shear in the x-direction which sends
 --   @(0,1)@ to @(d,1)@.
 shearX :: (InSpace V2 n t, Transformable t) => n -> t -> t
 shearX = transform . shearingX
+{-# INLINE shearX #-}
 
 -- | @shearingY d@ is the linear transformation which is the identity on
 --   x coordinates and sends @(1,0)@ to @(1,d)@.
@@ -308,8 +310,11 @@ shearingY d =
   fromLinear
     (V2 (V2 1 0) (V2 d    0))
     (V2 (V2 1 0) (V2 (-d) 0))
+{-# INLINE shearingY #-}
 
 -- | @shearY d@ performs a shear in the y-direction which sends
 --   @(1,0)@ to @(1,d)@.
 shearY :: (InSpace V2 n t, Transformable t) => n -> t -> t
 shearY = transform . shearingY
+{-# INLINE shearY #-}
+

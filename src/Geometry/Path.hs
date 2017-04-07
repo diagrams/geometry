@@ -183,13 +183,13 @@ instance (Metric v, OrderedField n) => Enveloped (Path v n) where
   getEnvelope = pathEnvelope
   {-# INLINE getEnvelope #-}
 
-pathTrace :: OrderedField n => Path V2 n -> Point V2 n -> V2 n -> [n]
+pathTrace :: OrderedField n => Path V2 n -> Point V2 n -> V2 n -> Seq n
 pathTrace = \(Path ts) p0 v ->
-  F.concatMap (\(Loc (P p) l) -> trailTrace l (p0 .-^ p) v) ts
-{-# SPECIALISE pathTrace :: Path V2 Double -> Point V2 Double -> V2 Double -> [Double] #-}
+  F.foldMap (\(Loc (P p) l) -> trailTrace l (p0 .-^ p) v) ts
+{-# SPECIALISE pathTrace :: Path V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
 instance RealFloat n => Traced (Path V2 n) where
-  getTrace = \path -> Trace (\p v -> mkSortedList $ pathTrace path p v)
+  getTrace = \path -> Trace (\p v -> pathTrace path p v)
   {-# INLINE getTrace #-}
 
 instance RealFloat n => HasQuery (Path V2 n) Crossings where

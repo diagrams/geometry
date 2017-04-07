@@ -52,6 +52,8 @@ import           Data.Monoid.WithSemigroup
 import           Data.Maybe (fromMaybe)
 import           Data.Semigroup
 import           Data.Foldable (foldl')
+import           Control.Lens.Cons
+import           Control.Lens ((&))
 
 import           Geometry.Direction
 import           Geometry.Juxtapose
@@ -63,6 +65,7 @@ import           Geometry.Transform
 import           Linear.Affine
 import           Linear.Metric
 import           Linear.Vector
+import           Linear.V2
 
 ------------------------------------------------------------
 -- Combining two objects
@@ -235,11 +238,12 @@ snugBy
 snugBy = alignBy' traceBoundary
 
 traceBoundary :: (InSpace v n t, Traced t) => v n -> t -> Maybe (n,n)
-traceBoundary v a =
-  case getSortedList $ appTrace (getTrace a) origin v of
-    []        -> Nothing
-    (nMin:ns) -> let !nMax = foldl (\_ x -> x) nMin ns
-                 in  Just (nMin,nMax)
+traceBoundary = \v t ->
+  case appTrace (getTrace t) origin v of
+    x :< xs -> foldl' (\(V2 a b) x' -> V2 (min a x') (max b x')) (V2 x x) xs
+                 & \(V2 a b) -> Just (a,b)
+    _       -> Nothing
+{-# INLINE traceBoundary #-}
 
 -- | Like align but uses trace.
 snug :: (InSpace v n t, Fractional n, Traced t, HasOrigin t)

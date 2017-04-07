@@ -41,28 +41,28 @@ module Geometry.ThreeD.Shapes
 
 #if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative
-import           Data.Foldable          (foldMap)
+import           Data.Foldable                      (foldMap)
 #endif
-import           Control.Lens           (review, (^.), _1)
+import           Control.Lens                       (review, (^.), _1)
 import           Data.Semigroup
+import qualified Data.Sequence                      as Seq
 import           Data.Typeable
 
 import           Geometry.Angle
+import           Geometry.BoundingBox
 import           Geometry.Envelope
 import           Geometry.Points
 import           Geometry.Query
 import           Geometry.Space
-import           Geometry.Trace
-import           Geometry.BoundingBox
-import           Geometry.Transform
--- import           Geometry.Solve.Polynomial
 import           Geometry.ThreeD.Types
 import           Geometry.ThreeD.Vector
+import           Geometry.Trace
+import           Geometry.Transform
 
 import           Linear.Affine
 import           Linear.Metric
 import           Linear.Vector
-import Numeric.Interval.NonEmpty.Internal hiding (intersection)
+import           Numeric.Interval.NonEmpty.Internal hiding (intersection)
 
 -- Ellipsoid -----------------------------------------------------------
 
@@ -85,7 +85,7 @@ instance OrderedField n => Traced (Sphere n) where
     c  =    (p `dot` p) - 1
     in
      -- mkSortedList $ quadForm a b c
-     mkSortedList $ error "need quadForm" a b c
+     Seq.fromList $ error "need quadForm" a b c
 
 class EllipsoidLike t where
   -- | A sphere of radius 1 with its center at the origin.
@@ -122,7 +122,7 @@ instance (Fractional n, Ord n) => Traced (Cube n) where
     in
      -- ts gives all intersections with the planes forming the cube
      -- filter keeps only those actually on the cube surface
-     mkSortedList . filter (range . atT) $ ts where
+     Seq.fromList . filter (range . atT) $ ts where
 
 instance (Num n, Ord n) => HasQuery (Cube n) Any where
   getQuery Cube = Query $ Any . range where
@@ -183,7 +183,7 @@ instance (RealFloat n, Ord n) => Traced (Frustum n) where
       t = (z - pz) / vz
     in
      -- mkSortedList $ filter zbounds (quadForm a b c) ++ ends
-     mkSortedList $ filter zbounds (error "Traced Frustum not yet implimented" a b c) ++ ends
+     Seq.fromList $ filter zbounds (error "Traced Frustum not yet implimented" a b c) ++ ends
 
 instance OrderedField n => HasQuery (Frustum n) Any where
   getQuery (Frustum r0 r1) =
@@ -284,23 +284,23 @@ instance (RealFloat n, Ord n) => Traced (CSG n) where
     -- on surface of some p, and not inside any of the others
     CsgUnion []     -> mempty
     CsgUnion (s:ss) -> mkTrace t where
-      t pt v = onSortedList (filter $ without s) (appTrace (getTrace (CsgUnion ss)) pt v)
-           <> onSortedList (filter $ without (CsgUnion ss)) (appTrace (getTrace s) pt v) where
+      t pt v = (Seq.filter $ without s) (appTrace (getTrace (CsgUnion ss)) pt v)
+            <> (Seq.filter $ without (CsgUnion ss)) (appTrace (getTrace s) pt v) where
         newPt dist = pt .+^ v ^* dist
         without prim = not . inquire prim . newPt
 
     -- on surface of some p, and inside all the others
     CsgIntersection []     -> mempty
     CsgIntersection (s:ss) -> mkTrace t where
-      t pt v = onSortedList (filter $ within s) (appTrace (getTrace (CsgIntersection ss)) pt v)
-           <> onSortedList (filter $ within (CsgIntersection ss)) (appTrace (getTrace s) pt v) where
+      t pt v = (Seq.filter $ within s) (appTrace (getTrace (CsgIntersection ss)) pt v)
+            <> (Seq.filter $ within (CsgIntersection ss)) (appTrace (getTrace s) pt v) where
         newPt dist = pt .+^ v ^* dist
         within prim = inquire prim . newPt
 
     -- on surface of p1, outside p2, or on surface of p2, inside p1
     CsgDifference s1 s2 -> mkTrace t where
-      t pt v = onSortedList (filter $ not . within s2) (appTrace (getTrace s1) pt v)
-           <> onSortedList (filter $ within s1) (appTrace (getTrace s2) pt v) where
+      t pt v = (Seq.filter $ not . within s2) (appTrace (getTrace s1) pt v)
+            <> (Seq.filter $ within s1) (appTrace (getTrace s2) pt v) where
         newPt dist = pt .+^ v ^* dist
         within prim = inquire prim . newPt
 

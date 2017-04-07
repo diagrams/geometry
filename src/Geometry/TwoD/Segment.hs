@@ -1,9 +1,10 @@
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE ViewPatterns         #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- Orphan Traced instances for Segment V2 and FixedSegment V2.
@@ -44,18 +45,18 @@ module Geometry.TwoD.Segment
   )
   where
 
-import           Control.Lens                    hiding (at, contains, transform, ( # ))
+import           Control.Lens                    hiding (at, contains,
+                                                  transform, ( # ))
 import           Data.Maybe
-
-import           Geometry.Space
+import qualified Data.Sequence                   as Seq
 
 import           Geometry.Direction
-import           Geometry.Trace
-import           Geometry.Transform
--- import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
 import           Geometry.Segment
+import           Geometry.Space
+import           Geometry.Trace
+import           Geometry.Transform
 import           Geometry.TwoD.Points
 import           Geometry.TwoD.Segment.Bernstein
 import           Geometry.TwoD.Transform
@@ -74,7 +75,7 @@ instance OrderedField n => Traced (Segment V2 n) where
 
 instance OrderedField n => Traced (FixedSegment V2 n) where
   getTrace seg = mkTrace $ \p v ->
-    mkSortedList . map (view _1) $ lineSegment defEps (v `at` p) seg
+    Seq.fromList . map (view _1) $ lineSegment defEps (v `at` p) seg
 
 defEps :: Fractional n => n
 defEps = 1e-8

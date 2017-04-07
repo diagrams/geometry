@@ -97,6 +97,8 @@ import           Data.Hashable
 import           Data.Hashable.Lifted
 import           Data.List                          (nub, sort)
 import           Data.Semigroup
+import           Data.Sequence                      (Seq)
+import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
 import           GHC.Exts                           (build)
 import           Linear.Affine
@@ -400,16 +402,16 @@ traceOf
   -> t            -- trail
   -> Point V2 n   -- trace start
   -> V2 n         -- trace direction
-  -> [n]          -- unsorted list of values
-traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,[]) trail
+  -> Seq n        -- unsorted list of values
+traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mempty :: Seq n) trail
   where
     !theta = atan2A' vy vx
     -- !rot   = rotation theta
     !t2    = rotation theta <> translation (p^._Point) <> scaling (1/norm v)
 
-    f (q,_nearStart,ts) (Linear w)
+    f (!q,!_nearStart,!ts) (Linear w)
       | x1 == 0 && x2 /= 0 = (q .+^ w, False, ts) -- parallel
-      | otherwise          = (q .+^ w, nearEnd, t : ts)
+      | otherwise          = (q .+^ w, nearEnd, ts :> t)
       where
         t  = x3 / x1
         x1 =  v `cross2` w
@@ -418,7 +420,7 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,[])
         pq  = q .-. p
         nearEnd = t > 0.999
 
-    f (q,nearStart, ts) (Cubic c1 c2 c3) = (q .+^ c3, nearEnd, ts' ++ ts)
+    f (q,nearStart, ts) (Cubic c1 c2 c3) = (q .+^ c3, nearEnd, ts <> Seq.fromList ts')
       where
         qy = papply t2 q ^. _y
         y1 = apply t2 c1 ^. _y

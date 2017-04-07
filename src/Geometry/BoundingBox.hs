@@ -1,14 +1,13 @@
 {-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE ViewPatterns               #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -39,27 +38,26 @@ module Geometry.BoundingBox
   , boxIntersection
   ) where
 
--- import           Control.Lens            (AsEmpty (..), Each (..), contains, nearly)
-import           Data.Foldable           as F
+import           Control.Applicative
+import           Control.Lens         hiding (contains, inside, outside)
+import           Data.Foldable        as F
+import           Data.Functor.Classes
 import           Data.Semigroup
 import           Text.Read
+import qualified Data.Sequence as Seq
 
-import Geometry.Space
-import Geometry.Transform
-import Geometry.Trace
-import           Geometry.Query
-
-import           Control.Applicative
-import           Control.Lens hiding (contains, inside, outside)
-import Data.Functor.Classes
-
-import           Data.Traversable        as T
+import           Data.Traversable     as T
 import           Linear.Affine
 import           Linear.Vector
 
+import           Geometry.Query
+import           Geometry.Space
+import           Geometry.Trace
+import           Geometry.Transform
+
 -- | A bounding box is an axis-aligned region determined by two points
---   indicating its \"lower\" and \"upper\" corners.  It can also represent
---   an empty bounding box - the points are wrapped in @Maybe@.
+--   indicating its \"lower\" and \"upper\" corners. It can also
+--   represent an empty bounding box.
 data BoundingBox v n
   = EmptyBox
   | BoundingBox !(Point v n) !(Point v n)
@@ -171,8 +169,8 @@ bbIntersection (BoundingBox l u) p v = foldr (<>) AllT (liftI4 l u p v)
 instance (HasLinearMap v, Fractional n, Ord n) => Traced (BoundingBox v n) where
   getTrace bb = mkTrace $ \p v ->
     case bbIntersection bb p v of
-      Range a b -> unsafeMkSortedList [a,b]
-      Two a b   -> unsafeMkSortedList [a,b]
+      Range a b -> Seq.fromList [a,b]
+      Two a b   -> Seq.fromList [a,b]
       _         -> mempty
 
 instance (Show1 v, Show n) => Show (BoundingBox v n) where

@@ -189,12 +189,12 @@ instance MetricSpace v n => Enveloped (Line v n) where
   {-# INLINE getEnvelope #-}
 
 -- | Unsorted line trace, specialised to @Double@.
-lineTrace :: OrderedField n => Line V2 n -> Point V2 n -> V2 n -> [n]
+lineTrace :: OrderedField n => Line V2 n -> Point V2 n -> V2 n -> Seq n
 lineTrace = \l p v -> traceOf segments origin l p v
-{-# SPECIALIZE lineTrace :: Line V2 Double -> Point V2 Double -> V2 Double -> [Double] #-}
+{-# SPECIALIZE lineTrace :: Line V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
 instance OrderedField n => Traced (Line V2 n) where
-  getTrace = \l -> Trace (\p v -> mkSortedList $ lineTrace l p v)
+  getTrace = \l -> Trace (\p v -> lineTrace l p v)
   {-# INLINE getTrace #-}
 
 lineCrossings :: OrderedField n => Line V2 n -> Point V2 n -> Crossings
@@ -359,12 +359,12 @@ instance MetricSpace v n => Enveloped (Loop v n) where
   getEnvelope = Envelope . loopEnv
   {-# INLINE getEnvelope #-}
 
-loopTrace :: OrderedField n => Loop V2 n -> Point V2 n -> V2 n -> [n]
+loopTrace :: OrderedField n => Loop V2 n -> Point V2 n -> V2 n -> Seq n
 loopTrace = \l p v -> traceOf segments origin l p v
-{-# SPECIALIZE loopTrace :: Loop V2 Double -> Point V2 Double -> V2 Double -> [Double] #-}
+{-# SPECIALIZE loopTrace :: Loop V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
 instance OrderedField n => Traced (Loop V2 n) where
-  getTrace l = Trace (\p v -> mkSortedList $ loopTrace l p v)
+  getTrace l = Trace (\p v -> loopTrace l p v)
   {-# INLINE getTrace #-}
 
 loopCrossings :: OrderedField n => Loop V2 n -> Point V2 n -> Crossings
@@ -559,15 +559,15 @@ instance (Metric v, OrderedField n) => Enveloped (Trail v n) where
   getEnvelope t = Envelope (trailEnv t)
   {-# INLINE getEnvelope #-}
 
-trailTrace :: OrderedField n => Trail V2 n -> Point V2 n -> V2 n -> [n]
+trailTrace :: OrderedField n => Trail V2 n -> Point V2 n -> V2 n -> Seq n
 trailTrace = \t p v -> case t of
   OpenTrail l   -> lineTrace l p v
   ClosedTrail l -> loopTrace l p v
 {-# SPECIALISE trailTrace :: Trail V2 Double -> Point V2 Double -> V2
-   Double -> [Double] #-}
+   Double -> Seq Double #-}
 
 instance OrderedField n => Traced (Trail V2 n) where
-  getTrace = \l -> Trace (\p v -> mkSortedList $ trailTrace l p v)
+  getTrace = \l -> Trace (\p v -> trailTrace l p v)
   {-# INLINE getTrace #-}
 
 instance OrderedField n => HasQuery (Trail V2 n) Crossings where

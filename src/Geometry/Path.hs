@@ -113,6 +113,7 @@ instance Rewrapped (Path v n) (Path v' n')
 instance Wrapped (Path v n) where
   type Unwrapped (Path v n) = Seq (Located (Trail v n))
   _Wrapped' = coerced
+  {-# INLINE _Wrapped' #-}
 
 instance Each (Path v n) (Path v' n') (Located (Trail v n)) (Located (Trail v' n')) where
   each = _Wrapped . traversed
@@ -189,7 +190,7 @@ pathTrace = \(Path ts) p0 v ->
 {-# SPECIALISE pathTrace :: Path V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
 instance RealFloat n => Traced (Path V2 n) where
-  getTrace = \path -> Trace (\p v -> pathTrace path p v)
+  getTrace = \path -> Trace (pathTrace path)
   {-# INLINE getTrace #-}
 
 instance RealFloat n => HasQuery (Path V2 n) Crossings where

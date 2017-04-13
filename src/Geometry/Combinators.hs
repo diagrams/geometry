@@ -193,6 +193,7 @@ sepEven
   => v n -> n -> [t] -> t
 sepEven (signorm -> v) s =
   position . zip (iterate (.+^ s *^ v) origin)
+{-# INLINE sepEven #-}
 
 ------------------------------------------------------------------------
 -- Aligning
@@ -215,11 +216,13 @@ alignBy' f v d t = fromMaybe t $ do
   -- case f v of
   --   Just (a,b) -> moveOriginTo (lerp ((d + 1) / 2) a b) t
   --   Nothing    -> t
+{-# INLINE alignBy'#-}
 
 alignBy
   :: (InSpace v n t, Enveloped t, HasOrigin t)
   => v n -> n -> t -> t
 alignBy = alignBy' extent
+{-# INLINE alignBy#-}
 
 -- | @align v@ aligns an enveloped object along the edge in the
 --   direction of @v@. That is, it moves the local origin in the

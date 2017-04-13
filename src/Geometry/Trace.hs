@@ -221,6 +221,7 @@ maxTraceP p v a = (p .+^) <$> maxTraceV p v a
 --   will be destroyed if the resulting 'Trace' is translated at all.
 getRayTrace :: (InSpace v n a, Traced a) => a -> Trace v n
 getRayTrace = \a -> Trace $ \p v -> Seq.filter (>=0) $ appTrace (getTrace a) p v
+{-# INLINE getRayTrace #-}
 
 -- | Compute the vector from the given point to the closest boundary
 --   point of the given object in the given direction, or @Nothing@ if
@@ -278,6 +279,7 @@ maxRayTraceV = \p v a -> fmap (*^ v) . maximumOf folded $ appTrace (getRayTrace 
 maxRayTraceP :: (InSpace v n a, Traced a)
               => Point v n -> v n -> a -> Maybe (Point v n)
 maxRayTraceP p v a = (p .+^) <$> maxRayTraceV p v a
+{-# INLINE maxRayTraceP #-}
 
 -- > maxRayTracePEx = mkTraceDiasABC def { sFilter = dropAllBut1 . filter (>0) }
 

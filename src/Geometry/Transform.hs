@@ -386,7 +386,7 @@ class Transformable t where
   -- | Apply a transformation to an object.
   transform :: Transformation (V t) (N t) -> t -> t
 
-  default transform :: Functor f => Transformation (V t) (N t) -> f t -> f t
+  default transform :: (V (f a) ~ V a,  N (f a) ~ N a, t ~ f a, Transformable a, Functor f) => Transformation (V t) (N t) -> t -> t
   transform = fmap . transform
   {-# INLINE transform #-}
 

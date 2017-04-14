@@ -172,7 +172,7 @@ class (Metric (V a), OrderedField (N a)) => Enveloped a where
   --   instances should document what it is.
   getEnvelope :: a -> Envelope (V a) (N a)
 
-  default getEnvelope :: Foldable f => f a -> Envelope (V a) (N a)
+  default getEnvelope :: (a ~ f b, Foldable f, Enveloped b, V (f b) ~ V b,  N (f b) ~ N b) => a -> Envelope (V a) (N a)
   getEnvelope = foldMap getEnvelope
   {-# INLINE getEnvelope #-}
 

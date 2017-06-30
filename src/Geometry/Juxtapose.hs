@@ -46,17 +46,17 @@ class Juxtaposable a where
 --   instances of 'Enveloped' and 'HasOrigin'.  If either envelope is
 --   empty, the second object is returned unchanged.
 juxtaposeDefault :: (Enveloped a, HasOrigin a) => Vn a -> a -> a -> a
-juxtaposeDefault v a1 a2 =
-  case md of
-    Just d -> moveOriginBy (negate d *^ v) a2
-    _      -> a2
-  where
-    -- the distance a2 needs to be moved by such the hyperplanes between
-    -- a1 and a2 are touching
-    md = do
-      (_,d1) <- extent v a1
-      (d2,_) <- extent v a2
-      Just (d1 - d2)
+juxtaposeDefault = \v a1 a2 ->
+  -- the distance a2 needs to be moved by such the hyperplanes between
+  -- a1 and a2 are touching
+  let md = do
+        (_,d1) <- extent v a1
+        (d2,_) <- extent v a2
+        Just (d1 - d2)
+  in  case md of
+        Just d -> moveOriginBy (negate d *^ v) a2
+        _      -> a2
+{-# INLINE juxtaposeDefault #-}
 
 instance (Metric v, OrderedField n) => Juxtaposable (Envelope v n) where
   juxtapose = juxtaposeDefault

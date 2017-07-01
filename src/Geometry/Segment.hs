@@ -260,7 +260,7 @@ instance HasSegments a => HasSegments (Located a) where
   {-# INLINE segments #-}
   offset = offset . unLoc
   {-# INLINE offset #-}
-  numSegments (Loc a _) = numSegments a
+  numSegments = numSegments . unLoc
   {-# INLINE numSegments #-}
 
 instance (Additive v, Foldable v, Num n) => Transformable (Segment v n) where

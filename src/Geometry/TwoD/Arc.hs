@@ -39,7 +39,7 @@ import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector    (unitX, unitY, unit_Y, e)
 
-import           Control.Lens            ((&), (<>~), (^.), over, each)
+import           Control.Lens            ((&), (<>~), (^.), over, each, reversing)
 import           Data.Semigroup          ((<>))
 
 import           Linear.Affine
@@ -139,7 +139,7 @@ arcCW :: (InSpace V2 n t, RealFloat n, FromTrail t) => Direction V2 n -> Directi
 arcCW start end = fromLocTrail $
   -- flipped arguments to get the path we want
   -- then reverse the trail to get the cw direction.
-  reverseTrail (arcCCWT end start) `at` P (fromDirection start)
+  reversing (arcCCWT end start) `at` P (fromDirection start)
 
 -- | Create a circular wedge of the given radius, beginning at the
 --   given direction and extending through the given angle.
@@ -189,7 +189,7 @@ arcBetween p q ht = fromLocTrail (a & rotate (v^._theta) & moveTo p)
         & scale r
         & translateY ((if ht > 0 then negate else id) (r - h))
         & translateX (d/2)
-        & (if ht > 0 then reverseLocTrail else id)
+        & (if ht > 0 then reversing else id)
 
 -- | Create an annular wedge of the given radii, beginning at the
 --   first direction and extending through the given sweep angle.

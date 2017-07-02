@@ -47,9 +47,12 @@ module Geometry.Trail
   , Loop (..)
   , loopClosingSegment
   , lineFromSegments
+  , loopFromSegments
   , Trail (..)
   , wrapLine, wrapLoop
   , fixTrail
+  , withTrail
+  , withLine
 
     -- * Prisms
   , _Line
@@ -62,8 +65,6 @@ module Geometry.Trail
   , closeTrail
   , glueLine
   , glueTrail
-  , reverseTrail
-  , reverseLocTrail
 
     -- ** FromTrail
   , FromTrail (..)
@@ -127,8 +128,6 @@ import           Geometry.Transform
 -- The line type
 ------------------------------------------------------------------------
 
-type MetricSpace v n = (Metric v, OrderedField n)
-
 -- | A line is a sequence of segments. Lines have no position.
 data Line v n = Line !(Seq (Segment v n)) !(v n)
 
@@ -172,7 +171,7 @@ getB (Pair _ b) = b
 
 -- | Envelope of a line without a 'Envelope' wrapper. This is specialsed
 --   to @V2 Double@ and @V3 Double@.
-lineEnv :: MetricSpace v n => Line v n -> v n -> Interval n
+lineEnv :: (Metric v, OrderedField n) => Line v n -> v n -> Interval n
 lineEnv = \ !(Line t _) !w ->
   let f (Pair p e) !seg = Pair (p .+^ offset seg) e'
         where
@@ -184,7 +183,7 @@ lineEnv = \ !(Line t _) !w ->
 {-# SPECIALIZE lineEnv :: Line V2 Double -> V2 Double -> Interval Double #-}
 {-# SPECIALIZE lineEnv :: Line V3 Double -> V3 Double -> Interval Double #-}
 
-instance MetricSpace v n => Enveloped (Line v n) where
+instance (Metric v, OrderedField n) => Enveloped (Line v n) where
   getEnvelope l = Envelope (lineEnv l)
   {-# INLINE getEnvelope #-}
 
@@ -234,10 +233,6 @@ instance (Additive v, Num n) => Snoc (Line v n) (Line v n) (Segment v n) (Segmen
       ss' :> s -> Right (Line ss' (o ^-^ offset s), s)
       _        -> Left mempty
   {-# INLINE _Snoc #-}
-
-instance Num n => DomainBounds (Line v n) where
-  domainUpper (Line ss _) = fromIntegral (Seq.length ss)
-  {-# INLINE domainUpper #-}
 
 instance NFData (v n) => NFData (Line v n) where
   rnf (Line ss o) = rnf ss `seq` rnf o
@@ -293,11 +288,33 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Line v n) where
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
 
--- instance Num n => EndValues (Line v n) where
---   atStart _ = zero
---   {-# INLINE atStart #-}
---   atEnd     = offset
---   {-# INLINE atEnd #-}
+instance (Additive v, Num n) => Reversing (Loop v n) where
+  reversing = glueLine . reversing . cutLoop
+
+instance (Additive v, Num n) => Reversing (Trail v n) where
+  reversing = withTrail (OpenTrail . reversing) (ClosedTrail . reversing)
+
+-- | An eliminator for @Trail@ based on eliminating lines: if the
+--   trail is a line, the given function is applied; if it is a loop, it
+--   is first converted to a line with 'cutLoop'.  That is,
+--
+-- @
+-- withLine f === 'withTrail' f (f . 'cutLoop')
+-- @
+withLine :: (Additive v, Num n) => (Line v n -> r) -> Trail v n -> r
+withLine f = withTrail f (f . cutLoop)
+
+instance (Additive v, Num n) => Semigroup (Trail v n) where
+  Empty <> t2 = t2
+  t1 <> Empty = t1
+  t1 <> t2 = flip withLine t1 $ \l1 ->
+             flip withLine t2 $ \l2 ->
+             OpenTrail (l1 <> l2)
+  {-# INLINE (<>) #-}
+
+instance (Additive v, Num n) => Monoid (Trail v n) where
+  mempty = Empty
+  mappend = (<>)
 
 lineSegParam :: (Additive v, OrderedField n) => Int -> n -> Line v n -> v n
 lineSegParam n p (Line ss _) = ifoldl f zero ss where
@@ -305,7 +322,8 @@ lineSegParam n p (Line ss _) = ifoldl f zero ss where
     | i == n    = s `atParam` p
     | otherwise = offset s ^+^ v
 
--- instance Parametric (Line v n)
+instance (Additive v, Num n) => Reversing (Line v n) where
+  reversing = \(Line ss o) -> Line (reversing $ fmap reversing ss) (negated o)
 
 ------------------------------------------------------------------------
 -- The Loop type
@@ -318,11 +336,16 @@ type instance V (Loop v n) = v
 type instance N (Loop v n) = n
 type instance Codomain (Loop v n) = v
 
+-- | Construct a line from a list of segments.
+loopFromSegments :: (Additive v, Num n) => [Segment v n] -> ClosingSegment v n -> Loop v n
+loopFromSegments = Loop . lineFromSegments
+{-# INLINE loopFromSegments #-}
+
 -- | The 'Segment' that closes the loop.
 loopClosingSegment :: (Functor v, Num n) => Loop v n -> Segment v n
 loopClosingSegment (Loop t c) = closingSegment (offset t) c
 
-loopEnv :: MetricSpace v n => Loop v n -> v n -> Interval n
+loopEnv :: (Metric v, OrderedField n) => Loop v n -> v n -> Interval n
 loopEnv (Loop t c) w = hull (lineEnv t w) i
   where
     i   = moveBy (v `dot` w) $ segmentEnvelope seg w
@@ -349,13 +372,13 @@ instance (Additive v, Num n) => HasSegments (Loop v n) where
   numSegments (Loop l _) = numSegments l + 1
   {-# INLINE numSegments #-}
 
--- loopEnv :: MetricSpace v n => Loop v n -> v n -> Interval n
+-- loopEnv :: (Metric v, OrderedField n) => Loop v n -> v n -> Interval n
 -- loopEnv = \ !t !v -> envelopeOf segments t v
 -- {-# SPECIALIZE loopEnv :: Loop V2 Double -> V2 Double -> Interval Double #-}
 -- {-# SPECIALIZE loopEnv :: Loop V3 Double -> V3 Double -> Interval Double #-}
 -- {-# INLINEABLE [0] loopEnv #-}
 
-instance MetricSpace v n => Enveloped (Loop v n) where
+instance (Metric v, OrderedField n) => Enveloped (Loop v n) where
   getEnvelope = Envelope . loopEnv
   {-# INLINE getEnvelope #-}
 
@@ -375,7 +398,7 @@ instance OrderedField n => HasQuery (Loop V2 n) Crossings where
   getQuery l = Query (loopCrossings l)
   {-# INLINE getQuery #-}
 
-instance (MetricSpace v n, Foldable v) => Transformable (Loop v n) where
+instance (Metric v, OrderedField n, Foldable v) => Transformable (Loop v n) where
   {-# SPECIALISE instance Transformable (Loop V2 Double) #-}
   transform t (Loop l c) = Loop (transform t l) (transform t c)
 
@@ -447,26 +470,32 @@ instance (Show1 v, Show n) => Show (Trail v n) where
 -- | Convert a 'Line' into a 'Trail'.
 wrapLine :: Line v n -> Trail v n
 wrapLine = OpenTrail
+{-# INLINE wrapLine #-}
 
 -- | Convert a 'Loop' into a 'Trail'.
 wrapLoop :: Loop v n -> Trail v n
 wrapLoop = ClosedTrail
+{-# INLINE wrapLoop #-}
 
 -- | Prism onto a 'Line'.
 _Line :: Prism' (Trail v n) (Line v n)
 _Line = prism' OpenTrail $ \case OpenTrail t -> Just t; _ -> Nothing
+{-# INLINE _Line #-}
 
 -- | Prism onto a 'Loop'.
 _Loop :: Prism' (Trail v n) (Loop v n)
 _Loop = prism' ClosedTrail $ \case ClosedTrail t -> Just t; _ -> Nothing
+{-# INLINE _Loop #-}
 
 -- | Prism onto a 'Located' 'Line'.
 _LocLine :: Prism' (Located (Trail v n)) (Located (Line v n))
 _LocLine = prism' (mapLoc OpenTrail) $ located (preview _Line)
+{-# INLINE _LocLine #-}
 
 -- | Prism onto a 'Located' 'Loop'.
 _LocLoop :: Prism' (Located (Trail v n)) (Located (Loop v n))
 _LocLoop = prism' (mapLoc ClosedTrail) $ located (preview _Loop)
+{-# INLINE _LocLoop #-}
 
 -- | A generic eliminator for 'Trail', taking functions specifying what to
 --   do in the case of a line or a loop.
@@ -474,6 +503,7 @@ withTrail :: (Line v n -> r) -> (Loop v n -> r) -> Trail v n -> r
 withTrail lineR loopR = \case
   OpenTrail line   -> lineR line
   ClosedTrail loop -> loopR loop
+{-# INLINE withTrail #-}
 
 -- | Turn a loop into a line by \"cutting\" it at the common start/end
 --   point, resulting in a line which just happens to start and end at
@@ -484,9 +514,10 @@ withTrail lineR loopR = \case
 --   @
 --   glueLine . cutLoop === id
 --   @
-cutLoop :: MetricSpace v n => Loop v n -> Line v n
+cutLoop :: (Additive v, Num n) => Loop v n -> Line v n
 cutLoop (Loop Empty _) = Empty
 cutLoop (Loop line c)  = line |> closingSegment (offset line) c
+{-# INLINE cutLoop #-}
 
 -- | Make a line into a loop by adding a new linear segment from the
 --   line's end to its start.
@@ -513,11 +544,13 @@ cutLoop (Loop line c)  = line |> closingSegment (offset line) c
 --   >   $ [almostClosed # strokeLine, almostClosed # closeLine # strokeLoop]
 closeLine :: Line v n -> Loop v n
 closeLine line = Loop line LinearClosing
+{-# INLINE closeLine #-}
 
 -- | 'closeTrail' is a variant of 'closeLine' for 'Trail', which
 --   performs 'closeLine' on lines and is the identity on loops.
 closeTrail :: Trail v n -> Trail v n
 closeTrail = withTrail (ClosedTrail . closeLine) ClosedTrail
+{-# INLINE closeTrail #-}
 
 -- | Make a line into a loop by \"gluing\" the endpoint to the
 --   starting point.  In particular, the offset of the final segment
@@ -543,13 +576,15 @@ glueLine :: (Additive v, Num n) => Line v n -> Loop v n
 glueLine (t :> Linear _)      = Loop t LinearClosing
 glueLine (t :> Cubic c1 c2 _) = Loop t (CubicClosing c1 c2)
 glueLine _                    = Loop Empty LinearClosing
+{-# INLINE glueLine #-}
 
 -- | @glueTrail@ is a variant of 'glueLine' which works on 'Trail's.
 --   It performs 'glueLine' on lines and is the identity on loops.
 glueTrail :: (Additive v, Num n) => Trail v n -> Trail v n
 glueTrail = withTrail (ClosedTrail . glueLine) ClosedTrail
+{-# INLINE glueTrail #-}
 
-trailEnv :: MetricSpace v n => Trail v n -> v n -> Interval n
+trailEnv :: (Metric v, OrderedField n) => Trail v n -> v n -> Interval n
 trailEnv t v = case t of
   OpenTrail l   -> lineEnv l v
   ClosedTrail l -> loopEnv l v
@@ -643,15 +678,6 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Trail v n) where
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
 
-reverseTrail :: (Metric v, OrderedField n) => Trail v n -> Trail v n
-reverseTrail = withTrail (OpenTrail . reverseLine) (OpenTrail . reverseLoop)
-  where
-    reverseLine = lineFromSegments . reverse . toListOf segments
-    reverseLoop (Loop line c) = undefined line c
-
-reverseLocTrail :: (Metric v, OrderedField n) => Located (Trail v n) -> Located (Trail v n)
-reverseLocTrail (Loc p t) = Loc (p .+^ offset t) (reverseTrail t)
-
 ------------------------------------------------------------------------
 -- From trail
 ------------------------------------------------------------------------
@@ -673,11 +699,11 @@ instance FromTrail (Trail v n) where
   fromLocTrail = unLoc
   {-# INLINE fromLocTrail #-}
 
-instance MetricSpace v n => FromTrail (Line v n) where
+instance (Metric v, OrderedField n) => FromTrail (Line v n) where
   fromLocTrail = withTrail id cutLoop . unLoc
   {-# INLINE fromLocTrail #-}
 
-instance MetricSpace v n => FromTrail (Loop v n) where
+instance (Metric v, OrderedField n) => FromTrail (Loop v n) where
   fromLocTrail = withTrail glueLine id . unLoc
   {-# INLINE fromLocTrail #-}
 
@@ -701,7 +727,7 @@ fromTrail :: (InSpace v n t, FromTrail t) => Trail v n -> t
 fromTrail = fromLocTrail . (`at` origin)
 {-# INLINE fromTrail #-}
 
-fromVertices :: (InSpace v n t, MetricSpace v n, FromTrail t) => [Point v n] -> t
+fromVertices :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => [Point v n] -> t
 fromVertices []       = fromLocTrail $ OpenTrail Empty `at` origin
 fromVertices (p0:pss) = fromLocTrail $ OpenTrail (fromOffsets (go p0 pss)) `at` p0 where
   go _ []      = []

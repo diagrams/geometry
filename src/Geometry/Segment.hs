@@ -19,6 +19,8 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.Segment
@@ -262,6 +264,13 @@ instance HasSegments a => HasSegments (Located a) where
   {-# INLINE offset #-}
   numSegments = numSegments . unLoc
   {-# INLINE numSegments #-}
+
+-- Orphan instance because HasSegments is here, and we depend on Loc
+-- here. One option would be to have a HasOffset class in Geo.Loc and
+-- HasOffset -> HasSegments.
+instance (InSpace v n a, HasSegments a, Reversing a) => Reversing (Located a) where
+  reversing = \(Loc p a) -> Loc (p .+^ offset a) (reversing a)
+  {-# INLINE reversing #-}
 
 instance (Additive v, Foldable v, Num n) => Transformable (Segment v n) where
   transform !t (Linear v)       = Linear (apply t v)

@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
@@ -242,16 +243,23 @@ atan2A' y x = atan2' y x @@ rad
 
 -- atan2 without negative zero tests
 atan2' :: OrderedField n => n -> n -> n
-atan2' y x
+atan2' !y !x
   | x > 0            =  atan (y/x)
   | x == 0 && y > 0  =  pi/2
   | x <  0 && y > 0  =  pi + atan (y/x)
-  | x <= 0 && y < 0  = -atan2' (-y) x
+  | x <= 0 && y < 0  = -atan2'' (-y) x
   | y == 0 && x < 0  =  pi    -- must be after the previous test on zero y
   | x==0 && y==0     =  y     -- must be after the other double zero tests
   | otherwise        =  x + y -- x or y is a NaN, return a NaN (via +)
 {-# INLINE atan2' #-}
 
+-- This is used to stop atan2' from being recursive. The impossible
+-- cases are removed.
+atan2'' :: OrderedField n => n -> n -> n
+atan2'' !y !x
+  | x == 0    =  pi/2
+  | otherwise =  pi + atan (y/x)
+{-# INLINE atan2'' #-}
 
 -- | @30 \@\@ deg@ is an 'Angle' of the given measure and units.
 --

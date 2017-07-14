@@ -164,27 +164,69 @@ instance HasSegments (Line v n) where
   numSegments (Line ss _) = Seq.length ss
   {-# INLINE numSegments #-}
 
+-- [folds-over-trails]
+--
+-- Many of the folds over trails involve keeping the current position
+-- and some state. To make sure everything's strict we use a Pair.
+-- However this is still not ideal because it involves boxing and
+-- unboxing the positing and state at every step, even with a
+-- SPECIALISE.
+--
+-- Normally ghc is smart enough to turn strict accumulators into unboxed
+-- tuples, however this isn't possible in our case because the
+-- definition of foldl' for Data.Seq isn't inlined. This is for the best
+-- because the definition is quite large, leading to slow compile times,
+-- masses of generated core for little performance benefit.
+--
+-- So for the important calculations (envelope, crossings) we make a
+-- custom unpacked version of Pair for each specialisation and use RULES
+-- to implement them. It's a bit more boilerplate but gives a 80-20%
+-- speed improvement so the extra code is worth it.
+
 data Pair a b = Pair !a !b
 
 getB :: Pair a b -> b
 getB (Pair _ b) = b
 
--- | Envelope of a line without a 'Envelope' wrapper. This is specialsed
+shift :: Num a => a -> Interval a -> Interval a
+shift = \ n (I a b) -> I (a + n) (b + n)
+{-# INLINE shift #-}
+
+-- | Envelope of a line without a 'Envelope' wrapper. This is specialised
 --   to @V2 Double@ and @V3 Double@.
 lineEnv :: (Metric v, OrderedField n) => Line v n -> v n -> Interval n
 lineEnv = \ !(Line t _) !w ->
   let f (Pair p e) !seg = Pair (p .+^ offset seg) e'
         where
-          e' = combine e (moveBy (view _Point p `dot` w) $ segmentEnvelope seg w)
-          --
-          combine (I a1 b1) (I a2 b2) = I (min a1 a2) (max b1 b2)
-          moveBy n (I a b)            = I (a + n) (b + n)
+          e' = hull e (shift (view _Point p `dot` w) $ segmentEnvelope seg w)
   in  getB $ foldl' f (Pair origin (I 0 0)) t
-{-# SPECIALIZE lineEnv :: Line V2 Double -> V2 Double -> Interval Double #-}
 {-# SPECIALIZE lineEnv :: Line V3 Double -> V3 Double -> Interval Double #-}
+{-# INLINE [0] lineEnv #-}
+
+{-# RULES
+  "lineEnv/Double" lineEnv = lineEnv2Double
+  #-}
+
+data LE2D = LE2D !Double !Double !Double !Double
+
+-- ghc isn't smart enough to float out the segment unpacking (when using
+-- offset/segmentEnvelope) so we do it ourselves
+lineEnv2Double :: Line V2 Double -> V2 Double -> Interval Double
+lineEnv2Double = \ !(Line t _) !w ->
+  let f (LE2D x y a b) = \case
+        Linear v@(V2 dx dy)       ->
+          let !x = v `dot` w
+          in  if x < 0
+                then LE2D (x+dx) (y+dy) (min a x) (max b 0)
+                else LE2D (x+dx) (y+dy) (min a 0) (max b x)
+        Cubic c1 c2 c3@(V2 dx dy) ->
+          case cubicEnvelope c1 c2 c3 w of
+            I a' b' -> LE2D (x+dx) (y+dy) (min a a') (max b b')
+  in  case foldl' f (LE2D 0 0 0 0) t of
+        LE2D _ _ a b -> I a b
 
 instance (Metric v, OrderedField n) => Enveloped (Line v n) where
-  getEnvelope l = Envelope (lineEnv l)
+  getEnvelope = \ l -> Envelope (lineEnv l)
   {-# INLINE getEnvelope #-}
 
 -- | Unsorted line trace, specialised to @Double@.
@@ -336,15 +378,14 @@ loopFromSegments = Loop . lineFromSegments
 -- | The 'Segment' that closes the loop.
 loopClosingSegment :: (Functor v, Num n) => Loop v n -> Segment v n
 loopClosingSegment (Loop t c) = closingSegment (offset t) c
+{-# INLINE loopClosingSegment #-}
 
 loopEnv :: (Metric v, OrderedField n) => Loop v n -> v n -> Interval n
 loopEnv (Loop t c) w = hull (lineEnv t w) i
   where
-    i   = moveBy (v `dot` w) $ segmentEnvelope seg w
+    i   = shift (v `dot` w) $ segmentEnvelope seg w
     v   = offset t
     seg = closingSegment v c
-    --
-    moveBy n (I a b) = I (a + n) (b + n)
 {-# INLINE loopEnv #-}
 
 instance Show1 v => Show1 (Loop v) where
@@ -364,12 +405,6 @@ instance (Additive v, Num n) => HasSegments (Loop v n) where
   numSegments (Loop l _) = numSegments l + 1
   {-# INLINE numSegments #-}
 
--- loopEnv :: (Metric v, OrderedField n) => Loop v n -> v n -> Interval n
--- loopEnv = \ !t !v -> envelopeOf segments t v
--- {-# SPECIALIZE loopEnv :: Loop V2 Double -> V2 Double -> Interval Double #-}
--- {-# SPECIALIZE loopEnv :: Loop V3 Double -> V3 Double -> Interval Double #-}
--- {-# INLINEABLE [0] loopEnv #-}
-
 instance (Metric v, OrderedField n) => Enveloped (Loop v n) where
   getEnvelope = Envelope . loopEnv
   {-# INLINE getEnvelope #-}
@@ -387,7 +422,24 @@ loopCrossings = \(Loop (Line l o) cs) q ->
   let f (Pair a c) s = Pair (a .+^ offset s) (c + segmentCrossings q a s)
   in  case foldl' f (Pair origin 0) l of
         Pair a c -> c + segmentCrossings q a (closingSegment o cs)
-{-# SPECIALIZE loopCrossings :: Loop V2 Double -> Point V2 Double -> Crossings #-}
+{-# NOINLINE loopCrossings #-}
+
+data LCD = LCD !Crossings !Double !Double
+
+mkP2 :: a -> a -> Point V2 a
+mkP2 x y = P (V2 x y)
+
+loopCrossingsDouble :: Loop V2 Double -> Point V2 Double -> Crossings
+loopCrossingsDouble = \(Loop (Line l o) cs) q ->
+  let f (LCD c x y) s = case s of
+        Linear v@(V2 dx dy)       -> LCD (c + linearCrossings q (mkP2 x y) v) (x+dx) (y+dy)
+        Cubic c1 c2 c3@(V2 dx dy) -> LCD (c + cubicCrossings q (mkP2 x y) c1 c2 c3) (x+dx) (y+dy)
+  in  case foldl' f (LCD 0 0 0) l of
+        LCD c x y -> c + segmentCrossings q (mkP2 x y) (closingSegment o cs)
+
+{-# RULES
+ "loopCrossings/Double" loopCrossings = loopCrossingsDouble
+ #-}
 
 instance OrderedField n => HasQuery (Loop V2 n) Crossings where
   getQuery l = Query (loopCrossings l)

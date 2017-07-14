@@ -71,6 +71,7 @@ module Geometry.Segment
     -- * Low level
     -- ** Folding
   , segmentEnvelope
+  , cubicEnvelope
   , envelopeOf
   , traceOf
 
@@ -81,6 +82,8 @@ module Geometry.Segment
   , colinear
   , segmentsEqual
   , segmentCrossings
+  , linearCrossings
+  , cubicCrossings
   , segmentParametersAtDirection
   , bezierParametersAtDirection
   ) where

@@ -196,14 +196,6 @@ instance OrderedField n => Traced (Line V2 n) where
   getTrace = \l -> Trace (\p v -> lineTrace l p v)
   {-# INLINE getTrace #-}
 
-lineCrossings :: OrderedField n => Line V2 n -> Point V2 n -> Crossings
-lineCrossings = crossingsOf segments origin
-{-# SPECIALIZE lineCrossings :: Line V2 Double -> Point V2 Double -> Crossings #-}
-
-instance OrderedField n => HasQuery (Line V2 n) Crossings where
-  getQuery = coerce (lineCrossings :: Line V2 n -> Point V2 n -> Crossings)
-  {-# INLINE getQuery #-}
-
 instance (Additive v, Num n, Foldable v) => Transformable (Line v n) where
   {-# SPECIALISE instance Transformable (Line V2 Double) #-}
   {-# SPECIALISE instance Transformable (Line V3 Double) #-}
@@ -391,7 +383,10 @@ instance OrderedField n => Traced (Loop V2 n) where
   {-# INLINE getTrace #-}
 
 loopCrossings :: OrderedField n => Loop V2 n -> Point V2 n -> Crossings
-loopCrossings = crossingsOf segments origin
+loopCrossings = \(Loop (Line l o) cs) q ->
+  let f (Pair a c) s = Pair (a .+^ offset s) (c + segmentCrossings q a s)
+  in  case foldl' f (Pair origin 0) l of
+        Pair a c -> c + segmentCrossings q a (closingSegment o cs)
 {-# SPECIALIZE loopCrossings :: Loop V2 Double -> Point V2 Double -> Crossings #-}
 
 instance OrderedField n => HasQuery (Loop V2 n) Crossings where
@@ -606,8 +601,9 @@ instance OrderedField n => Traced (Trail V2 n) where
   {-# INLINE getTrace #-}
 
 instance OrderedField n => HasQuery (Trail V2 n) Crossings where
-  getQuery (OpenTrail l) = getQuery l
-  getQuery (ClosedTrail l) = getQuery l
+  getQuery = \ case
+    OpenTrail _   -> Query $ \ _ -> 0
+    ClosedTrail l -> getQuery l
   {-# INLINE getQuery #-}
 
 instance (Additive v, Num n) => HasSegments (Trail v n) where

@@ -73,7 +73,6 @@ module Geometry.Segment
   , segmentEnvelope
   , envelopeOf
   , traceOf
-  , crossingsOf
 
     -- ** Segment calculations
   , paramsTangentTo
@@ -81,6 +80,7 @@ module Geometry.Segment
   , unsafeSplitAtParams
   , colinear
   , segmentsEqual
+  , segmentCrossings
   , segmentParametersAtDirection
   , bezierParametersAtDirection
   ) where
@@ -283,6 +283,14 @@ instance (Additive v, Num n) => Parametric (Segment v n) where
                             ^+^ (3 * t'*t *t ) *^ c2
                             ^+^ (    t *t *t ) *^ x2
     where t' = 1-t
+  {-# INLINE atParam #-}
+
+instance (Additive v, Num n) => Parametric (Tangent (Segment v n)) where
+  Tangent (Linear v) `atParam` _ = v
+  Tangent (Cubic c1 c2 c3) `atParam` t
+    =  (3*(3*t*t-4*t+1))*^ c1
+   ^+^ (3*(2-3*t)*t)    *^ c2
+   ^+^ (3*t*t)          *^ c3
   {-# INLINE atParam #-}
 
 instance Num n => DomainBounds (Segment v n)
@@ -520,43 +528,68 @@ isInsideEvenOdd :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
 isInsideEvenOdd t = odd . sample t
 {-# INLINE isInsideEvenOdd #-}
 
--- | Compute the sum of signed crossings of a trail starting from the
---   given point in the positive x direction.
-crossingsOf
-  :: (InSpace V2 n t, OrderedField n)
-  => Fold t (Segment V2 n) -- ^ fold over segments
-  -> Point V2 n            -- ^ starting point of trail
-  -> t                     -- ^ trail
-  -> Point V2 n            -- ^ point to query crossings
+-- | The crossings of a single segment given the query point and the
+--   starting point of the segment.
+segmentCrossings
+  :: OrderedField n
+  => Point V2 n -- ^ query point
+  -> Point V2 n -- ^ start of segment
+  -> Segment V2 n
   -> Crossings
-crossingsOf l p0 trail qp @ (P (V2 _ y)) = getB $ foldrOf l f (Pair p0 0) trail
+segmentCrossings q a = \case
+  Linear v       -> linearCrossings q a v
+  Cubic c1 c2 c3 -> cubicCrossings q a c1 c2 c3
+{-# INLINE segmentCrossings #-}
+
+linearCrossings
+  :: OrderedField n
+  => Point V2 n -- ^ query point
+  -> Point V2 n -- ^ start of segment
+  -> V2 n -- ^ c1
+  -> Crossings
+linearCrossings q@(P (V2 _ qy)) a@(P (V2 _ ay)) v@(V2 _ vy)
+  | ay <= qy && by > qy && isLeft     =  1
+  | by <= qy && ay > qy && not isLeft = -1
+  | otherwise                         =  0
   where
+    isLeft = cross2 v (q .-. a) > 0
+    by = ay + vy
+{-# SPECIALISE linearCrossings :: Point V2 Double -> Point V2 Double -> V2 Double -> Crossings #-}
 
-    f (Linear v@(V2 _ vy)) (Pair (p @ (P(V2 _ ay))) c)
-      | ay <= y && vy > 0 && isLeft     = Pair (p .+^ v) (c + 1)
-      | vy <= 0 && ay > y && not isLeft = Pair (p .+^ v) (c - 1)
-      | otherwise                       = Pair (p .+^ v) c
-      where isLeft = cross2 v (qp .-. p) > 0
+cubicCrossings
+  :: OrderedField n
+  => Point V2 n -- ^ query point
+  -> Point V2 n -- ^ start of segment
+  -> V2 n -- ^ c1
+  -> V2 n -- ^ c2
+  -> V2 n -- ^ c3
+  -> Crossings
+cubicCrossings (P (V2 qx qy)) (P (V2 ax ay)) c1@(V2 _ c1y) c2@(V2 _ c2y) c3@(V2 _ c3y)
+  = sum $ map tTest ts'
+    where
+      -- potential t values at which the line y=qy intersects the segment
+      ts' = filter inRange ts
+      ts = cubForm ( 3*c1y - 3*c2y + c3y)
+                   (-6*c1y + 3*c2y)
+                   ( 3*c1y)
+                   (ay - qy)
+      inRange t = t >= 0 && t <= 1
 
-    f (Cubic c1@(V2 _ c1y) c2@(V2 _ c2y) c3@(V2 _ c3y)) (Pair p@(P(V2 _ ay)) c)
-      = Pair (p .+^ c3) (sum . fmap tTest $ filter (\t -> t >= 0 && t <= 1) ts)
-      where
-        ts = cubForm' 1e-8
-                     ( 3*c1y - 3*c2y + c3y)
-                     (-6*c1y + 3*c2y)
-                     ( 3*c1y)
-                     (ay - y)
-        tTest t = let (V2 vx _) = Cubic c1 c2 c3 `atParam` t
-                  in  if vx > 0 then signFromDerivAt t else 0
-        signFromDerivAt t =
-          let V2 tx ty =  (3*t*t) *^ (3*^c1 ^-^ 3*^c2 ^+^ c3)
-                      ^+^ (2*t)   *^ (-6*^c1 ^+^ 3*^c2)
-                      ^+^            (3*^c1)
-              ang = atan2A' ty tx ^. rad
-          in  if | 0   < ang && ang < pi && t < 1 -> c + 1
-                 | -pi < ang && ang < 0  && t > 0 -> c - 1
-                 | otherwise                      -> c
-{-# INLINE crossingsOf #-}
+      -- Check if the intersection point lies to the right of the query
+      -- point. If it is return return the crossing sign depending on the
+      -- tangent at that point.
+      tTest t
+        | ty == 0      = 0
+        | ax + dx > qx = sign
+        | otherwise    = 0
+        where
+        sign
+          | theta > 0 =  1
+          | otherwise = -1
+        theta    = atan2A' ty tx ^. rad
+        V2 dx _  = Cubic c1 c2 c3 `atParam` t
+        V2 tx ty = Cubic c1 c2 c3 `tangentAtParam` t
+{-# SPECIALISE cubicCrossings :: Point V2 Double -> Point V2 Double -> V2 Double -> V2 Double -> V2 Double -> Crossings #-}
 
 -- | The parameters at which the segment is tangent to the given
 --   direction.

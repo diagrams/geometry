@@ -1,5 +1,9 @@
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE RankNTypes   #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 710
+{-# LANGUAGE PatternSynonyms #-}
+#endif
 
 -----------------------------------------------------------------------------
 -- |
@@ -15,6 +19,18 @@
 module Geometry.Points
   ( -- * Points
     Point (..)
+
+  , P1
+  , P2
+  , P3
+  , P4
+#if __GLASGOW_HASKELL__ >= 710
+  , pattern P1
+  , pattern P2
+  , pattern P3
+  , pattern P4
+#endif
+
   , Affine (..)
   , origin
   , (*.)
@@ -32,12 +48,35 @@ import           Control.Lens    (over)
 import qualified Data.Foldable as F
 
 import           Linear.Affine
-import           Linear.Vector
+import           Linear
 
 import           Geometry.Space
 
 type instance V (Point v n) = v
 type instance N (Point v n) = n
+
+type P1 = Point V1
+type P2 = Point V2
+type P3 = Point V3
+type P4 = Point V4
+
+#if __GLASGOW_HASKELL__ >= 710
+pattern P1 :: a -> P1 a
+pattern P1 x = P (V1 x)
+pattern P2 :: a -> a -> P2 a
+pattern P2 x y = P (V2 x y)
+pattern P3 :: a -> a -> a -> P3 a
+pattern P3 x y z = P (V3 x y z)
+pattern P4 :: a -> a -> a -> a -> P4 a
+pattern P4 x y z w = P (V4 x y z w)
+#endif
+
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE P1 #-}
+{-# COMPLETE P2 #-}
+{-# COMPLETE P3 #-}
+{-# COMPLETE P4 #-}
+#endif
 
 mirror :: (Additive v, Num n) => Point v n -> Point v n
 mirror = reflectThrough origin

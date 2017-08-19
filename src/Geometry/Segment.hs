@@ -79,7 +79,7 @@ module Geometry.Segment
   , paramsTangentTo
   , splitAtParams
   , unsafeSplitAtParams
-  , colinear
+  -- , collinear
   , segmentsEqual
   , segmentCrossings
   , linearCrossings
@@ -634,20 +634,11 @@ unsafeSplitAtParams seg0 ts0 = build $ \(|>) z ->
   -- does fusion actually help here?
   -- would probably be better if ts was given as a (unboxed) vector
 
--- | Return False if some points fall outside a line with a thickness of
---   the given tolerance.  fat line calculation taken from the
---   bezier-clipping algorithm (Sederberg)
-colinear :: OrderedField n => n -> Segment V2 n -> Bool
-colinear _   Linear {} = True
-colinear eps (Cubic c1 c2 c3) = dmax - dmin < eps
-  where
-    d1 = distance c1 c3
-    d2 = distance c2 c3
-    (dmin, dmax) | d1*d2 > 0 = (3/4 * minimum [0, d1, d2],
-                                3/4 * maximum [0, d1, d2])
-                 | otherwise = (4/9 * minimum [0, d1, d2],
-                                4/9 * maximum [0, d1, d2])
-{-# INLINE colinear #-}
+-- | Checks whether the points on the cubic segment lie in a straight
+--   line.
+-- collinear :: OrderedField n => n -> Segment V2 n -> Bool
+-- collinear _   Linear {}        = True
+-- collinear eps (Cubic c1 c2 c3) = undefined
 
 -- | Check if two segments are approximately equal.
 segmentsEqual
@@ -661,10 +652,10 @@ segmentsEqual eps (Cubic a1 a2 a3) (Cubic b1 b2 b3)
   | distance a1 b1 < eps &&
     distance a2 b2 < eps &&
     distance a3 b3 < eps = True
-  -- compare if both are colinear and close together
+  -- compare if both are collinear and close together
   -- - | dist < eps                  &&
-  --   colinear ((eps-dist)/2) cb1 &&
-  --   colinear ((eps-dist)/2) cb2 = True
+  --   collinear ((eps-dist)/2) cb1 &&
+  --   collinear ((eps-dist)/2) cb2 = True
   | otherwise = False
   -- where dist = max (abs $ ld b0) (abs $ ld b3)
   --       ld   = distance lineDistance (Line a0 a3)

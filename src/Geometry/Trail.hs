@@ -215,13 +215,17 @@ lineEnv2Double :: Line V2 Double -> V2 Double -> Interval Double
 lineEnv2Double = \ !(Line t _) !w ->
   let f (LE2D x y a b) = \case
         Linear v@(V2 dx dy)       ->
-          let !x = v `dot` w
-          in  if x < 0
-                then LE2D (x+dx) (y+dy) (min a x) (max b 0)
-                else LE2D (x+dx) (y+dy) (min a 0) (max b x)
+          let !d = v `dot` w
+              !s = V2 x y `dot` w
+              !d' = d + s
+          in  if d < 0
+                then LE2D (x+dx) (y+dy) (min a d') b
+                else LE2D (x+dx) (y+dy) a (max b d')
         Cubic c1 c2 c3@(V2 dx dy) ->
           case cubicEnvelope c1 c2 c3 w of
-            I a' b' -> LE2D (x+dx) (y+dy) (min a a') (max b b')
+            I a' b' ->
+              let !s = V2 x y `dot` w
+              in  LE2D (x+dx) (y+dy) (min a (s+a')) (max b (s+b'))
   in  case foldl' f (LE2D 0 0 0 0) t of
         LE2D _ _ a b -> I a b
 

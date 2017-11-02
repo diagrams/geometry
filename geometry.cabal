@@ -14,11 +14,10 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:
-    -- Geometry.CubicSpline
-    -- Geometry.CubicSpline.Boehm
-    -- Geometry.CubicSpline.Internal
-    -- Geometry.Parametric.Adjust
-    -- Geometry.SegSequence
+    Geometry
+    Geometry.CubicSpline
+    Geometry.CubicSpline.Boehm
+    Geometry.CubicSpline.Internal
     Geometry.ThreeD.Camera
     Geometry.ThreeD.Combinators
     -- Geometry.ThreeD.Projection
@@ -27,16 +26,8 @@ library
     Geometry.ThreeD.Transform
     Geometry.ThreeD.Types
     Geometry.ThreeD.Vector
-    -- Geometry.Trail.Class
-    -- Geometry.Trail.Segment
-    -- Geometry.Trail.UnboxedTrail
-    -- Geometry.Transform.Matrix
-    -- Geometry.Transform.ScaleInv
     Geometry.TwoD.Ellipse
-    -- Geometry.TwoD.Offset
     Geometry.TwoD.Arc
-    Geometry
-    -- Geometry.Align
     Geometry.Angle
     Geometry.BoundingBox
     Geometry.Combinators
@@ -47,7 +38,6 @@ library
     Geometry.Located
     Geometry.Parametric
     Geometry.Path
-    -- Geometry.Path.Unboxed
     Geometry.Points
     Geometry.Query
     Geometry.Segment
@@ -55,11 +45,7 @@ library
     Geometry.Space
     Geometry.Trace
     Geometry.Trail
-    -- Geometry.Trail.Unboxed
-    -- Geometry.TrailLike
     Geometry.Transform
-    -- Geometry.TwoD.Align
-    Geometry.TwoD.Combinators
     Geometry.TwoD.Path
     Geometry.TwoD.Points
     Geometry.TwoD.Polygons
@@ -81,7 +67,7 @@ library
     DefaultSignatures DataKinds LambdaCase DeriveDataTypeable
     ConstraintKinds TypeSynonymInstances
   build-depends:
-    base >=4.9 && <4.11,
+    base >=4.9 && <5.0,
     lens,
     monoid-extras >=0.4 && <0.5,
     linear >=1.20 && <1.21,
@@ -106,4 +92,4 @@ library
     intervals
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:      -Wall
+  ghc-options:         -Wall

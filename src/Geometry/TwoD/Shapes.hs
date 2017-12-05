@@ -14,36 +14,37 @@
 -----------------------------------------------------------------------------
 
 module Geometry.TwoD.Shapes
-       (
-         -- * Miscellaneous
-         hrule, vrule
+  (
+    -- * Miscellaneous
+    hrule, vrule
 
-         -- * Regular polygons
+    -- * Regular polygons
 
-       , regPoly
-       , triangle
-       , eqTriangle
-       , square
-       , pentagon
-       , hexagon
-       , heptagon
-       , septagon
-       , octagon
-       , nonagon
-       , decagon
-       , hendecagon
-       , dodecagon
+  , regPoly
+  , triangle
+  , eqTriangle
+  , square
+  , pentagon
+  , hexagon
+  , heptagon
+  , septagon
+  , octagon
+  , nonagon
+  , decagon
+  , hendecagon
+  , dodecagon
 
-         -- * Other special polygons
-       , unitSquare
-       , rect
+    -- * Other special polygons
+  , unitSquare
+  , rect
 
-         -- * Other shapes
+    -- * Other shapes
 
-       , roundedRect
-       , RoundedRectOpts(..), radiusTL, radiusTR, radiusBL, radiusBR
-       , roundedRect'
-       ) where
+  , roundedRect
+  , RoundedRectOpts(..), radiusTL, radiusTR, radiusBL, radiusBR
+  , roundedRect'
+  , unitSquareLoop
+  ) where
 
 import           Control.Lens            (makeLenses, (&), (.~), (<>~), (^.))
 import           Data.Default.Class

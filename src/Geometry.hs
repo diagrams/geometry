@@ -90,4 +90,4 @@ import           Geometry.TwoD.Shapes
 import           Geometry.TwoD.Size
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
-import           Geometry.TwoD.Vector
+import           Geometry.TwoD.Vector hiding (e)

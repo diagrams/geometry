@@ -34,7 +34,6 @@ import           Geometry.Space
 import           Linear.Metric
 import           Linear.V2
 
-type P2 = Point V2
 type T2 = Transformation V2
 
 type instance V (V2 n) = V2

@@ -212,6 +212,8 @@ instance (SameSpace a b, Enveloped a, Enveloped b) => Enveloped (a,b) where
   {-# INLINE boundingBox #-}
 
 instance Enveloped b => Enveloped [b] where
+  getEnvelope = foldMap getEnvelope
+  {-# INLINE getEnvelope #-}
   boundingBox = foldMap boundingBox
   {-# INLINE boundingBox #-}
 

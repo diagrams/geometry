@@ -39,7 +39,6 @@ import           Linear.V3           as V
 
 -- Basic R3 types
 
-type P3 = Point V3
 type T3 = Transformation V3
 
 r3Iso :: Iso' (V3 n) (n, n, n)

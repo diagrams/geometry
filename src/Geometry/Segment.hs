@@ -79,6 +79,7 @@ module Geometry.Segment
   , paramsTangentTo
   , splitAtParams
   , unsafeSplitAtParams
+  , secondDerivAtParam
   -- , collinear
   , segmentsEqual
   , segmentCrossings
@@ -343,9 +344,9 @@ instance (Metric v, OrderedField n) => HasArcLength (Segment v n) where
   arcLengthToParam m s _ | arcLength m s == 0 = 0.5
   arcLengthToParam m s@(Linear {}) len = len / arcLength m s
   arcLengthToParam m s@(Cubic {})  len
-    | len `K.elem` K.I (-m/2) (m/2) = 0
+    | len `K.member` K.I (-m/2) (m/2) = 0
     | len < 0              = - arcLengthToParam m (fst (splitAtParam s (-1))) (-len)
-    | len `K.elem` slen    = 1
+    | len `K.member` slen  = 1
     | len > K.sup slen     = 2 * arcLengthToParam m (fst (splitAtParam s 2)) len
     | len < K.sup llen     = (*0.5) $ arcLengthToParam m l len
     | otherwise            = (+0.5) . (*0.5)

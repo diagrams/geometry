@@ -43,7 +43,6 @@ module Geometry.TwoD.Shapes
   , roundedRect
   , RoundedRectOpts(..), radiusTL, radiusTR, radiusBL, radiusBR
   , roundedRect'
-  , unitSquareLoop
   ) where
 
 import           Control.Lens            (makeLenses, (&), (.~), (<>~), (^.))

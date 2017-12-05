@@ -94,7 +94,6 @@ import qualified Data.Binary                        as Binary
 import           Data.Bytes.Get                     (getWord8)
 import           Data.Bytes.Put                     (putWord8)
 import           Data.Bytes.Serial
-import           Data.Coerce
 import           Data.Foldable
 import qualified Data.Foldable                      as F
 import           Data.Functor.Classes

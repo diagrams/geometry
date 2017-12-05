@@ -354,11 +354,35 @@ instance (Metric v, OrderedField n) => HasArcLength (Segment v n) where
           llen  = arcLengthBounded (m/10) l
           slen  = arcLengthBounded m s
 
+-- | The second derivative of the parametric curve \(d^2 S(t) / d t^2\).
+--   This is similar to curvature except the curvature is the norm of the
+--   second derivative with respect to the segment length \(|d^2 \gamma(s)
+--   / d s^2|\).
+secondDerivAtParam :: (Additive v, Num n) => Segment v n -> n -> v n
+secondDerivAtParam s t = case s of
+  Linear _       -> zero
+  Cubic c1 c2 c3 -> (6*(3*t-2))*^c1 ^+^ (6-18*t)*^c2 ^+^ (6*t)*^c3
+
+-- It's been a while since I've looked at this, not quite sure why it's
+-- commented out. Something to do with PosInf I think.
+
+-- curvatureAtParam :: (Additive v, Floating n) => Segment v n -> n -> n
+-- curvatureAtParam s t = sqrt (curvatureSqAtParam s t)
+
+-- curvatureSqAtParam :: (Additive v, Fractional n) => Segment v n -> n -> PosInf n
+-- curvatureSqAtParam s t = case s of
+--   Linear _ -> zero
+--   Cubic {} -> (qs' * qs'' - (s' `dot` s'')^(2::Int)) / qs'^(3::Int)
+--   where
+--     s'   = s `tangentAtParam` t
+--     s''  = s `secondDerivAtParam` t
+--     qs'  = quadrance s'
+--     qs'' = quadrance s''
+
 -- Envelopes -----------------------------------------------------------
 
 -- | Envelope specialised to cubic segments used for 'segmentEnvelope'.
---   This definition  specialised to @V2 Double@ and @V3 Double@ and is
---   markered as @INLINEABLE@ so you can specialise for your own types.
+--   This definition specialised to @V2 Double@ and @V3 Double@.
 cubicEnvelope :: (Metric v, Floating n, Ord n) => v n -> v n -> v n -> v n -> Interval n
 cubicEnvelope !c1 !c2 !c3 !v
   | l > 0     = I 0 u

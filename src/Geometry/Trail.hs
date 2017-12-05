@@ -360,6 +360,10 @@ lineSegParam n p (Line ss _) = ifoldl f zero ss where
     | i == n    = s `atParam` p
     | otherwise = offset s ^+^ v
 
+instance (Additive v, Num n) => EndValues (Line v n) where
+  atStart = const zero
+  atEnd (Line _ o) = o
+
 instance (Additive v, Num n) => Reversing (Line v n) where
   reversing = \(Line ss o) -> Line (reversing $ fmap reversing ss) (negated o)
 
@@ -496,6 +500,10 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Loop v n) where
   {-# INLINE put #-}
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
+
+instance (Additive v, Num n) => EndValues (Loop v n) where
+  atStart = const zero
+  atEnd = const zero
 
 ------------------------------------------------------------------------
 -- Trail type
@@ -729,6 +737,14 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Trail v n) where
   {-# INLINE put #-}
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
+
+instance (Additive v, Num n) => EndValues (Trail v n) where
+  atStart = \case
+    OpenTrail l   -> atStart l
+    ClosedTrail l -> atStart l
+  atEnd = \case
+    OpenTrail l   -> atEnd l
+    ClosedTrail l -> atEnd l
 
 ------------------------------------------------------------------------
 -- From trail

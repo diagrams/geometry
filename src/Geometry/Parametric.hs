@@ -83,7 +83,7 @@ class DomainBounds p where
 
 -- | Type class for querying the values of a parametric object at the
 --   ends of its domain.
-class (Parametric p, DomainBounds p) => EndValues p where
+class EndValues p where
   -- | 'atStart' is the value at the start of the domain.  That is,
   --
   --   > atStart x = x `atParam` domainLower x
@@ -91,6 +91,7 @@ class (Parametric p, DomainBounds p) => EndValues p where
   --   This is the default implementation, but some representations will
   --   have a more efficient and/or precise implementation.
   atStart :: p -> Codomain p (N p)
+  default atStart :: (Parametric p, DomainBounds p) => p -> Codomain p (N p)
   atStart x = x `atParam` domainLower x
 
   -- | 'atEnd' is the value at the end of the domain. That is,
@@ -100,6 +101,7 @@ class (Parametric p, DomainBounds p) => EndValues p where
   --   This is the default implementation, but some representations will
   --   have a more efficient and/or precise implementation.
   atEnd :: p -> Codomain p (N p)
+  default atEnd :: (Parametric p, DomainBounds p) => p -> Codomain p (N p)
   atEnd x = x `atParam` domainUpper x
 
 -- | Return the lower and upper bounds of a parametric domain together
@@ -293,7 +295,9 @@ instance DomainBounds a => DomainBounds (Located a) where
   domainLower (Loc _ a) = domainLower a
   domainUpper (Loc _ a) = domainUpper a
 
-instance (InSpace v n a, EndValues a, Codomain a ~ v) => EndValues (Located a)
+instance (InSpace v n a, EndValues a, Codomain a ~ v) => EndValues (Located a) where
+  atStart (Loc p a) = p .+^ atStart a
+  atEnd (Loc p a) = p .+^ atEnd a
 
 instance (InSpace v n a, Fractional n, Parametric a, Sectionable a, Codomain a ~ v)
     => Sectionable (Located a) where

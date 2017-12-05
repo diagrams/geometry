@@ -53,6 +53,7 @@ library
     Geometry.TwoD.Segment.Bernstein
     Geometry.TwoD.Shapes
     Geometry.TwoD.Size
+    Geometry.TwoD.Offset
     Geometry.TwoD.Transform
     Geometry.TwoD.Types
     Geometry.TwoD.Vector

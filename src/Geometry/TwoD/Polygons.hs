@@ -169,10 +169,12 @@ polyTrail po = transform ori tr where
       OrientV      -> orient unitX  tr
       OrientTo v   -> orient v      tr
       NoOrient     -> mempty
+{-# SPECIALIZE polyTrail :: PolygonOpts Double -> Located (Trail V2 Double) #-}
 
 -- | Generate the polygon described by the given options.
 polygon :: (InSpace V2 n t, FromTrail t, OrderedField n) => PolygonOpts n -> t
 polygon = fromLocTrail . polyTrail
+{-# INLINE polygon #-}
 
 -- | Generate the located trail of a polygon specified by polar data
 --   (central angles and radii). See 'PolyPolar'.
@@ -186,6 +188,7 @@ polyPolarTrail ans (r:rs) = tr `at` p1 where
            (\a l -> papply (rotation a <> scaling l) $ p2 (1,0))
            (scanl (^+^) zero ans)
            (r:rs)
+{-# INLINE polyPolarTrail #-}
 
 -- | Generate the vertices of a polygon specified by side length and
 --   angles, and a starting point for the trail such that the origin
@@ -213,7 +216,7 @@ orient :: OrderedField n => V2 n -> Located (Trail V2 n) -> Transformation V2 n
 orient v (Loc p t) = orientPoints v $ segmentPoints p (t ^.. segments)
 
 segmentPoints :: (Additive v, Num n) => Point v n -> [Segment v n] -> [Point v n]
-segmentPoints p = scanl (.+^) p . map offset
+segmentPoints p = init . scanl (.+^) p . map offset
 
 orientPoints :: OrderedField n => V2 n -> [Point V2 n] -> Transformation V2 n
 orientPoints _ [ ] = mempty

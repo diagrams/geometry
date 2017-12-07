@@ -20,14 +20,11 @@ library
     Geometry.CubicSpline.Internal
     Geometry.ThreeD.Camera
     Geometry.ThreeD.Combinators
-    -- Geometry.ThreeD.Projection
     Geometry.ThreeD.Shapes
     Geometry.ThreeD.Size
     Geometry.ThreeD.Transform
     Geometry.ThreeD.Types
     Geometry.ThreeD.Vector
-    Geometry.TwoD.Ellipse
-    Geometry.TwoD.Arc
     Geometry.Angle
     Geometry.BoundingBox
     Geometry.Combinators
@@ -46,6 +43,11 @@ library
     Geometry.Trace
     Geometry.Trail
     Geometry.Transform
+    Geometry.TwoD.Arc
+    Geometry.TwoD.Combinators
+    Geometry.TwoD.Curvature
+    Geometry.TwoD.Ellipse
+    Geometry.TwoD.Offset
     Geometry.TwoD.Path
     Geometry.TwoD.Points
     Geometry.TwoD.Polygons
@@ -53,7 +55,6 @@ library
     Geometry.TwoD.Segment.Bernstein
     Geometry.TwoD.Shapes
     Geometry.TwoD.Size
-    Geometry.TwoD.Offset
     Geometry.TwoD.Transform
     Geometry.TwoD.Types
     Geometry.TwoD.Vector

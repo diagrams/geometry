@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeFamilies               #-}
@@ -43,20 +44,21 @@ module Geometry.Size
   ) where
 
 import           Control.Applicative
-import           Control.Lens        hiding (transform)
+import           Control.Lens         hiding (transform)
 import           Control.Monad
-import           Data.Foldable       as F
+import           Data.Foldable        as F
+import           Data.Functor.Classes
 import           Data.Hashable
-import           Data.Semigroup
 import           Data.Maybe
+import           Data.Semigroup
 import           Data.Typeable
-import           GHC.Generics        (Generic)
+import           GHC.Generics         (Generic)
 import           Prelude
 
-import           Geometry.Space
 import           Geometry.BoundingBox
-import           Geometry.Transform
 import           Geometry.Envelope
+import           Geometry.Space
+import           Geometry.Transform
 
 import           Linear.Affine
 import           Linear.Vector
@@ -76,6 +78,16 @@ instance (Hashable (v (Maybe n))) => Hashable (SizeSpec v n) where
 
 type instance V (SizeSpec v n) = v
 type instance N (SizeSpec v n) = n
+
+instance Show1 v => Show1 (SizeSpec v) where
+  liftShowsPrec x y d (SizeSpec v) = showParen (d > 10) $
+    showString "mkSizeSpec " . liftShowsPrec x' y' 11 v
+      where
+        x' = liftShowsPrec x y
+        y' = liftShowList x y
+
+instance (Show1 v, Show n) => Show (SizeSpec v n) where
+  showsPrec = showsPrec1
 
 -- | Retrieve a size spec as a vector of maybe values. Only positive sizes are
 --   returned.

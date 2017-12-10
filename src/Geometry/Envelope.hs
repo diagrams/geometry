@@ -45,7 +45,7 @@ module Geometry.Envelope
 #if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative                ((<$>))
 #endif
-import           Control.Lens                       (op)
+import           Control.Lens                       (op, _Just, (//~), both, review)
 import qualified Data.Map                           as M
 import           Data.Maybe                         (fromMaybe)
 import           Data.Semigroup
@@ -55,6 +55,7 @@ import           Numeric.Interval.NonEmpty.Internal
 
 import           Geometry.BoundingBox
 import           Geometry.HasOrigin
+import           Geometry.Direction
 import           Geometry.Points
 import           Geometry.Space
 import           Geometry.Transform
@@ -225,21 +226,27 @@ instance Enveloped b => Enveloped (S.Set b)
 ------------------------------------------------------------------------
 
 -- | Compute the diameter of a enveloped object along a particular
---   vector.  Returns zero for the empty envelope.
+--   vector. Returns zero for the empty envelope.
 diameter :: (InSpace v n a, Enveloped a) => v n -> a -> n
 diameter v a = maybe 0 (\(lo,hi) -> (hi - lo)) (extent v a)
 {-# INLINE diameter #-}
 
 -- | Compute the range of an enveloped object along a certain
---   direction.  Returns a pair of scalars @(lo,hi)@ such that the
---   object extends from @(lo *^ v)@ to @(hi *^ v)@. Returns @Nothing@
---   for objects with an empty envelope.
+--   direction.
 extent :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (n, n)
-extent v t = case getEnvelope t of
-  EmptyEnvelope -> Nothing
-  Envelope f    -> let I a b = f v
-                   in  Just (a, b)
+extent v = (_Just . both //~ n) . extentDir (review _Dir (v ^/ n))
+  where
+    n = norm v
 {-# INLINE extent #-}
+
+-- | Compute the range of an enveloped object along a certain
+--   direction. The input vector must have a magnitude of 1.
+extentDir :: (InSpace v n a, Enveloped a) => Direction v n -> a -> Maybe (n, n)
+extentDir d t = case getEnvelope t of
+  EmptyEnvelope -> Nothing
+  Envelope f    -> let I a b = f (fromDir d)
+                   in  Just (a, b)
+{-# INLINE extentDir #-}
 
 -- | The smallest positive vector that bounds the envelope of an object.
 size :: (InSpace v n a, Enveloped a, HasBasis v) => a -> v n

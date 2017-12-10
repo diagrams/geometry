@@ -70,7 +70,7 @@ infixl 6 |||
 --   @(===)@ is associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
 (===) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
-(===) = beside unit_Y
+(===) = besideDir y_Dir
 
 -- | Place two diagrams (or other juxtaposable objects) horizontally
 --   adjacent to one another, with the first diagram to the left of
@@ -79,7 +79,7 @@ infixl 6 |||
 --   associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
 (|||) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
-(|||) = beside unitX
+(|||) = besideDir x_Dir
 
 -- | Lay out a list of juxtaposable objects in a row from left to right,
 --   so that their local origins lie along a single horizontal line,

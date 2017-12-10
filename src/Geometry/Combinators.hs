@@ -21,6 +21,7 @@ module Geometry.Combinators
   (
     -- * Binary operations
     beside
+  , besideDir
   , atDirection
 
     -- * n-ary operations
@@ -106,8 +107,11 @@ import           Linear.V2
 --   To get something like @beside v x1 x2@ whose local origin is
 --   identified with that of @x2@ instead of @x1@, use @beside
 --   (negateV v) x2 x1@.
-beside :: (Juxtaposable a, Semigroup a) => Vn a -> a -> a -> a
+beside :: (Metric (V a), Floating (N a), Juxtaposable a, Semigroup a) => Vn a -> a -> a -> a
 beside v d1 d2 = d1 <> juxtapose v d1 d2
+
+besideDir :: (Juxtaposable a, Semigroup a) => Direction (V a) (N a) -> a -> a -> a
+besideDir d d1 d2 = d1 <> juxtapose (fromDir d) d1 d2
 
 -- | Place two diagrams (or other juxtaposable objects) adjacent to
 --   one another, with the second diagram placed in the direction 'd'
@@ -132,8 +136,8 @@ atDirection = beside . fromDirection
 --   > appendsEx = appends c (zip (iterateN 6 (rotateBy (1/6)) unitX) (repeat c))
 --   >             # centerXY # pad 1.1
 --   >   where c = circle 1
-appends :: (Juxtaposable a, Monoid' a) => a -> [(Vn a,a)] -> a
-appends d1 apps = d1 <> mconcat (map (\(v,d) -> juxtapose v d1 d) apps)
+appends :: (Metric (V a), Floating (N a), Juxtaposable a, Monoid' a) => a -> [(Vn a,a)] -> a
+appends d1 apps = d1 <> mconcat (map (\(v,d) -> juxtapose (signorm v) d1 d) apps)
 
 -- | Position things absolutely: combine a list of objects
 --   (e.g. diagrams or paths) by assigning them absolute positions in

@@ -11,7 +11,7 @@
 module Geometry.ThreeD.Vector
   ( -- * Special 3D vectors
     unitX, unitY, unitZ, unit_X, unit_Y, unit_Z
-  , xDir, yDir, zDir
+  , xDir, yDir, zDir, x_Dir, y_Dir, z_Dir
   ) where
 
 import           Control.Lens          ((&), (.~))
@@ -30,6 +30,10 @@ unitZ = zero & _z .~ 1
 unit_Z :: (R3 v, Additive v, Num n) => v n
 unit_Z = zero & _z .~ (-1)
 
--- | A 'Direction' pointing in the Z direction.
+-- | A 'Direction' pointing in the positive Z direction.
 zDir :: (R3 v, Additive v, Num n) => Direction v n
-zDir = dir unitZ
+zDir = Dir unitZ
+
+-- | A 'Direction' pointing in the negative Z direction.
+z_Dir :: (R3 v, Additive v, Num n) => Direction v n
+z_Dir = Dir unit_Z

@@ -70,6 +70,7 @@ module Geometry.Trail
   , FromTrail (..)
   , fromSegments
   , fromVertices
+  , (~~)
   , fromLine
   , fromLoop
   , fromTrail
@@ -819,6 +820,16 @@ fromOffsets vs = fromLine (lineFromSegments $ map Linear vs)
 fromSegments :: (InSpace v n t, FromTrail t) => [Segment v n] -> t
 fromSegments segs = fromLocTrail (OpenTrail (lineFromSegments segs) `at` origin)
 {-# INLINE fromSegments #-}
+
+-- | Create a linear trail between two given points.
+--
+--   <<diagrams/src_Diagrams_TrailLike_twiddleEx.svg#diagram=twiddleEx&width=300>>
+--
+--   > twiddleEx
+--   >   = mconcat ((~~) <$> hexagon 1 <*> hexagon 1)
+--   >   # centerXY # pad 1.1
+(~~) :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => Point v n -> Point v n -> t
+a ~~ b = fromVertices [a,b]
 
 -- XXX not efficient
 locatedSegments

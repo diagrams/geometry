@@ -715,7 +715,6 @@ instance (Metric v, Foldable v, OrderedField n) => Transformable (ClosingSegment
   transform _ LinearClosing        = LinearClosing
   {-# INLINE transform #-}
 
--- Not strictly correct
 instance NFData (v n) => NFData (ClosingSegment v n) where
   rnf = \case
     LinearClosing      -> ()
@@ -838,13 +837,11 @@ instance (Metric v, OrderedField n) => HasSegments (FixedSegment v n) where
   numSegments _ = 1
   {-# INLINE numSegments #-}
 
--- Not strictly correct
-instance (Foldable v, NFData n) => NFData (FixedSegment v n) where
+instance NFData (v n) => NFData (FixedSegment v n) where
   rnf = \case
-    FLinear p1 p2      -> rnfVec p1 `seq` rnfVec p2
-    FCubic p1 p2 p3 p4 -> rnfVec p1 `seq` rnfVec p2 `seq` rnfVec p3
-                          `seq` rnfVec p4
-    where rnfVec = foldMap rnf
+    FLinear p1 p2      -> rnf p1 `seq` rnf p2
+    FCubic p1 p2 p3 p4 -> rnf p1 `seq` rnf p2 `seq` rnf p3
+                          `seq` rnf p4
   {-# INLINE rnf #-}
 
 instance Hashable1 v => Hashable1 (FixedSegment v) where

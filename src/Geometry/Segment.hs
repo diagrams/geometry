@@ -451,31 +451,40 @@ traceOf
 traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mempty :: Seq n) trail
   where
     !theta = atan2A' vy vx
-    -- !rot   = rotation theta
-    !t2    = rotation theta <> translation (p^._Point) <> scaling (1/norm v)
+    !t2    = scaling (1/norm v)
+          <> rotation (negated theta)
+          <> translation (negated $ p^._Point)
 
     f (!q,!_nearStart,!ts) (Linear w)
-      | x1 == 0 && x2 /= 0 = (q .+^ w, False, ts) -- parallel
-      | otherwise          = (q .+^ w, nearEnd, ts :> t)
+      | parallel || not inRange = (q .+^ w, False, ts)
+      | otherwise               = (q .+^ w, nearEnd, ts :> tv)
       where
-        t  = x3 / x1
+        parallel = x1 == 0 && x2 /= 0
+        nearEnd  = tw > 0.999
+        inRange  = tw >= 0 && tw <= 1.001
+        --
+        tv = x3 / x1
+        tw = x2 / x1
+        --
         x1 =  v `cross2` w
         x2 = pq `cross2` v
         x3 = pq `cross2` w
         pq  = q .-. p
-        nearEnd = t > 0.999
 
     f (q,nearStart, ts) (Cubic c1 c2 c3) = (q .+^ c3, nearEnd, ts <> Seq.fromList ts')
       where
-        qy = papply t2 q ^. _y
-        y1 = apply t2 c1 ^. _y
-        y2 = apply t2 c2 ^. _y
-        y3 = apply t2 c3 ^. _y
+        P (V2 qx qy)  = papply t2 q
+        c1'@(V2 _ y1) = apply t2 c1
+        c2'@(V2 _ y2) = apply t2 c2
+        c3'@(V2 _ y3) = apply t2 c3
         --
         a  =  3*y1 - 3*y2 + y3
         b  = -6*y1 + 3*y2
         c  =  3*y1
         d  =  qy
+
+        tcs = filter (liftA2 (&&) (>= startLooking) (<= 1.0001)) (cubForm' 1e-8 a b c d)
+        ts' = map ((+qx) . view _x . atParam (Cubic c1' c2' c3')) tcs
 
         -- if there was an intersecion near the end of the previous
         -- segment, don't look for an intersecion at the beggining of
@@ -483,12 +492,11 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mem
         startLooking
           | nearStart = 0.0001
           | otherwise = 0
-        ts' = filter (liftA2 (&&) (>= startLooking) (<= 1.0001)) (cubForm' 1e-8 a b c d)
 
         -- if there's an intersection near the end of the segment, we
         -- don't look for an intersecion near the start of the next
         -- segment
-        nearEnd = any (>0.9999) ts'
+        nearEnd = any (>0.9999) tcs
 {-# INLINE traceOf #-}
 
 -- crossings -----------------------------------------------------------
@@ -506,9 +514,9 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mem
 --   'Located' 'Loops'.
 --
 -- @
--- 'sample' :: 'Path' 'V2' 'Double'                  -> 'Point' 'V2' 'Double' -> 'Crossings'
--- 'sample' :: 'Located' ('Trail' 'V2' 'Double')       -> 'Point' 'V2' 'Double' -> 'Crossings'
--- 'sample' :: 'Located' ('Trail'' 'Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
+-- 'sample' :: 'Path' 'V2' 'Double'           -> 'Point' 'V2' 'Double' -> 'Crossings'
+-- 'sample' :: 'Located' ('Line' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
+-- 'sample' :: 'Located' ('Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
 -- @
 --
 --   Note that 'Line's have no inside or outside, so don't contribute
@@ -532,9 +540,9 @@ instance Monoid Crossings where
 --   (as opposed to loops), regardless of the winding number.
 --
 -- @
--- 'isInsideWinding' :: 'Path' 'V2' 'Double'                  -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideWinding' :: 'Located' ('Trail' 'V2' 'Double')       -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideWinding' :: 'Located' ('Trail'' 'Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideWinding' :: 'Path' 'V2' 'Double'           -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideWinding' :: 'Located' ('Line' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideWinding' :: 'Located' ('Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
 -- @
 isInsideWinding :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
 isInsideWinding t = (/= 0) . sample t
@@ -548,9 +556,9 @@ isInsideWinding t = (/= 0) . sample t
 --   the number of crossings.
 --
 -- @
--- 'isInsideEvenOdd' :: 'Path' 'V2' 'Double'                  -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideEvenOdd' :: 'Located' ('Trail' 'V2' 'Double')       -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideEvenOdd' :: 'Located' ('Trail'' 'Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideEvenOdd' :: 'Path' 'V2' 'Double'           -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideEvenOdd' :: 'Located' ('Line' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideEvenOdd' :: 'Located' ('Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
 -- @
 isInsideEvenOdd :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
 isInsideEvenOdd t = odd . sample t

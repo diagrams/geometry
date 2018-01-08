@@ -127,8 +127,6 @@ import           Geometry.Query
 import           Geometry.Space
 import           Geometry.Transform
 import           Geometry.TwoD.Transform
-import           Geometry.TwoD.Vector               hiding (e)
-
 
 ------------------------------------------------------------------------
 -- Closed segments
@@ -466,9 +464,9 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mem
         tv = x3 / x1
         tw = x2 / x1
         --
-        x1 =  v `cross2` w
-        x2 = pq `cross2` v
-        x3 = pq `cross2` w
+        x1 =  v `crossZ` w
+        x2 = pq `crossZ` v
+        x3 = pq `crossZ` w
         pq  = q .-. p
 
     f (q,nearStart, ts) (Cubic c1 c2 c3) = (q .+^ c3, nearEnd, ts <> Seq.fromList ts')
@@ -588,7 +586,7 @@ linearCrossings q@(P (V2 _ qy)) a@(P (V2 _ ay)) v@(V2 _ vy)
   | by <= qy && ay > qy && not isLeft = -1
   | otherwise                         =  0
   where
-    isLeft = cross2 v (q .-. a) > 0
+    isLeft = crossZ v (q .-. a) > 0
     by = ay + vy
 {-# SPECIALISE linearCrossings :: Point V2 Double -> Point V2 Double -> V2 Double -> Crossings #-}
 

@@ -326,7 +326,7 @@ intersectPt d (P (V2 x1 y1)) (P (V2 x2 y2)) =
   x1 + (d - y1) * (x2 - x1) / (y2 - y1)
 
 -- clockwise :: (Num n, Ord n) => V2 n -> V2 n -> Bool
--- clockwise a b = a `cross2` b <= 0
+-- clockwise a b = a `crossZ` b <= 0
 
 avg :: Fractional n => n -> n -> n
 avg a b = (a + b)/2
@@ -342,7 +342,7 @@ lineLine (viewLoc -> (p,r)) (viewLoc -> (q,s))
     v  = q .-. p
 
 (×) :: Num n => V2 n -> V2 n -> n
-(×) = cross2
+(×) = crossZ
 
 mkLine :: InSpace v n (v n) => Point v n -> Point v n -> Located (v n)
 mkLine p0 p1 = (p1 .-. p0) `at` p0

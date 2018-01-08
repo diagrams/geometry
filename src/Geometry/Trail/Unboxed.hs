@@ -570,7 +570,7 @@ trailCrossings p @ (P (V2 x y)) tr
       | ay <= y && vy > 0 && isLeft     = 1
       | vy <= 0 && ay > y && not isLeft = -1
       | otherwise                       = 0
-      where isLeft = cross2 v (p .-. a) > 0
+      where isLeft = crossZ v (p .-. a) > 0
 
     testCubic a@(P(V2 _ ay)) c1@(V2 _ c1y) c2@(V2 _ c2y) c3@(V2 _ c3y)
       -- = sum . fmap tTest . filterNode (\t -> t >= 0 && t <= 1) $ ts
@@ -609,9 +609,9 @@ trailTrace t p v@(V2 vx vy) = snd $ foldTrail traceLinear traceCubic t mempty
       | otherwise          = unsafeMkSortedList [t] -- intersecting or collinear
       where
         t  = x3 / x1
-        x1 =  v `cross2` w
-        x2 = pq `cross2` v
-        x3 = pq `cross2` w
+        x1 =  v `crossZ` w
+        x2 = pq `crossZ` v
+        x3 = pq `crossZ` w
         pq  = q .-. p
 
     theta = atan2A' vy vx

@@ -228,12 +228,12 @@ cubicSplineLoopTangents vs vn = V.create $ do
 --
 --   (A + uv^T)^-1 = A^-1 - (A^-1 uv^T A^-1)/(1 + v^T A^-1 u)
 --
--- for an invertable matrix A, column vectors u and v iff
+-- for an invertable matrix A and column vectors u and v iff
 -- 1 + v^T A^-1 u /= 0.
 --
 -- We choose column vectors
 --
---   u = v = [ 1, 0, ..., 0, 1]^T
+--   u = v = [1, 0, ..., 0, 1]^T
 --
 -- so that C = A + uv^T where
 --
@@ -242,7 +242,7 @@ cubicSplineLoopTangents vs vn = V.create $ do
 --      |   1 4 1     |
 --  A = |     ...     |
 --      |       1 4 1 |
---      |         1 4 |
+--      |         1 3 |
 --
 -- Now remember we wish to solve for x in the equation
 --
@@ -278,9 +278,6 @@ cubicSplineLoopTangents vs vn = V.create $ do
 --
 --   u_sum = v^T u'
 --         = u'[0] + u'[n]
---
--- (u_sum is converging to the value 2*(sqrt 3 - 1)...
--- I'm not sure what to do with this information.
 --
 -- Now v^T w' and 1 + v^T u' are scalars so we can write them as a
 -- coefficient to u':

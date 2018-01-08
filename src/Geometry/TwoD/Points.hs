@@ -46,7 +46,7 @@ sortedConvexHull ps = (chain True ps, chain False ps)
        -- the cross product and backtracking if necessary
        go d p1 l@(p2:rest)
          -- backtrack if the direction is outward
-         | test $ d `cross2` d' = Left l
+         | test $ d `crossZ` d' = Left l
          | otherwise                =
              case go d' p2 rest of
                Left m  -> go d p1 m

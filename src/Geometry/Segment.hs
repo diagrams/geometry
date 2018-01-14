@@ -304,6 +304,8 @@ instance (Additive v, Num n) => EndValues (Segment v n) where
   atEnd (Cubic _ _ v) = v
   {-# INLINE atEnd #-}
 
+instance (Additive v, Num n) => EndValues (Tangent (Segment v n))
+
 instance (Additive v, Fractional n) => Sectionable (Segment v n) where
   splitAtParam (Linear x1) t = (left, right)
     where left  = straight p

@@ -43,22 +43,22 @@ module Geometry.Path
 
   --   -- * Eliminating paths
 
-  -- , pathPoints
-  -- , pathVertices'
-  -- , pathVertices
-  -- , pathOffsets
-  -- , pathCentroid
-  -- , pathLocSegments, fixPath
+  , pathPoints
+  , pathVertices'
+  , pathVertices
+  , pathOffsets
+  , pathCentroid
+  , pathLocSegments, fixPath
 
   --   -- * Modifying paths
 
-  -- , scalePath
+  , scalePath
   -- , reversePath
 
   --   -- * Miscellaneous
 
-  -- , explodePath
-  -- , partitionPath
+  , explodePath
+  , partitionPath
 
   ) where
 
@@ -79,10 +79,12 @@ import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
 import           Data.Typeable
 import           GHC.Generics                       (Generic)
-import           Numeric.Interval.NonEmpty.Internal
+import           Numeric.Interval.NonEmpty.Internal hiding (scale)
 import           Text.Show                          (showListWith)
 
 import           Linear
+
+import Control.Arrow ((***))
 
 import           Geometry.Envelope
 import           Geometry.Located
@@ -105,30 +107,33 @@ import           Geometry.Transform
 newtype Path v n = Path (Seq (Located (Trail v n)))
   deriving (Semigroup, Monoid, Generic, Typeable)
 
+_Path :: Iso (Path v n) (Path v' n') (Seq (Located (Trail v n))) (Seq (Located (Trail v' n')))
+_Path = coerced
+
 -- instance (OrderedField n, Metric v, Serialize (v n), Serialize (V n (N n))) =>
 -- instance (OrderedField n, Metric v, Serialize (v n), Serialize (V (v n) (N (v n)))) =>
 --   Serialize (Path v n)
 
 instance Rewrapped (Path v n) (Path v' n')
 instance Wrapped (Path v n) where
-  type Unwrapped (Path v n) = Seq (Located (Trail v n))
-  _Wrapped' = coerced
+  type Unwrapped (Path v n) = [Located (Trail v n)]
+  _Wrapped' = _Path . _Wrapped'
   {-# INLINE _Wrapped' #-}
 
 instance Each (Path v n) (Path v' n') (Located (Trail v n)) (Located (Trail v' n')) where
-  each = _Wrapped . traversed
+  each = _Path . traversed
   {-# INLINE each #-}
 
 instance AsEmpty (Path v n) where
-  _Empty = _Wrapped' . _Empty
+  _Empty = _Path . _Empty
   {-# INLINE _Empty #-}
 
 instance Cons (Path v n) (Path v' n') (Located (Trail v n)) (Located (Trail v' n')) where
-  _Cons = _Wrapped . _Cons . bimapping id _Unwrapped
+  _Cons = _Path . _Cons . bimapping id (from _Path)
   {-# INLINE _Cons #-}
 
 instance Snoc (Path v n) (Path v' n') (Located (Trail v n)) (Located (Trail v' n')) where
-  _Snoc = _Wrapped . _Snoc . bimapping _Unwrapped id
+  _Snoc = _Path . _Snoc . bimapping (from _Path) id
   {-# INLINE _Snoc #-}
 
 instance Show1 v => Show1 (Path v) where
@@ -148,7 +153,7 @@ type instance V (Path v n) = v
 type instance N (Path v n) = n
 
 instance (Additive v, Num n) => HasOrigin (Path v n) where
-  moveOriginTo = over _Wrapped' . fmap . moveOriginTo
+  moveOriginTo = over _Path . fmap . moveOriginTo
 
 -- | Paths are trail-like; a trail can be used to construct a
 --   singleton path.
@@ -194,7 +199,7 @@ instance RealFloat n => Traced (Path V2 n) where
   {-# INLINE getTrace #-}
 
 instance RealFloat n => HasQuery (Path V2 n) Crossings where
-  getQuery = F.foldMap getQuery . op Path
+  getQuery = F.foldMap getQuery . view _Path
   {-# INLINE getQuery #-}
 
 instance NFData (v n) => NFData (Path v n) where
@@ -321,89 +326,85 @@ instance ToPath a => ToPath [a] where
 -- pathFromLocTrail :: (Metric v, OrderedField n) => Located (Trail v n) -> Path v n
 -- pathFromLocTrail = trailLike
 
--- ------------------------------------------------------------
--- --  Eliminating paths  -------------------------------------
--- ------------------------------------------------------------
+------------------------------------------------------------
+--  Eliminating paths  -------------------------------------
+------------------------------------------------------------
 
--- -- | Extract the vertices of a path, resulting in a separate list of
--- --   vertices for each component trail.  Here a /vertex/ is defined as
--- --   a non-differentiable point on the trail, /i.e./ a sharp corner.
--- --   (Vertices are thus a subset of the places where segments join; if
--- --   you want all joins between segments, see 'pathPoints'.)  The
--- --   tolerance determines how close the tangents of two segments must be
--- --   at their endpoints to consider the transition point to be
--- --   differentiable.  See 'trailVertices' for more information.
--- pathVertices' :: (Metric v, OrderedField n) => n -> Path v n -> [[Point v n]]
--- pathVertices' toler = map (trailVertices' toler) . op Path
+-- | Extract the vertices of a path, resulting in a separate list of
+--   vertices for each component trail.  Here a /vertex/ is defined as
+--   a non-differentiable point on the trail, /i.e./ a sharp corner.
+--   (Vertices are thus a subset of the places where segments join; if
+--   you want all joins between segments, see 'pathPoints'.)  The
+--   tolerance determines how close the tangents of two segments must be
+--   at their endpoints to consider the transition point to be
+--   differentiable.  See 'trailVertices' for more information.
+pathVertices' :: (Metric v, OrderedField n) => n -> Path v n -> [[Point v n]]
+pathVertices' toler = map (trailVertices' toler) . view _Wrapped'
 
--- -- | Like 'pathVertices'', with a default tolerance.
--- pathVertices :: (Metric v, OrderedField n) => Path v n -> [[Point v n]]
--- pathVertices = map trailVertices . op Path
+-- | Like 'pathVertices'', with a default tolerance.
+pathVertices :: (Metric v, OrderedField n) => Path v n -> [[Point v n]]
+pathVertices = fmap trailVertices . view _Wrapped'
 
--- -- | Extract the points of a path, resulting in a separate list of
--- --   points for each component trail.  Here a /point/ is any place
--- --   where two segments join; see also 'pathVertices' and 'trailPoints'.
--- --
--- --   This function allows you "observe" the fact that trails are
--- --   implemented as lists of segments, which may be problematic if we
--- --   want to think of trails as parametric vector functions. This also
--- --   means that the behavior of this function may not be stable under
--- --   future changes to the implementation of trails and paths.  For an
--- --   unproblematic version which only yields vertices at which there
--- --   is a sharp corner, excluding points differentiable points, see
--- --   'pathVertices'.
--- --
--- --   This function is not re-exported from "Diagrams.Prelude"; to use
--- --   it, import "Diagrams.Path".
--- pathPoints :: (Metric v, OrderedField n) => Path v n -> [[Point v n]]
--- pathPoints = map trailPoints . op Path
+-- | Extract the points of a path, resulting in a separate list of
+--   points for each component trail.  Here a /point/ is any place
+--   where two segments join; see also 'pathVertices' and 'trailPoints'.
+--
+--   This function allows you "observe" the fact that trails are
+--   implemented as lists of segments, which may be problematic if we
+--   want to think of trails as parametric vector functions. This also
+--   means that the behavior of this function may not be stable under
+--   future changes to the implementation of trails and paths.  For an
+--   unproblematic version which only yields vertices at which there
+--   is a sharp corner, excluding points differentiable points, see
+--   'pathVertices'.
+--
+--   This function is not re-exported from "Diagrams.Prelude"; to use
+--   it, import "Diagrams.Path".
+pathPoints :: (Metric v, OrderedField n) => Path v n -> [[Point v n]]
+pathPoints = fmap trailPoints . view _Wrapped'
 
--- -- | Compute the total offset of each trail comprising a path (see 'trailOffset').
--- pathOffsets :: (Metric v, OrderedField n) => Path v n -> [v n]
--- pathOffsets = map (trailOffset . unLoc) . op Path
+-- | Compute the total offset of each trail comprising a path (see 'trailOffset').
+pathOffsets :: (Metric v, OrderedField n) => Path v n -> [v n]
+pathOffsets = fmap (offset . unLoc) . view _Wrapped'
 
--- -- | Compute the /centroid/ of a path (/i.e./ the average location of
--- --   its /vertices/; see 'pathVertices').
--- pathCentroid :: (Metric v, OrderedField n) => Path v n -> Point v n
--- pathCentroid = meanV . concat . pathVertices
+-- | Compute the /centroid/ of a path (/i.e./ the average location of
+--   its /vertices/; see 'pathVertices').
+pathCentroid :: (Metric v, OrderedField n) => Path v n -> Point v n
+pathCentroid = meanV . concat . pathVertices
 
--- meanV :: (Foldable f, Additive v, Fractional a) => f (v a) -> v a
--- meanV = uncurry (^/) . F.foldl' (\(s,c) e -> (e ^+^ s,c+1)) (zero,0)
--- {-# INLINE meanV #-}
+meanV :: (Foldable f, Additive v, Fractional a) => f (v a) -> v a
+meanV = uncurry (^/) . F.foldl' (\(s,c) e -> (e ^+^ s,c+1)) (zero,0)
+{-# INLINE meanV #-}
 
--- -- | Convert a path into a list of lists of located segments.
--- pathLocSegments :: (Metric v, OrderedField n) => Path v n -> [[Located (Segment Closed v n)]]
--- pathLocSegments = map trailLocSegments . op Path
+-- | Convert a path into a list of lists of located segments.
+pathLocSegments :: (Metric v, OrderedField n) => Path v n -> [[Located (Segment v n)]]
+pathLocSegments = fmap trailLocSegments . view _Wrapped
 
--- -- | Convert a path into a list of lists of 'FixedSegment's.
--- fixPath :: (Metric v, OrderedField n) => Path v n -> [[FixedSegment v n]]
--- fixPath = map fixTrail . op Path
+-- | Convert a path into a list of lists of 'FixedSegment's.
+fixPath :: (Metric v, OrderedField n) => Path v n -> [[FixedSegment v n]]
+fixPath = fmap fixTrail . view _Wrapped
 
--- -- | \"Explode\" a path by exploding every component trail (see
--- --   'explodeTrail').
--- explodePath :: (V t ~ v, N t ~ n, TrailLike t) => Path v n -> [[t]]
--- explodePath = map explodeTrail . op Path
+-- | \"Explode\" a path by exploding every component trail (see
+--   'explodeTrail').
+explodePath :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => Path v n -> [[t]]
+explodePath = map explodeTrail . view _Wrapped
 
--- -- | Partition a path into two paths based on a predicate on trails:
--- --   the first containing all the trails for which the predicate returns
--- --   @True@, and the second containing the remaining trails.
--- partitionPath :: (Located (Trail v n) -> Bool) -> Path v n -> (Path v n, Path v n)
--- partitionPath p = (view _Unwrapped' *** view _Unwrapped') . partition p . op Path
+-- | Partition a path into two paths based on a predicate on trails:
+--   the first containing all the trails for which the predicate returns
+--   @True@, and the second containing the remaining trails.
+partitionPath :: (Located (Trail v n) -> Bool) -> Path v n -> (Path v n, Path v n)
+partitionPath p = (review _Path *** review _Path) . Seq.partition p . view _Path
 
--- ------------------------------------------------------------
--- --  Modifying paths  ---------------------------------------
--- ------------------------------------------------------------
+------------------------------------------------------------
+--  Modifying paths  ---------------------------------------
+------------------------------------------------------------
 
--- -- | Scale a path using its centroid (see 'pathCentroid') as the base
--- --   point for the scale.
--- scalePath :: (HasLinearMap v, OrderedField n) => n -> Path v n -> Path v n
--- scalePath d p = under (movedFrom (pathCentroid p)) (scale d) p
+-- | Scale a path using its centroid (see 'pathCentroid') as the base
+--   point for the scale.
+scalePath :: (HasLinearMap v, OrderedField n) => n -> Path v n -> Path v n
+scalePath d p = under (movedFrom (pathCentroid p)) (scale d) p
 
--- -- | Reverse all the component trails of a path.
--- reversePath :: (Metric v, OrderedField n) => Path v n -> Path v n
--- reversePath = _Wrapped . mapped %~ reverseLocTrail
-
--- -- | Same as 'reversePath'.
--- instance (Metric v, OrderedField n) => Reversing (Path v n) where
---   reversing = _Wrapped' . mapped %~ reversing
+-- | Same as 'reversePath'.
+instance (Metric v, OrderedField n) => Reversing (Path v n) where
+  reversing = _Path . mapped %~ reversing
 

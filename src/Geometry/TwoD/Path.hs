@@ -39,31 +39,14 @@ module Geometry.TwoD.Path
   , intersectPointsT, intersectPointsT'
   ) where
 
--- import           Control.Applicative       (liftA2)
 import           Control.Lens              hiding (at, transform)
--- import qualified Data.Foldable             as F
--- import           Data.Semigroup
-
--- import           Data.Default.Class
-
--- import           Geometry.Angle
--- import           Geometry.Combinators      (withEnvelope, withTrace)
 import           Geometry.Space
--- import           Geometry.Trace
--- import           Geometry.Transform
-import           Geometry.Located          (Located, unLoc)
--- import           Geometry.Parametric
+import           Geometry.Located          (Located)
 import           Geometry.Path
--- import           Geometry.Query
 import           Geometry.Segment
--- import           Diagrams.Solve.Polynomial
 import           Geometry.Trail
 import           Geometry.TwoD.Segment
 import           Geometry.TwoD.Types
--- import           Geometry.TwoD.Vector
-
--- import           Linear.Affine
--- import           Linear.Vector
 
 ------------------------------------------------------------
 --  Intersections  -----------------------------------------
@@ -99,6 +82,6 @@ intersectPointsT = intersectPointsT' 1e-8
 --   tolerance.
 intersectPointsT' :: OrderedField n => n -> Located (Trail V2 n) -> Located (Trail V2 n) -> [P2 n]
 intersectPointsT' eps as bs = do
-  a <- undefined -- fixTrail as
-  b <- undefined -- fixTrail bs
+  a <- fixTrail as
+  b <- fixTrail bs
   intersectPointsS' eps a b

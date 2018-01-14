@@ -77,6 +77,21 @@ module Geometry.Trail
   , fromLocLine
   , fromLocLoop
   , fromOffsets
+  , fromLocSegments
+  , fromLocOffsets
+
+  , trailLocSegments
+
+  , linePoints
+  , loopPoints
+  , trailPoints
+
+  , lineVertices
+  , lineVertices'
+  , loopVertices
+  , loopVertices'
+  , trailVertices
+  , trailVertices'
 
     -- ** Internal functions
   , lineEnv
@@ -86,6 +101,8 @@ module Geometry.Trail
   , loopTrace
   , trailTrace
   , lineSegParam
+
+  , explodeTrail
   ) where
 
 import           Control.DeepSeq                    (NFData (..))
@@ -138,7 +155,6 @@ type instance Codomain (Line v n) = v
 instance Show1 v => Show1 (Line v) where
   liftShowsPrec x y d line = showParen (d > 10) $
     showString "fromSegments " . liftShowList x y (toListOf segments line)
-
 instance (Show1 v, Show n) => Show (Line v n) where
   showsPrec = showsPrec1
 
@@ -795,16 +811,6 @@ fromTrail :: (InSpace v n t, FromTrail t) => Trail v n -> t
 fromTrail = fromLocTrail . (`at` origin)
 {-# INLINE fromTrail #-}
 
-fromVertices :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => [Point v n] -> t
-fromVertices []       = fromLocTrail $ OpenTrail Empty `at` origin
-fromVertices (p0:pss) = fromLocTrail $ OpenTrail (fromOffsets (go p0 pss)) `at` p0 where
-  go _ []      = []
-  go p (p2:ps) = (p2 .-. p) : go p2 ps
-
-fromOffsets :: (InSpace v n t, FromTrail t) => [v n] -> t
-fromOffsets vs = fromLine (lineFromSegments $ map Linear vs)
-{-# INLINE fromOffsets #-}
-
 
 -- | Construct a trail-like thing from a list of segments, with the
 --   origin as the location.
@@ -846,84 +852,250 @@ fixTrail
   => Located (Trail v n) -> [FixedSegment v n]
 fixTrail (Loc p t)  = map (review fixed) (locatedSegments p t)
 
--- -- -- | Construct a trail-like thing from a located list of segments.
--- -- fromLocSegments :: FromTrail t => Located [Segment Closed (V t) (N t)] -> t
--- -- fromLocSegments = fromLocTrail . mapLoc trailFromSegments
+-- | Construct a trail-like thing from a located list of segments.
+fromLocSegments :: (InSpace v n t, FromTrail t) => Located [Segment v n] -> t
+fromLocSegments = fromLocLine . mapLoc lineFromSegments
 
--- -- -- | Construct a trail-like thing of linear segments from a list
--- -- --   of offsets, with the origin as the location.
--- -- --
--- -- --   <<diagrams/src_Diagrams_FromTrail_fromOffsetsEx.svg#diagram=fromOffsetsEx&width=300>>
--- -- --
--- -- --   > fromOffsetsEx = fromOffsets
--- -- --   >   [ unitX
--- -- --   >   , unitX # rotateBy (1/6)
--- -- --   >   , unitX # rotateBy (-1/6)
--- -- --   >   , unitX
--- -- --   >   ]
--- -- --   >   # centerXY # pad 1.1
--- -- fromOffsets :: FromTrail t => [Vn t] -> t
--- -- fromOffsets = fromLocTrail . (`at` origin) . trailFromOffsets
+-- | Construct a trail-like thing of linear segments from a list
+--   of offsets, with the origin as the location.
+--
+--   <<diagrams/src_Diagrams_FromTrail_fromOffsetsEx.svg#diagram=fromOffsetsEx&width=300>>
+--
+--   > fromOffsetsEx = fromOffsets
+--   >   [ unitX
+--   >   , unitX # rotateBy (1/6)
+--   >   , unitX # rotateBy (-1/6)
+--   >   , unitX
+--   >   ]
+--   >   # centerXY # pad 1.1
+fromOffsets :: (InSpace v n t, FromTrail t) => [v n] -> t
+fromOffsets vs = fromLine (lineFromSegments $ map Linear vs)
+{-# INLINE fromOffsets #-}
 
--- -- -- | Construct a trail-like thing of linear segments from a located
--- -- --   list of offsets.
--- -- fromLocOffsets :: (V t ~ v, N t ~ n, V (v n) ~ v, N (v n) ~ n, FromTrail t) => Located [v n] -> t
--- -- fromLocOffsets = fromLocTrail . mapLoc trailFromOffsets
+-- | Construct a trail-like thing of linear segments from a located
+--   list of offsets.
+-- fromLocOffsets :: (V t ~ v, N t ~ n, V (v n) ~ v, N (v n) ~ n, FromTrail t) => Located [v n] -> t
+fromLocOffsets :: (InSpace v n t, InSpace v n (v n), Metric v, OrderedField n, FromTrail t) => Located [v n] -> t
+fromLocOffsets = fromLocLine . mapLoc fromOffsets
 
--- -- -- | Construct a trail-like thing connecting the given vertices with
--- -- --   linear segments, with the first vertex as the location.  If no
--- -- --   vertices are given, the empty trail is used with the origin as
--- -- --   the location.
--- -- --
--- -- --   <<diagrams/src_Diagrams_FromTrail_fromVerticesEx.svg#diagram=fromVerticesEx&width=300>>
--- -- --
--- -- --   > import Data.List (transpose)
--- -- --   >
--- -- --   > fromVerticesEx =
--- -- --   >   ( [ pentagon 1
--- -- --   >     , pentagon 1.3 # rotateBy (1/15)
--- -- --   >     , pentagon 1.5 # rotateBy (2/15)
--- -- --   >     ]
--- -- --   >     # transpose
--- -- --   >     # concat
--- -- --   >   )
--- -- --   >   # fromVertices
--- -- --   >   # closeTrail # strokeTrail
--- -- --   >   # centerXY # pad 1.1
--- -- fromVertices :: FromTrail t => [Point (V t) (N t)] -> t
--- -- fromVertices []       = fromLocTrail (emptyTrail `at` origin)
--- -- fromVertices ps@(p:_) = fromLocTrail (trailFromSegments (segmentsFromVertices ps) `at` p)
+-- | Construct a trail-like thing connecting the given vertices with
+--   linear segments, with the first vertex as the location.  If no
+--   vertices are given, the empty trail is used with the origin as
+--   the location.
+--
+--   <<diagrams/src_Diagrams_FromTrail_fromVerticesEx.svg#diagram=fromVerticesEx&width=300>>
+--
+--   > import Data.List (transpose)
+--   >
+--   > fromVerticesEx =
+--   >   ( [ pentagon 1
+--   >     , pentagon 1.3 # rotateBy (1/15)
+--   >     , pentagon 1.5 # rotateBy (2/15)
+--   >     ]
+--   >     # transpose
+--   >     # concat
+--   >   )
+--   >   # fromVertices
+--   >   # closeTrail # strokeTrail
+--   >   # centerXY # pad 1.1
+fromVertices :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => [Point v n] -> t
+fromVertices []         = fromLocTrail $ OpenTrail Empty `at` origin
+fromVertices pps@(p:ps) = fromLocTrail $ OpenTrail (fromOffsets offsets) `at` p
+  where offsets = zipWith (.-.) pps ps
 
--- -- segmentsFromVertices :: (Additive v, Num n) => [Point v n] -> [Segment Closed v n]
--- -- segmentsFromVertices []         = []
--- -- segmentsFromVertices vvs@(_:vs) = map straight (zipWith (flip (.-.)) vvs vs)
+-- | Given a concretely located trail, \"explode\" it by turning each
+--   segment into its own separate trail.  Useful for (say) applying a
+--   different style to each segment.
+--
+--   <<diagrams/src_Diagrams_FromTrail_explodeTrailEx.svg#diagram=explodeTrailEx&width=300>>
+--
+--   > explodeTrailEx
+--   >   = pentagon 1
+--   >   # explodeTrail  -- generate a list of diagrams
+--   >   # zipWith lc [orange, green, yellow, red, blue]
+--   >   # mconcat # centerXY # pad 1.1
+explodeTrail :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => Located (Trail v n) -> [t]
+explodeTrail = map (mkTrail . view fixed) . fixTrail
+  where
+    mkTrail = fromLocTrail . mapLoc (fromSegments . (:[]))
 
--- -- -- | Create a linear trail between two given points.
--- -- --
--- -- --   <<diagrams/src_Diagrams_FromTrail_twiddleEx.svg#diagram=twiddleEx&width=300>>
--- -- --
--- -- --   > twiddleEx
--- -- --   >   = mconcat ((~~) <$> hexagon 1 <*> hexagon 1)
--- -- --   >   # centerXY # pad 1.1
--- -- (~~) :: (InSpace v n t, FromTrail t) => Point v n -> Point v n -> t
--- -- p1 ~~ p2 = fromVertices [p1, p2]
+-- | Convert a concretely located trail into a list of located segments.
+trailLocSegments
+  :: (Metric v, OrderedField n)
+  => Located (Trail v n) -> [Located (Segment v n)]
+trailLocSegments t = zipWith at (toListOf segments (unLoc t)) (trailPoints t)
 
--- -- -- | Given a concretely located trail, \"explode\" it by turning each
--- -- --   segment into its own separate trail.  Useful for (say) applying a
--- -- --   different style to each segment.
--- -- --
--- -- --   <<diagrams/src_Diagrams_FromTrail_explodeTrailEx.svg#diagram=explodeTrailEx&width=300>>
--- -- --
--- -- --   > explodeTrailEx
--- -- --   >   = pentagon 1
--- -- --   >   # explodeTrail  -- generate a list of diagrams
--- -- --   >   # zipWith lc [orange, green, yellow, red, blue]
--- -- --   >   # mconcat # centerXY # pad 1.1
--- -- explodeTrail :: (InSpace v n t, FromTrail t) => Located (Trail v n) -> [t]
--- -- explodeTrail = map (mkTrail . view fixed) . fixTrail
--- --   where
--- --     mkTrail = fromLocTrail . mapLoc (trailFromSegments . (:[]))
+-- Points --------------------------------------------------------------
 
+-- | Extract the points of a concretely located trail, /i.e./ the points
+--   where one segment ends and the next begins. Note that for loops,
+--   the starting point will /not/ be repeated at the end.  If you
+--   want this behavior, you can use 'cutTrail' to make the loop into
+--   a line first, which happens to repeat the same point at the start
+--   and end, /e.g./ with @trailPoints . mapLoc cutTrail@.
+--
+--   Note that it does not make sense to ask for the points of a
+--   'Trail' by itself; if you want the points of a trail
+--   with the first point at, say, the origin, you can use
+--   @trailPoints . (\`at\` origin)@.
+--
+--   This function allows you "observe" the fact that trails are
+--   implemented as lists of segments, which may be problematic if we
+--   want to think of trails as parametric vector functions. This also
+--   means that the behavior of this function may not be stable under
+--   future changes to the implementation of trails.  For an
+--   unproblematic version which only yields vertices at which there
+--   is a sharp corner, excluding points where the trail is
+--   differentiable, see 'trailVertices'.
+--
+--   This function is not re-exported from "Diagrams.Prelude"; to use
+--   it, import "Diagrams.Trail".
+trailPoints
+  :: (Metric v, OrderedField n)
+  => Located (Trail v n) -> [Point v n]
+trailPoints (viewLoc -> (p,t))
+  = withTrail (linePoints . (`at` p)) (loopPoints . (`at` p)) t
 
+-- | Extract the segment join points of a concretely located line.  See
+--   'trailPoints' for more information.
+--
+--   This function allows you "observe" the fact that lines are
+--   implemented as lists of segments, which may be problematic if we
+--   want to think of lines as parametric vector functions. This also
+--   means that the behavior of this function may not be stable under
+--   future changes to the implementation of trails.  For an
+--   unproblematic version which only yields vertices at which there
+--   is a sharp corner, excluding points where the trail is
+--   differentiable, see 'lineVertices'.
+--
+--   This function is not re-exported from "Diagrams.Prelude"; to use
+--   it, import "Diagrams.Trail".
+linePoints
+  :: (Metric v, OrderedField n)
+  => Located (Line v n) -> [Point v n]
+linePoints (viewLoc -> (p,t))
+  = segmentPoints p . toListOf segments $ t
 
+-- | Extract the segments comprising a loop: a list of closed
+--   segments, and one final open segment.
+loopSegments :: Loop v n -> ([Segment v n], ClosingSegment v n)
+loopSegments (Loop t c) = (toListOf segments t, c)
+
+-- | Extract the segment join points of a concretely located loop.  Note that the
+--   initial vertex is not repeated at the end.  See 'trailPoints' for
+--   more information.
+--
+--   This function allows you "observe" the fact that lines are
+--   implemented as lists of segments, which may be problematic if we
+--   want to think of lines as parametric vector functions. This also
+--   means that the behavior of this function may not be stable under
+--   future changes to the implementation of trails.  For an
+--   unproblematic version which only yields vertices at which there
+--   is a sharp corner, excluding points where the trail is
+--   differentiable, see 'lineVertices'.
+--
+--   This function is not re-exported from "Diagrams.Prelude"; to use
+--   it, import "Diagrams.Trail".
+loopPoints
+  :: (Metric v, OrderedField n)
+  => Located (Loop v n) -> [Point v n]
+loopPoints (viewLoc -> (p,t))
+  = segmentPoints p . fst . loopSegments $ t
+
+segmentPoints :: (Additive v, Num n) => Point v n -> [Segment v n] -> [Point v n]
+segmentPoints p = scanl (.+^) p . map offset
+
+-- Verticies -----------------------------------------------------------
+
+tolerance :: OrderedField a => a
+tolerance = 10e-16
+
+-- | Extract the vertices of a concretely located trail.  Here a /vertex/
+--   is defined as a non-differentiable point on the trail, /i.e./ a
+--   sharp corner.  (Vertices are thus a subset of the places where
+--   segments join; if you want all joins between segments, see
+--   'trailPoints'.)  The tolerance determines how close the tangents
+--   of two segments must be at their endpoints to consider the
+--   transition point to be differentiable.
+--
+--   Note that for loops, the starting vertex will /not/ be repeated
+--   at the end.  If you want this behavior, you can use 'cutTrail' to
+--   make the loop into a line first, which happens to repeat the same
+--   vertex at the start and end, /e.g./ with @trailVertices . mapLoc
+--   cutTrail@.
+--
+--   It does not make sense to ask for the vertices of a 'Trail' by
+--   itself; if you want the vertices of a trail with the first vertex
+--   at, say, the origin, you can use @trailVertices . (\`at\`
+--   origin)@.
+trailVertices'
+  :: (Metric v, OrderedField n)
+  => n ->  Located (Trail v n) -> [Point v n]
+trailVertices' toler (viewLoc -> (p,t))
+  = withTrail (lineVertices' toler . (`at` p)) (loopVertices' toler . (`at` p)) t
+
+-- | Like 'trailVertices'', with a default tolerance.
+trailVertices
+  :: (Metric v, OrderedField n)
+  => Located (Trail v n) -> [Point v n]
+trailVertices = trailVertices' tolerance
+
+-- | Extract the vertices of a concretely located line.  See
+--   'trailVertices' for more information.
+lineVertices'
+  :: (Metric v, OrderedField n)
+  => n -> Located (Line v n) -> [Point v n]
+lineVertices' toler (viewLoc -> (p,t))
+  = segmentVertices' toler p . toListOf segments $ t
+
+-- | Like 'lineVertices'', with a default tolerance.
+lineVertices
+  :: (Metric v, OrderedField n)
+  => Located (Line v n) -> [Point v n]
+lineVertices = lineVertices' tolerance
+
+-- | Extract the vertices of a concretely located loop.  Note that the
+--   initial vertex is not repeated at the end.  See 'trailVertices' for
+--   more information.
+loopVertices'
+  :: (Metric v, OrderedField n)
+  => n -> Located (Loop v n) -> [Point v n]
+loopVertices' toler (viewLoc -> (p,t))
+  | length segs > 1 = if far > toler then init ps else init . drop 1 $ ps
+  | otherwise       = ps
+  where
+    far = quadrance ((signorm . tangentAtStart . head $ segs) ^-^
+                       (signorm . tangentAtEnd   . last $ segs))
+    segs = toListOf segments . cutLoop $ t
+    ps = segmentVertices' toler p segs
+
+-- | Same as 'loopVertices'', with a default tolerance.
+loopVertices
+  :: (Metric v, OrderedField n)
+  => Located (Loop v n) -> [Point v n]
+loopVertices = loopVertices' tolerance
+
+-- | The vertices of a list of segments laid end to end.
+--   The start and end points are always included in the list of
+--   vertices.  The other points connecting segments are included if
+--   the slope at the end of a segment is not equal to the slope at
+--   the beginning of the next.  The 'toler' parameter is used to
+--   control how close the slopes need to be in order to declare them
+--   equal.
+segmentVertices'
+  :: (Metric v, OrderedField n)
+  => n -> Point v n -> [Segment v n] -> [Point v n]
+segmentVertices' toler p ts  =
+  case ps of
+    (x:_:_) -> x : select (drop 1 ps) ds ++ [last ps]
+    _       -> ps
+    where
+      ds = zipWith far tans (drop 1 tans)
+      tans = [(signorm . tangentAtStart $ s
+              ,signorm . tangentAtEnd   $ s) | s <- ts]
+      ps = scanl (.+^) p . map offset $ ts
+      far p2 q2 = quadrance (snd p2 ^-^ fst q2) > toler
+
+select :: [a] -> [Bool] -> [a]
+select xs bs = map fst $ filter snd (zip xs bs)
 

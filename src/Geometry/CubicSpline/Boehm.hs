@@ -43,9 +43,6 @@ type BSpline v n = [Point v n]
 fromFixedSeg :: (Additive v, Num n) => FixedSegment v n -> (Located (Segment v n))
 fromFixedSeg = view fixed
 
-fromLocSegments :: (InSpace v n t, FromTrail t) => Located [Segment (V t) (N t)] -> t
-fromLocSegments = fromLocTrail . mapLoc fromSegments
-
 -- | @affineCombo a b t x y@ computes an affine combination of x and y
 --   which lies at parameter t, if x has parameter a and y has parameter b.
 --   The usual @lerp@ arises by giving x parameter 0 and y parameter 1.

@@ -75,7 +75,7 @@ cubicSpline _ [] = fromLocTrail $ mempty `at` origin
 cubicSpline closed pps@(p:ps)
   | closed    = fromLocLoop $ cubicSplineLoop offsets `at` p
   | otherwise = fromLocLine $ cubicSplineLine offsets `at` p
-  where offsets = zipWith (.-.) pps ps
+  where offsets = zipWith (flip (.-.)) pps ps
 
 -- $cubic-spline
 -- A cubic spline is a smooth curve made up of cubic bezier segments

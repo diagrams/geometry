@@ -913,7 +913,7 @@ fromLocOffsets = fromLocLine . mapLoc fromOffsets
 fromVertices :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => [Point v n] -> t
 fromVertices []         = fromLocTrail $ OpenTrail Empty `at` origin
 fromVertices pps@(p:ps) = fromLocTrail $ OpenTrail (fromOffsets offsets) `at` p
-  where offsets = zipWith (.-.) pps ps
+  where offsets = zipWith (flip (.-.)) pps ps
 
 -- | Given a concretely located trail, \"explode\" it by turning each
 --   segment into its own separate trail.  Useful for (say) applying a

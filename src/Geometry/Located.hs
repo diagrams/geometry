@@ -180,9 +180,6 @@ instance Enveloped a => Juxtaposable (Located a) where
 instance (Traced a, Num (N a)) => Traced (Located a) where
   getTrace (Loc p a) = moveTo p (getTrace a)
 
--- instance Qualifiable a => Qualifiable (Located a) where
---   n .>> Loc p a = Loc p (n .>> a)
-
 instance (NFData (Vn a), NFData a) => NFData (Located a) where
   rnf (Loc p a) = rnf p `seq` rnf a
   {-# INLINE rnf #-}

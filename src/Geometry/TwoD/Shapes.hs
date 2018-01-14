@@ -55,7 +55,6 @@ import           Geometry.Angle
 import           Geometry.Located        (at)
 import           Geometry.Segment
 import           Geometry.Trail
--- import           Geometry.FromTrail
 import           Geometry.TwoD.Arc
 import           Geometry.TwoD.Polygons
 import           Geometry.TwoD.Transform

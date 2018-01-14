@@ -102,7 +102,6 @@ mkTrace = Trace
 --   Hence, if @t1@ is the trace for diagram @d1@, and
 --   @e2@ is the trace for @d2@, then @e1 \`mappend\` e2@
 --   is the trace for @d1 \`atop\` d2@.
-
 instance (Additive v, Num n) => HasOrigin (Trace v n) where
   moveOriginTo (P u) = _Wrapping' Trace %~ \f p -> f (p .+^ u)
 

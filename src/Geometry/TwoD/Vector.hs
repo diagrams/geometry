@@ -95,3 +95,4 @@ signedAngleBetween u v = (u ^. _theta) ^-^ (v ^. _theta)
 -- | Same as 'signedAngleBetween' but for 'Directions's.
 signedAngleBetweenDirs :: RealFloat n => Direction V2 n -> Direction V2 n -> Angle n
 signedAngleBetweenDirs u v = (u ^. _theta) ^-^ (v ^. _theta)
+

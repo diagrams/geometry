@@ -62,6 +62,7 @@ module Geometry.Path
 
   ) where
 
+import           Control.Arrow                      ((***))
 import           Control.DeepSeq                    (NFData (..))
 import           Control.Lens                       hiding (at, transform,
                                                      ( # ))
@@ -83,8 +84,6 @@ import           Numeric.Interval.NonEmpty.Internal hiding (scale)
 import           Text.Show                          (showListWith)
 
 import           Linear
-
-import Control.Arrow ((***))
 
 import           Geometry.Envelope
 import           Geometry.Located

@@ -77,5 +77,3 @@ instance (Enveloped b, HasOrigin b, Ord b) => Juxtaposable (S.Set b) where
 instance Juxtaposable b => Juxtaposable (a -> b) where
   juxtapose v f1 f2 b = juxtapose v (f1 b) (f2 b)
 
--- instance Juxtaposable a => Juxtaposable (Measured n a) where
---   juxtapose v = liftA2 (juxtapose v)

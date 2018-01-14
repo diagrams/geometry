@@ -71,9 +71,6 @@ import           Linear.Vector
 --   origin by the given angle.  See also 'rotate'.
 rotation :: Floating n => Angle n -> T2 n
 rotation theta = fromOrthogonal (V2 (V2 c (-s)) (V2 s c))
-  -- fromLinear
-  --   (V2 (V2 c (-s)) (V2   s  c))
-  --   (V2 (V2 c   s ) (V2 (-s) c))
   where
     c = cosA theta
     s = sinA theta

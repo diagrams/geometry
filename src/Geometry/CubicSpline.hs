@@ -1,6 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies     #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.CubicSpline
@@ -27,26 +27,32 @@
 -----------------------------------------------------------------------------
 module Geometry.CubicSpline
   (
-    -- * Constructing paths from cubic splines
-    cubicSplineLine
+    -- * Cubic splines
+    cubicSpline
+  , cubicSplineLine
   , cubicSplineLoop
+  , cubicSplineLineVec
+  , cubicSplineLoopVec
+
+    -- * B-splines
   , bspline
+
   ) where
 
--- import           Control.Lens                  (view)
 
--- import           Geometry.Space
 import           Geometry.CubicSpline.Boehm
 import           Geometry.CubicSpline.Internal
--- import           Geometry.Located              (Located, at, mapLoc)
+import           Geometry.Located
 import           Geometry.Segment
+import           Geometry.Space
 import           Geometry.Trail
--- import           Geometry.TrailLike            (TrailLike (..))
 
+import           Linear
 import           Linear.Affine
-import           Linear.Vector
 
-import qualified Data.Vector as B
+import qualified Data.Vector                   as B
+import qualified Data.Vector.Generic           as V
+import qualified Data.Vector.Unboxed           as U
 
 -- | Construct a spline path-like thing of cubic segments from a list of
 --   vertices, with the first vertex as the starting point.  The first
@@ -62,20 +68,14 @@ import qualified Data.Vector as B
 --   >               # centerXY # pad 1.1
 --
 --   For more information, see <http://mathworld.wolfram.com/CubicSpline.html>.
--- cubicSpline :: (InSpace v n t, FromTrail t, Fractional (v n)) => Bool -> [Point v n] -> t
--- cubicSpline closed []  = fromLocTrail . closeIf closed $ mempty `at` origin
--- cubicSpline closed [p] = fromLocTrail . closeIf closed $ mempty `at` p
--- cubicSpline closed ps  = flattenBeziers . map f . solveCubicSplineCoefficients closed . map (view lensP) $ ps
---   where
---     f [a,b,c,d] = [a, (3*a+b)/3, (3*a+2*b+c)/3, a+b+c+d]
---     flattenBeziers bs@((b:_):_)
---       = fromLocTrail . closeIf closed $ lineFromSegments (map bez bs) `at` P b
---     bez [a,b,c,d] = bezier3 (b - a) (c - a) (d - a)
-
-
--- closeIf :: (Additive v, Num n)
---         => Bool -> Located (Line v n) -> Located (Trail v n)
--- closeIf c = mapLoc (if c then wrapLoop . glueLine else wrapLine)
+cubicSpline
+  :: (InSpace v n t, FromTrail t, Additive v, Fractional n)
+  => Bool -> [Point v n] -> t
+cubicSpline _ [] = fromLocTrail $ mempty `at` origin
+cubicSpline closed pps@(p:ps)
+  | closed    = fromLocLoop $ cubicSplineLoop offsets `at` p
+  | otherwise = fromLocLine $ cubicSplineLine offsets `at` p
+  where offsets = zipWith (.-.) pps ps
 
 -- $cubic-spline
 -- A cubic spline is a smooth curve made up of cubic bezier segments
@@ -89,52 +89,62 @@ import qualified Data.Vector as B
 -- These requirements uniquely define the cubic spline. In the case that
 -- only one offset is given, a linear segment is returned.
 
--- cubic
--- spline @c@ for offsets @vs@ has the following properties:
---
---   - the offsets of the cubic segments match the input offsets
---   - the tangent at end of segment matches the tangent at the begining
---     of the next segment (smooth)
---   -
---
--- @
--- (c ^.. segments . to offset) == vs
--- tangent
---
+-- Lines ---------------------------------------------------------------
 
+-- | See 'cubicSpline`.
+cubicSplineLineVec
+  :: (V.Vector vec (v n), V.Vector vec n, Additive v, Fractional n)
+  => vec (v n)
+  -> Line v n
+cubicSplineLineVec vs
+  | n <= 1    = lineFromSegments $ map Linear (V.toList vs)
+  | otherwise = cubicSplineLineFromTangents vs off dv
+  where
+  n   = V.length vs
+  off = V.foldl' (^+^) zero vs
+  dv  = cubicSplineLineTangents vs
+{-# INLINE cubicSplineLineVec #-}
 
+cubicSplineLineV2D
+  :: [V2 Double]
+  -> Line V2 Double
+cubicSplineLineV2D = cubicSplineLineVec . U.fromList
+
+-- | See 'cubicSpline`.
 cubicSplineLine
   :: (Additive v, Fractional n)
   => [v n] -> Line v n
-cubicSplineLine vs
-  | n <= 1    = lineFromSegments $ map Linear vs
-  | otherwise = cubicSplineLineFromTangents vv off dv
-  where
-  vv  = B.fromList vs
-  n   = B.length vv
-  lst = B.foldl' (.+^) origin vv
-  off = origin .-. lst
-  dv  = cubicSplineLineTangents vv
+cubicSplineLine = cubicSplineLineVec . B.fromList
 {-# INLINE [0] cubicSplineLine #-}
 
+-- Loops ---------------------------------------------------------------
+
+cubicSplineLoopVec
+  :: (V.Vector vec (v n), V.Vector vec n, Additive v, Fractional n)
+  => vec (v n) -> Loop v n
+cubicSplineLoopVec vs
+  | n <= 1    = loopFromSegments (map Linear (V.toList vs)) linearClosing
+  | otherwise = cubicSplineLoopFromTangents vs off dv
+  where
+  n   = V.length vs
+  off = V.foldl' (^+^) zero vs
+  dv  = cubicSplineLoopTangents vs off
+{-# INLINE cubicSplineLoopVec #-}
+
+-- | See 'cubicSpline`.
+cubicSplineLoopV2D
+  :: [V2 Double] -> Loop V2 Double
+cubicSplineLoopV2D = cubicSplineLoopVec . U.fromList
+
+-- | See 'cubicSpline`.
 cubicSplineLoop
   :: (Additive v, Fractional n)
   => [v n] -> Loop v n
-cubicSplineLoop vs
-  | n <= 1    = loopFromSegments (map Linear vs) linearClosing
-  | otherwise = cubicSplineLoopFromTangents vv off dv
-  where
-  vv  = B.fromList vs
-  n   = B.length vv
-  lst = B.foldl' (.+^) origin vv
-  off = origin .-. lst
-  dv  = cubicSplineLoopTangents vv off
+cubicSplineLoop = cubicSplineLoopVec . B.fromList
 {-# INLINE [0] cubicSplineLoop #-}
 
--- {-# RULES
---  "cubicSpline/V2 Double" cubicSplineLine = cubicSplineLineV2D
---  #-}
+{-# RULES
+ "cubicSplineLine/V2 Double" cubicSplineLine = cubicSplineLineV2D;
+ "cubicSplineLoop/V2 Double" cubicSplineLoop = cubicSplineLoopV2D
+ #-}
 
--- cubicSplineLineV2D :: Foldable f => f (V2 Double) -> Line V2 Double
--- cubicSplineLineV2D = cubicSplineLineVec . U.fromList . toList
--- {-# INLINE cubicSplineLineV2D #-}

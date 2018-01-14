@@ -378,7 +378,19 @@ lineSegParam n p (Line ss _) = ifoldl f zero ss where
 
 instance (Additive v, Num n) => EndValues (Line v n) where
   atStart = const zero
+  {-# INLINE atStart #-}
   atEnd (Line _ o) = o
+  {-# INLINE atEnd #-}
+
+instance (Additive v, Num n) => TangentEndValues (Line v n) where
+  tangentAtStart = \case
+    s :< _ -> tangentAtStart s
+    _      -> zero
+  {-# INLINE tangentAtStart #-}
+  tangentAtEnd = \case
+    _ :> s -> tangentAtEnd s
+    _      -> zero
+  {-# INLINE tangentAtEnd #-}
 
 instance (Additive v, Num n) => Reversing (Line v n) where
   reversing = \(Line ss o) -> Line (reversing $ fmap reversing ss) (negated o)

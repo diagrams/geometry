@@ -27,10 +27,8 @@ module Geometry.Parametric
   , HasArcLength (..)
 
   -- ** Tangents
-  , Tangent(..)
-  , tangentAtParam
-  , tangentAtStart
-  , tangentAtEnd
+  , Tangential (..)
+  , TangentEndValues (..)
 
     -- ** Normals
   , normalAtParam
@@ -206,45 +204,20 @@ class Parametric p => HasArcLength p where
 -- Tangent
 ------------------------------------------------------------------------
 
--- | A newtype wrapper used to give different instances of 'Parametric'
---   and 'EndValues' that compute tangent vectors.
-newtype Tangent t = Tangent t
+class Tangential t where
+  -- | Similar to 'atParam' but returns the tangent.
+  tangentAtParam :: t -> N t -> Vn t
 
-type instance V (Tangent t) = V t
-type instance N (Tangent t) = N t
-type instance Codomain (Tangent t) = V t
+class TangentEndValues t where
+  -- | The tangent at the start.
+  tangentAtStart :: t -> Vn t
+  default tangentAtStart :: (Tangential t, DomainBounds t) => t -> Vn t
+  tangentAtStart x = x `tangentAtParam` domainLower x
 
-instance DomainBounds t => DomainBounds (Tangent t) where
-  domainLower (Tangent t) = domainLower t
-  domainUpper (Tangent t) = domainUpper t
-
-instance Parametric (Tangent t) => Parametric (Tangent (Located t)) where
-  Tangent l `atParam` p = Tangent (unLoc l) `atParam` p
-
-instance (DomainBounds t, EndValues (Tangent t))
-    => EndValues (Tangent (Located t)) where
-  atStart (Tangent l) = atStart (Tangent (unLoc l))
-  atEnd   (Tangent l) = atEnd   (Tangent (unLoc l))
-
--- | Compute the tangent vector to a segment or trail at a particular
---   parameter.
---
--- @
--- 'tangentAtParam' :: 'Segment' 'Closed' 'V2' 'Double' -> 'Double' -> 'V2' 'Double'
--- 'tangentAtParam' :: 'Located' ('Trail' 'V2')       -> 'Double' -> 'V2' 'Double'
--- @
---
---   See the instances listed for the 'Tangent' newtype for more.
-tangentAtParam :: Parametric (Tangent t) => t -> N t -> Vn t
-tangentAtParam t p = Tangent t `atParam` p
-
--- | Compute the tangent vector at the start of a segment or trail.
-tangentAtStart :: EndValues (Tangent t) => t -> Vn t
-tangentAtStart = atStart . Tangent
-
--- | Compute the tangent vector at the end of a segment or trail.
-tangentAtEnd :: EndValues (Tangent t) => t -> Vn t
-tangentAtEnd = atEnd . Tangent
+  -- | The tangent at the end.
+  tangentAtEnd :: t -> Vn t
+  default tangentAtEnd :: (Tangential t, DomainBounds t) => t -> Vn t
+  tangentAtEnd x = x `tangentAtParam` domainUpper x
 
 ------------------------------------------------------------
 -- Normal
@@ -263,19 +236,19 @@ tangentAtEnd = atEnd . Tangent
 --
 --   See the instances listed for the 'Tangent' newtype for more.
 normalAtParam
-  :: (InSpace V2 n t, Parametric (Tangent t), Floating n)
+  :: (InSpace V2 n t, Tangential t, Floating n)
   => t -> n -> V2 n
 normalAtParam t p = normize (t `tangentAtParam` p)
 
 -- | Compute the normal vector at the start of a segment or trail.
 normalAtStart
-  :: (InSpace V2 n t, EndValues (Tangent t), Floating n)
+  :: (InSpace V2 n t, TangentEndValues t, Floating n)
   => t -> V2 n
 normalAtStart = normize . tangentAtStart
 
 -- | Compute the normal vector at the end of a segment or trail.
 normalAtEnd
-  :: (InSpace V2 n t, EndValues (Tangent t), Floating n)
+  :: (InSpace V2 n t, TangentEndValues t, Floating n)
   => t -> V2 n
 normalAtEnd = normize . tangentAtEnd
 
@@ -283,7 +256,7 @@ normalAtEnd = normize . tangentAtEnd
 normize :: Floating n => V2 n -> V2 n
 normize = negated . perp . signorm
 
-
+-- instances
 
 type instance Codomain (Located a) = Point (Codomain a)
 
@@ -311,4 +284,7 @@ instance (InSpace v n a, Fractional n, HasArcLength a, Codomain a ~ v)
     => HasArcLength (Located a) where
   arcLengthBounded eps (Loc _ a) = arcLengthBounded eps a
   arcLengthToParam eps (Loc _ a) = arcLengthToParam eps a
+
+instance Tangential t => Tangential (Located t) where
+  l `tangentAtParam` p = (unLoc l) `tangentAtParam` p
 

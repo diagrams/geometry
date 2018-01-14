@@ -100,15 +100,6 @@ A Haskell geometry library build on top of [`linear`].
   example you'd have to import `Geometry.BoundingBox` explicitly to get
   the bounding box constructor).
 
-* `cat'` has been removed along with `CatOpts`. A new function `sepEven
-  :: v n -> n -> [a] -> a` to replace `Disrib` functionality along with
-  `cat :: v n -> [a] -> a` and `sep :: v n -> n -> [a] -> a` can do
-  everything `cat'` could.
-
-* The cubic spline code has been written to be much more efficient and
-  no longer requires a `Fractional (v n)` constraint.
-
-
 ### Things to still think about
 
 * I've added a `Rotational` class to help with 3D rotations (which turn

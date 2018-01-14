@@ -287,13 +287,23 @@ instance (Additive v, Num n) => Parametric (Segment v n) where
     where t' = 1-t
   {-# INLINE atParam #-}
 
-instance (Additive v, Num n) => Parametric (Tangent (Segment v n)) where
-  Tangent (Linear v) `atParam` _ = v
-  Tangent (Cubic c1 c2 c3) `atParam` t
+instance (Additive v, Num n) => Tangential (Segment v n) where
+  Linear v `tangentAtParam` _ = v
+  Cubic c1 c2 c3 `tangentAtParam` t
     =  (3*(3*t*t-4*t+1))*^ c1
    ^+^ (3*(2-3*t)*t)    *^ c2
    ^+^ (3*t*t)          *^ c3
-  {-# INLINE atParam #-}
+  {-# INLINE tangentAtParam #-}
+
+instance (Additive v, Num n) => TangentEndValues (Segment v n) where
+  tangentAtStart = \case
+    Linear v     -> v
+    Cubic c1 _ _ -> 3*^c1
+  {-# INLINE tangentAtStart #-}
+  tangentAtEnd = \case
+    Linear v      -> v
+    Cubic _ c2 c3 -> 3*^(c3 ^-^ c2)
+  {-# INLINE tangentAtEnd #-}
 
 instance Num n => DomainBounds (Segment v n)
 
@@ -303,8 +313,6 @@ instance (Additive v, Num n) => EndValues (Segment v n) where
   atEnd (Linear v)    = v
   atEnd (Cubic _ _ v) = v
   {-# INLINE atEnd #-}
-
-instance (Additive v, Num n) => EndValues (Tangent (Segment v n))
 
 instance (Additive v, Fractional n) => Sectionable (Segment v n) where
   splitAtParam (Linear x1) t = (left, right)

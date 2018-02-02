@@ -58,6 +58,7 @@ import           Geometry.ThreeD.Types
 import           Geometry.ThreeD.Vector
 import           Geometry.Trace
 import           Geometry.Transform
+import           Geometry.Direction
 
 import           Linear.Affine
 import           Linear.Metric
@@ -156,10 +157,10 @@ envelope = foldr (\x (I a b) -> I (min x a) (max x b)) (I (1/0) (-1/0))
 instance (OrderedField n, RealFloat n) => Enveloped (Frustum n) where
   -- The plane containing v and the z axis intersects the frustum in a trapezoid
   -- Test the four corners of this trapezoid; one must determine the Envelope
-  getEnvelope (Frustum r0 r1) = Envelope $ \v ->
+  getEnvelope (Frustum r0 r1) = Envelope $ \(Dir v) ->
     let θ       = v ^. _theta
         corners = [(r1,θ,1), (-r1,θ,1), (r0,θ,0), (-r0,θ,0)]
-    in  envelope . map (norm . project v . review r3CylindricalIso) $ corners
+     in envelope . map (norm . project v . review r3CylindricalIso) $ corners
 
 instance (RealFloat n, Ord n) => Traced (Frustum n) where
   -- The trace can intersect the sides of the cone or one of the end

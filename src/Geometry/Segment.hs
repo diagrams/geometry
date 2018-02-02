@@ -120,6 +120,7 @@ import           Data.Coerce
 import           Diagrams.Solve.Polynomial
 
 import           Geometry.Angle
+import Geometry.Direction
 import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
@@ -408,8 +409,8 @@ cubicEnvelope !c1 !c2 !c3 !v
 {-# SPECIALISE cubicEnvelope :: V3 Double -> V3 Double -> V3 Double -> V3 Double -> Interval Double #-}
 
 -- | Envelope of single segment without the 'Envelope' wrapper.
-segmentEnvelope :: (Metric v, OrderedField n) => Segment v n -> v n -> Interval n
-segmentEnvelope !s = \v -> case s of
+segmentEnvelope :: (Metric v, OrderedField n) => Segment v n -> Direction v n -> Interval n
+segmentEnvelope !s = \(Dir v) -> case s of
   Linear l       -> let !x = l `dot` v
                     in  if x < 0 then I x 0 else I 0 x
   Cubic c1 c2 c3 -> cubicEnvelope c1 c2 c3 v
@@ -434,7 +435,7 @@ envelopeOf
 envelopeOf l = \ !t !w ->
   let f (Pair p e) !seg = Pair (p .+^ offset seg) e'
         where
-          e' = combine e (moveBy (view _Point p `dot` w) $ segmentEnvelope seg w)
+          e' = combine e (moveBy (view _Point p `dot` w) $ segmentEnvelope seg (Dir w))
           --
           combine (I a1 b1) (I a2 b2) = I (min a1 a2) (max b1 b2)
           moveBy n (I a b)            = I (a + n) (b + n)

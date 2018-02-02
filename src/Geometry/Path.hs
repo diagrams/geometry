@@ -88,6 +88,7 @@ import           Linear
 import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Points
+import           Geometry.Direction
 import           Geometry.Query
 import           Geometry.Segment
 import           Geometry.Space
@@ -177,7 +178,7 @@ pathEnv i0 (Path ts) = \v -> F.foldl' (\i t -> hull (locTrailEnv t v) i) i0 ts
 
 pathEnvelope :: (Metric v, OrderedField n) => Path v n -> Envelope v n
 pathEnvelope = \case
-  Path (t :< ts) -> Envelope $ \v -> pathEnv (locTrailEnv t v) (Path ts) v
+  Path (t :< ts) -> Envelope $ \(Dir v) -> pathEnv (locTrailEnv t v) (Path ts) v
   _              -> EmptyEnvelope
 -- This could be defined as @foldMap getEnvelope ts@ but this would be
 -- less efficient.

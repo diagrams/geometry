@@ -105,7 +105,7 @@ import           Linear
 --   <http://www.youtube.com/watch?v=X-8NCkD2vOw>.
 data Envelope v n
   = EmptyEnvelope
-  | Envelope (v n -> Interval n)
+  | Envelope (Direction v n -> Interval n)
 
 type instance V (Envelope v n) = v
 type instance N (Envelope v n) = n
@@ -129,10 +129,10 @@ shift x (I a b) = I (a + x) (b + x)
 -- | Create an envelope for the given point. This has fewer constraints
 --   than using the 'getEnvelope' instance for points.
 pointEnvelope :: (Metric v, Fractional n) => Point v n -> Envelope v n
-pointEnvelope (P p) = Envelope $ \v -> singleton (p `dot` v)
+pointEnvelope (P p) = Envelope $ \(Dir v) -> singleton (p `dot` v)
 {-# INLINE pointEnvelope #-}
 
-onEnvelope :: ((v n -> Interval n) -> v n -> Interval n) -> Envelope v n -> Envelope v n
+onEnvelope :: ((Direction v n -> Interval n) -> Direction v n -> Interval n) -> Envelope v n -> Envelope v n
 onEnvelope _ EmptyEnvelope = EmptyEnvelope
 onEnvelope m (Envelope f)  = Envelope (m f)
 {-# INLINE onEnvelope #-}
@@ -141,7 +141,7 @@ onEnvelope m (Envelope f)  = Envelope (m f)
 --   which bounding queries are made, /i.e./ the point from which the
 --   input vectors are taken to originate.
 instance (Metric v, Fractional n) => HasOrigin (Envelope v n) where
-  moveOriginTo (P u) = onEnvelope (\f v -> shift (negate (u `dot` v)) (f v))
+  moveOriginTo (P u) = onEnvelope (\f (Dir v) -> shift (negate (u `dot` v)) (f (Dir v)))
   {-# INLINE moveOriginTo #-}
 
 instance Show (Envelope v n) where
@@ -151,11 +151,11 @@ instance Show (Envelope v n) where
 instance (Metric v, HasBasis v, Foldable v, Floating n)
     => Transformable (Envelope v n) where
   transform t = moveOriginTo (P . negated . transl $ t) . onEnvelope g where
-    g f v = I (mul*a) (mul*b)
+    g f (Dir v) = I (mul*a) (mul*b)
       where
         v' = signorm $ transp t !* v
         vi = apply (inv t) v
-        I a b = f v'
+        I a b = f (Dir v')
         mul   = 1 / (v' `dot` vi)
   {-# INLINE transform #-}
 
@@ -182,14 +182,14 @@ class (Metric (V a), OrderedField (N a)) => Enveloped a where
     case getEnvelope a of
       EmptyEnvelope  -> EmptyBox
       Envelope f     -> BoundingBox (P $ fmap inf bounds) (P $ fmap sup bounds)
-        where bounds = fmap f eye
+        where bounds = fmap (\v -> f (Dir v)) eye
   {-# INLINE boundingBox #-}
 
 instance (Metric v, OrderedField n) => Enveloped (Envelope v n) where
   getEnvelope = id
 
 instance (OrderedField n, Metric v) => Enveloped (Point v n) where
-  getEnvelope (P p) = Envelope $ \v -> singleton (p `dot` v)
+  getEnvelope (P p) = Envelope $ \(Dir v) -> singleton (p `dot` v)
   {-# INLINE getEnvelope #-}
   boundingBox p = BoundingBox p p
   {-# INLINE boundingBox #-}
@@ -244,7 +244,7 @@ extent v = (_Just . both //~ n) . extentDir (review _Dir (v ^/ n))
 extentDir :: (InSpace v n a, Enveloped a) => Direction v n -> a -> Maybe (n, n)
 extentDir d t = case getEnvelope t of
   EmptyEnvelope -> Nothing
-  Envelope f    -> let I a b = f (fromDir d)
+  Envelope f    -> let I a b = f d
                    in  Just (a, b)
 {-# INLINE extentDir #-}
 

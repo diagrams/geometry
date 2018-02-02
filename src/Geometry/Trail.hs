@@ -133,6 +133,7 @@ import           Linear.Vector
 
 
 import           Geometry.Envelope
+import           Geometry.Direction
 import           Geometry.Located
 import           Geometry.Parametric
 import           Geometry.Query
@@ -214,7 +215,7 @@ lineEnv :: (Metric v, OrderedField n) => Line v n -> v n -> Interval n
 lineEnv = \ !(Line t _) !w ->
   let f (Pair p e) !seg = Pair (p .+^ offset seg) e'
         where
-          e' = hull e (shift (view _Point p `dot` w) $ segmentEnvelope seg w)
+          e' = hull e (shift (view _Point p `dot` w) $ segmentEnvelope seg (Dir w))
   in  getB $ foldl' f (Pair origin (I 0 0)) t
 {-# SPECIALIZE lineEnv :: Line V3 Double -> V3 Double -> Interval Double #-}
 {-# INLINE [0] lineEnv #-}
@@ -246,7 +247,7 @@ lineEnv2Double = \ !(Line t _) !w ->
         LE2D _ _ a b -> I a b
 
 instance (Metric v, OrderedField n) => Enveloped (Line v n) where
-  getEnvelope = \ l -> Envelope (lineEnv l)
+  getEnvelope = \ l -> Envelope (\(Dir v) -> lineEnv l v)
   {-# INLINE getEnvelope #-}
 
 -- | Unsorted line trace, specialised to @Double@.
@@ -416,10 +417,10 @@ loopClosingSegment :: (Functor v, Num n) => Loop v n -> Segment v n
 loopClosingSegment (Loop t c) = closingSegment (offset t) c
 {-# INLINE loopClosingSegment #-}
 
-loopEnv :: (Metric v, OrderedField n) => Loop v n -> v n -> Interval n
-loopEnv (Loop t c) w = hull (lineEnv t w) i
+loopEnv :: (Metric v, OrderedField n) => Loop v n -> Direction v n -> Interval n
+loopEnv (Loop t c) (Dir w) = hull (lineEnv t w) i
   where
-    i   = shift (v `dot` w) $ segmentEnvelope seg w
+    i   = shift (v `dot` w) $ segmentEnvelope seg (Dir w)
     v   = offset t
     seg = closingSegment v c
 {-# INLINE loopEnv #-}
@@ -674,11 +675,11 @@ glueTrail = withTrail (ClosedTrail . glueLine) ClosedTrail
 trailEnv :: (Metric v, OrderedField n) => Trail v n -> v n -> Interval n
 trailEnv t v = case t of
   OpenTrail l   -> lineEnv l v
-  ClosedTrail l -> loopEnv l v
+  ClosedTrail l -> loopEnv l (Dir v)
 {-# INLINE trailEnv #-}
 
 instance (Metric v, OrderedField n) => Enveloped (Trail v n) where
-  getEnvelope t = Envelope (trailEnv t)
+  getEnvelope t = Envelope (\(Dir v) -> trailEnv t v)
   {-# INLINE getEnvelope #-}
 
 trailTrace :: OrderedField n => Trail V2 n -> Point V2 n -> V2 n -> Seq n

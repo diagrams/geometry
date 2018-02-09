@@ -34,7 +34,7 @@ module Geometry.BoundingBox
     -- * Queries on bounding boxes
   , getCorners, getAllCorners
   , boxExtents, boxCenter
-  , boxTransform -- , boxFit
+  , boxTransform
   , boxIntersection
   ) where
 

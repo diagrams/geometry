@@ -58,6 +58,10 @@ import           Geometry.Transform
 -- | A bounding box is an axis-aligned region determined by two points
 --   indicating its \"lower\" and \"upper\" corners. It can also
 --   represent an empty bounding box.
+--
+--   The 'Semigroup' and 'Monoid' instances of 'BoundingBox' can be
+--   used to take the union of bounding boxes, with the empty bounding
+--   box as the identity.
 data BoundingBox v n
   = EmptyBox
   | BoundingBox !(Point v n) !(Point v n)

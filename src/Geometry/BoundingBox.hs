@@ -29,7 +29,7 @@ module Geometry.BoundingBox
     BoundingBox (..)
 
     -- * Constructing bounding boxes
-  , emptyBox, fromCorners
+  , emptyBox, fromCorners, fromPoint, fromPoints
 
     -- * Queries on bounding boxes
   , getCorners, getAllCorners
@@ -211,6 +211,14 @@ fromCorners l h
   | F.and (liftI2 (<=) l h) = BoundingBox l h
   | otherwise               = EmptyBox
 {-# INLINE fromCorners #-}
+
+-- | Create a degenerate bounding \"box\" containing only a single point.
+fromPoint :: Point v n -> BoundingBox v n
+fromPoint p = BoundingBox p p
+
+-- | Create the smallest bounding box containing all the given points.
+fromPoints :: (Additive v, Ord n) => [Point v n] -> BoundingBox v n
+fromPoints = mconcat . map fromPoint
 
 -- | Gets the lower and upper corners that define the bounding box.
 getCorners :: BoundingBox v n -> Maybe (Point v n, Point v n)

@@ -21,9 +21,11 @@
 -----------------------------------------------------------------------------
 module Geometry.TwoD.Offset
   (
+    LineJoin (..)
+  , LineCap (..)
     -- * Offsets
 
-    offsetSegment
+  , offsetSegment
 
   , OffsetOpts(..), offsetJoin, offsetMiterLimit, offsetEpsilon
   , offsetTrail
@@ -43,10 +45,11 @@ module Geometry.TwoD.Offset
 
 import           Control.Applicative
 import           Control.Lens            hiding (at)
+import           Data.Semigroup
+import           Data.Typeable
 import           Prelude
 
 import           Data.Maybe              (catMaybes)
-import           Data.Monoid
 import           Data.Monoid.Inf
 
 import           Data.Default.Class
@@ -69,32 +72,45 @@ import           Geometry.TwoD.Vector    hiding (e)
 import           Linear.Metric
 import           Linear.Vector
 
--- trailFromSegments :: Num n => [Segment V2 n] -> Trail V2 n
--- trailFromSegments = fromSegments
-
 trailSegments :: Num n => Trail V2 n -> [Segment V2 n]
 trailSegments = toListOf segments
 
--- trailPoints :: Num n => Located (Trail V2 n) -> [Point V2 n]
--- trailPoints = undefined
-
+-- | The shape should be placed at the endpoints of lines. 'Default' is
+--   'LineCapButt'.
 data LineCap
-  = LineCapButt
-  | LineCapRound
-  | LineCapSquare
-  deriving (Show, Eq)
+  = LineCapButt   -- ^ Lines end precisely at their endpoints.
+  | LineCapRound  -- ^ Lines are capped with semicircles centered on
+                  --   endpoints.
+  | LineCapSquare -- ^ Lines are capped with a squares centered on
+                  --   endpoints.
+  deriving (Eq, Ord, Show, Typeable)
 
+-- | 'LineCapButt'
 instance Default LineCap where
   def = LineCapButt
 
-data LineJoin
-  = LineJoinMiter
-  | LineJoinRound
-  | LineJoinBevel
-  deriving (Show, Eq)
+-- | 'Last' semigroup structure.
+instance Semigroup LineCap where
+  _ <> b = b
 
+-- | How should the join points between line segments be drawn? The
+--   'Default' is 'LineJoineMiter'.
+data LineJoin
+  = LineJoinMiter    -- ^ Use a \"miter\" shape (whatever that is).
+  | LineJoinRound    -- ^ Use rounded join points.
+  | LineJoinBevel    -- ^ Use a \"bevel\" shape (whatever that is).  Are
+                     --   these... carpentry terms?
+  deriving (Eq, Ord, Show, Typeable)
+
+-- | Last semigroup structure.
+instance Semigroup LineJoin where
+  _ <> b = b
+
+
+-- | 'LineJoinMiter'
 instance Default LineJoin where
   def = LineJoinMiter
+
 
 unitPerp :: OrderedField n => V2 n -> V2 n
 unitPerp = signorm . perp

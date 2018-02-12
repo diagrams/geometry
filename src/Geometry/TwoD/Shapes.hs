@@ -64,18 +64,18 @@ import           Geometry.TwoD.Vector
 
 -- | Create a centered horizontal (L-R) line of the given length.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_hruleEx.svg#diagram=hruleEx&width=300>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_hruleEx.svg#diagram=hruleEx&width=300>>
 --
---   > hruleEx = vcat' (with & sep .~ 0.2) (map hrule [1..5])
+--   > hruleEx = vsep 0.2 (map hrule [1..5])
 --   >         # centerXY # pad 1.1
 hrule :: (InSpace V2 n t, FromTrail t, Fractional n) => n -> t
 hrule d = fromLocTrail $ fromSegments [straight $ r2 (d, 0)] `at` p2 (-d/2,0)
 
 -- | Create a centered vertical (T-B) line of the given length.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_vruleEx.svg#diagram=vruleEx&height=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_vruleEx.svg#diagram=vruleEx&height=100>>
 --
---   > vruleEx = hcat' (with & sep .~ 0.2) (map vrule [1, 1.2 .. 2])
+--   > vruleEx = hsep 0.2 (map vrule [1, 1.2 .. 2])
 --   >         # centerXY # pad 1.1
 vrule :: (InSpace V2 n t, FromTrail t, Fractional n) => n -> t
 vrule d = fromLocTrail $ fromSegments [straight $ r2 (0, -d)] `at` p2 (0,d/2)
@@ -83,7 +83,7 @@ vrule d = fromLocTrail $ fromSegments [straight $ r2 (0, -d)] `at` p2 (0,d/2)
 -- | A square with its center at the origin and sides of length 1,
 --   oriented parallel to the axes.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_unitSquareEx.svg#diagram=unitSquareEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_unitSquareEx.svg#diagram=unitSquareEx&width=100>>
 unitSquare :: (InSpace V2 n t, FromTrail t, OrderedField n) => t
 unitSquare = polygon (def & polyType   .~ PolyRegular 4 (sqrt 2 / 2)
                           & polyOrient .~ OrientH)
@@ -93,17 +93,17 @@ unitSquare = polygon (def & polyType   .~ PolyRegular 4 (sqrt 2 / 2)
 -- | A square with its center at the origin and sides of the given
 --   length, oriented parallel to the axes.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_squareEx.svg#diagram=squareEx&width=200>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_squareEx.svg#diagram=squareEx&width=200>>
 square :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 square d = rect d d
 
--- > squareEx = hcat' (with & sep .~ 0.5) [square 1, square 2, square 3]
+-- > squareEx = hsep 0.5 [square 1, square 2, square 3]
 -- >          # centerXY # pad 1.1
 
 -- | @rect w h@ is an axis-aligned rectangle of width @w@ and height
 --   @h@, centered at the origin.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_rectEx.svg#diagram=rectEx&width=150>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_rectEx.svg#diagram=rectEx&width=150>>
 rect :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> n -> t
 rect w h = fromLocTrail . scaleX w . scaleY h $ unitSquare
 
@@ -162,28 +162,28 @@ eqTriangle = triangle
 -- | An equilateral triangle, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_triangleEx.svg#diagram=triangleEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_triangleEx.svg#diagram=triangleEx&width=100>>
 triangle :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 triangle = regPoly 3
 
 -- | A regular pentagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_pentagonEx.svg#diagram=pentagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_pentagonEx.svg#diagram=pentagonEx&width=100>>
 pentagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 pentagon = regPoly 5
 
 -- | A regular hexagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_hexagonEx.svg#diagram=hexagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_hexagonEx.svg#diagram=hexagonEx&width=100>>
 hexagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 hexagon = regPoly 6
 
 -- | A regular heptagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_heptagonEx.svg#diagram=heptagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_heptagonEx.svg#diagram=heptagonEx&width=100>>
 heptagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 heptagon = regPoly 7
 
@@ -196,35 +196,35 @@ septagon = heptagon
 -- | A regular octagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_octagonEx.svg#diagram=octagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_octagonEx.svg#diagram=octagonEx&width=100>>
 octagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 octagon = regPoly 8
 
 -- | A regular nonagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_nonagonEx.svg#diagram=nonagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_nonagonEx.svg#diagram=nonagonEx&width=100>>
 nonagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 nonagon = regPoly 9
 
 -- | A regular decagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_decagonEx.svg#diagram=decagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_decagonEx.svg#diagram=decagonEx&width=100>>
 decagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 decagon = regPoly 10
 
 -- | A regular hendecagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_hendecagonEx.svg#diagram=hendecagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_hendecagonEx.svg#diagram=hendecagonEx&width=100>>
 hendecagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 hendecagon = regPoly 11
 
 -- | A regular dodecagon, with sides of the given length and base
 --   parallel to the x-axis.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_dodecagonEx.svg#diagram=dodecagonEx&width=100>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_dodecagonEx.svg#diagram=dodecagonEx&width=100>>
 dodecagon :: (InSpace V2 n t, FromTrail t, OrderedField n) => n -> t
 dodecagon = regPoly 12
 
@@ -253,9 +253,9 @@ instance (Num d) => Default (RoundedRectOpts d) where
 --   a different radius for each corner individually, use
 --   'roundedRect'' instead.
 --
---   <<diagrams/src_Diagrams_TwoD_Shapes_roundedRectEx.svg#diagram=roundedRectEx&width=400>>
+--   <<diagrams/src_Geometry_TwoD_Shapes_roundedRectEx.svg#diagram=roundedRectEx&width=400>>
 --
---   > roundedRectEx = pad 1.1 . centerXY $ hcat' (with & sep .~ 0.2)
+--   > roundedRectEx = pad 1.1 . centerXY $ hsep 0.2
 --   >   [ roundedRect  0.5 0.4 0.1
 --   >   , roundedRect  0.5 0.4 (-0.1)
 --   >   , roundedRect' 0.7 0.4 (with & radiusTL .~ 0.2

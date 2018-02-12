@@ -626,10 +626,14 @@ cutLoop (Loop line c)  = line |> closingSegment (offset line) c
 -- closeLine . lineFromVertices $ ps
 -- @
 --
---   <<diagrams/src_Diagrams_Trail_closeLineEx.svg#diagram=closeLineEx&width=500>>
+--   <<diagrams/src_Geometry_Trail_closeLineEx.svg#diagram=closeLineEx&width=500>>
 --
---   > closeLineEx = pad 1.1 . centerXY . hcat' (with & sep .~ 1)
---   >   $ [almostClosed # strokeLine, almostClosed # closeLine # strokeLoop]
+--   > closeLineEx :: Diagram V2
+--   > closeLineEx = pad 1.1 . centerXY . hsep 1
+--   >   $ [almostClosed # stroke, almostClosed # closeLine # stroke]
+--   >
+--   > almostClosed :: Line V2 Double
+--   > almostClosed = fromOffsets $ map r2 [(2, -1), (-3, -0.5), (-2, 1), (1, 0.5)]
 closeLine :: Line v n -> Loop v n
 closeLine line = Loop line LinearClosing
 {-# INLINE closeLine #-}
@@ -647,10 +651,10 @@ closeTrail = withTrail (ClosedTrail . closeLine) ClosedTrail
 --   know happens to end where it starts, and then call 'glueLine' to
 --   turn it into a loop.
 --
---   <<diagrams/src_Diagrams_Trail_glueLineEx.svg#diagram=glueLineEx&width=500>>
+--   <<diagrams/src_Geometry_Trail_glueLineEx.svg#diagram=glueLineEx&width=500>>
 --
 --   > glueLineEx = pad 1.1 . hsep 1
---   >   $ [almostClosed # strokeLine, almostClosed # glueLine # strokeLoop]
+--   >   $ [almostClosed # stroke, almostClosed # glueLine # stroke]
 --   >
 --   > almostClosed :: Line V2 Double
 --   > almostClosed = fromOffsets $ map r2 [(2, -1), (-3, -0.5), (-2, 1), (1, 0.5)]
@@ -828,7 +832,7 @@ fromTrail = fromLocTrail . (`at` origin)
 -- | Construct a trail-like thing from a list of segments, with the
 --   origin as the location.
 --
---   <<diagrams/src_Diagrams_FromTrail_fromSegmentsEx.svg#diagram=fromSegmentsEx&height=200>>
+--   <<diagrams/src_Geometry_Trail_fromSegmentsEx.svg#diagram=fromSegmentsEx&height=200>>
 --
 --   > fromSegmentsEx = fromSegments
 --   >   [ straight (r2 (1,1))
@@ -842,7 +846,7 @@ fromSegments segs = fromLocTrail (OpenTrail (lineFromSegments segs) `at` origin)
 
 -- | Create a linear trail between two given points.
 --
---   <<diagrams/src_Diagrams_TrailLike_twiddleEx.svg#diagram=twiddleEx&width=300>>
+--   <<diagrams/src_Geometry_Trail_twiddleEx.svg#diagram=twiddleEx&width=300>>
 --
 --   > twiddleEx
 --   >   = mconcat ((~~) <$> hexagon 1 <*> hexagon 1)
@@ -872,7 +876,7 @@ fromLocSegments = fromLocLine . mapLoc lineFromSegments
 -- | Construct a trail-like thing of linear segments from a list
 --   of offsets, with the origin as the location.
 --
---   <<diagrams/src_Diagrams_FromTrail_fromOffsetsEx.svg#diagram=fromOffsetsEx&width=300>>
+--   <<diagrams/src_Geometry_Trail_fromOffsetsEx.svg#diagram=fromOffsetsEx&width=300>>
 --
 --   > fromOffsetsEx = fromOffsets
 --   >   [ unitX
@@ -896,7 +900,7 @@ fromLocOffsets = fromLocLine . mapLoc fromOffsets
 --   vertices are given, the empty trail is used with the origin as
 --   the location.
 --
---   <<diagrams/src_Diagrams_FromTrail_fromVerticesEx.svg#diagram=fromVerticesEx&width=300>>
+--   <<diagrams/src_Geometry_Trail_fromVerticesEx.svg#diagram=fromVerticesEx&width=300>>
 --
 --   > import Data.List (transpose)
 --   >
@@ -909,7 +913,7 @@ fromLocOffsets = fromLocLine . mapLoc fromOffsets
 --   >     # concat
 --   >   )
 --   >   # fromVertices
---   >   # closeTrail # strokeTrail
+--   >   # closeTrail # stroke
 --   >   # centerXY # pad 1.1
 fromVertices :: (InSpace v n t, Metric v, OrderedField n, FromTrail t) => [Point v n] -> t
 fromVertices []         = fromLocTrail $ OpenTrail Empty `at` origin
@@ -920,7 +924,7 @@ fromVertices pps@(p:ps) = fromLocTrail $ OpenTrail (fromOffsets offsets) `at` p
 --   segment into its own separate trail.  Useful for (say) applying a
 --   different style to each segment.
 --
---   <<diagrams/src_Diagrams_FromTrail_explodeTrailEx.svg#diagram=explodeTrailEx&width=300>>
+--   <<diagrams/src_Geometry_Trail_explodeTrailEx.svg#diagram=explodeTrailEx&width=300>>
 --
 --   > explodeTrailEx
 --   >   = pentagon 1

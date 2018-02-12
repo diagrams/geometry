@@ -114,7 +114,7 @@ arc start sweep = fromLocTrail $ arcT start sweep `at` P (fromDirection start)
 --   @d@ and sweeping out the angle @s@ counterclockwise (for positive
 --   s).  The origin of the arc is its center.
 --
---   <<diagrams/src_Diagrams_TwoD_Arc_arc'Ex.svg#diagram=arc'Ex&width=300>>
+--   <<diagrams/src_Geometry_TwoD_Arc_arc'Ex.svg#diagram=arc'Ex&width=300>>
 --
 --   > arc'Ex = mconcat [ arc' r xDir (1/4 @@ turn) | r <- [0.5,-1,1.5] ]
 --   >        # centerXY # pad 1.1
@@ -144,9 +144,9 @@ arcCW start end = fromLocTrail $
 -- | Create a circular wedge of the given radius, beginning at the
 --   given direction and extending through the given angle.
 --
---   <<diagrams/src_Diagrams_TwoD_Arc_wedgeEx.svg#diagram=wedgeEx&width=400>>
+--   <<diagrams/src_Geometry_TwoD_Arc_wedgeEx.svg#diagram=wedgeEx&width=400>>
 --
---   > wedgeEx = hcat' (with & sep .~ 0.5)
+--   > wedgeEx = hsep 0.5
 --   >   [ wedge 1 xDir (1/4 @@ turn)
 --   >   , wedge 1 (rotate (7/30 @@ turn) xDir) (4/30 @@ turn)
 --   >   , wedge 1 (rotate (1/8 @@ turn) xDir) (3/4 @@ turn)
@@ -165,7 +165,7 @@ wedge r d s = fromLocTrail . (`at` origin) . glueTrail . wrapLine
 --   @height@ results in an arc to the left of the line from @p@ to
 --   @q@; a negative value yields one to the right.
 --
---   <<diagrams/src_Diagrams_TwoD_Arc_arcBetweenEx.svg#diagram=arcBetweenEx&width=300>>
+--   <<diagrams/src_Geometry_TwoD_Arc_arcBetweenEx.svg#diagram=arcBetweenEx&width=300>>
 --
 --   > arcBetweenEx = mconcat
 --   >   [ arcBetween origin (p2 (2,1)) ht | ht <- [-0.2, -0.1 .. 0.2] ]
@@ -195,7 +195,7 @@ arcBetween p q ht = fromLocTrail (a & rotate (v^._theta) & moveTo p)
 --   first direction and extending through the given sweep angle.
 --   The radius of the outer circle is given first.
 --
---   <<diagrams/src_Diagrams_TwoD_Arc_annularWedgeEx.svg#diagram=annularWedgeEx&width=400>>
+--   <<diagrams/src_Geometry_TwoD_Arc_annularWedgeEx.svg#diagram=annularWedgeEx&width=400>>
 --
 --   > annularWedgeEx = hsep 0.50
 --   >   [ annularWedge 1 0.5 xDir (1/4 @@ turn)

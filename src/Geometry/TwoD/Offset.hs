@@ -141,7 +141,7 @@ perpAtParam cubic t      = negated $ unitPerp a
 --   In the following example the blue lines are the original segments and
 --   the alternating green and red lines are the resulting offset trail segments.
 --
---   <<diagrams/src_Diagrams_TwoD_Offset_cubicOffsetExample.svg#diagram=cubicOffsetExample&width=600>>
+--   <<diagrams/src_Geometry_TwoD_Offset_cubicOffsetExample.svg#diagram=cubicOffsetExample&width=600>>
 --
 --   Note that when the original curve has a cusp, the offset curve forms a
 --   radius around the cusp, and when there is a loop in the original curve,
@@ -252,23 +252,24 @@ offsetSegment epsilon r s@(Cubic a b c) = t `at` origin .+^ va
                     ]
 
 
--- > import Diagrams.TwoD.Offset
+-- > {-# LANGUAGE TypeApplications #-}
+-- > import Geometry.TwoD.Offset
 -- >
--- > showExample :: Segment Closed V2 Double -> Diagram SVG
+-- > showExample :: Segment V2 Double -> Diagram V2
 -- > showExample s = pad 1.1 . centerXY $ d # lc blue # lw thick <> d' # lw thick
 -- >   where
--- >       d  = strokeP . fromSegments $ [s]
--- >       d' = mconcat . zipWith lc colors . map strokeP . explodeTrail
+-- >       d  = fromSegments [s]
+-- >       d' = mconcat . zipWith lc colors . map (stroke @ _ @ (Path V2 Double)) . explodeTrail
 -- >          $ offsetSegment 0.1 (-1) s
 -- >
 -- >       colors = cycle [green, red]
 -- >
--- > cubicOffsetExample :: Diagram SVG
+-- > cubicOffsetExample :: Diagram V2
 -- > cubicOffsetExample = hcat . map showExample $
--- >         [ bezier3 (10 ^&  0) (  5  ^& 18) (10 ^& 20)
--- >         , bezier3 ( 0 ^& 20) ( 10  ^& 10) ( 5 ^& 10)
--- >         , bezier3 (10 ^& 20) (  0  ^& 10) (10 ^&  0)
--- >         , bezier3 (10 ^& 20) ((-5) ^& 10) (10 ^&  0)
+-- >         [ bezier3 (V2 10  0) (V2   5  18) (V2 10 20)
+-- >         , bezier3 (V2  0 20) (V2  10  10) (V2  5 10)
+-- >         , bezier3 (V2 10 20) (V2   0  10) (V2 10  0)
+-- >         , bezier3 (V2 10 20) (V2 (-5) 10) (V2 10  0)
 -- >         ]
 
 -- Similar to (=<<).  This is when we want to map a function across something
@@ -296,16 +297,16 @@ locatedTrailSegments t = zipWith at (trailSegments (unLoc t)) (fromLocTrail t)
 --   The styles applied to an outside corner can be seen here (with the original
 --   trail in blue and the result of 'offsetTrail'' in green):
 --
---   <<diagrams/src_Diagrams_TwoD_Offset_offsetTrailExample.svg#diagram=offsetTrailExample&width=600>>
+--   <<diagrams/src_Geometry_TwoD_Offset_offsetTrailExample.svg#diagram=offsetTrailExample&width=600>>
 --
 --   When a negative radius is given, the offset trail will be on the left:
 --
---   <<diagrams/src_Diagrams_TwoD_Offset_offsetTrailLeftExample.svg#diagram=offsetTrailLeftExample&width=200>>
+--   <<diagrams/src_Geometry_TwoD_Offset_offsetTrailLeftExample.svg#diagram=offsetTrailLeftExample&width=200>>
 --
 --   When offseting a counter-clockwise loop a positive radius gives an outer loop
 --   while a negative radius gives an inner loop (both counter-clockwise).
 --
---   <<diagrams/src_Diagrams_TwoD_Offset_offsetTrailOuterExample.svg#diagram=offsetTrailOuterExample&width=300>>
+--   <<diagrams/src_Geometry_TwoD_Offset_offsetTrailOuterExample.svg#diagram=offsetTrailOuterExample&width=300>>
 --
 offsetTrail'
   :: RealFloat n
@@ -344,14 +345,15 @@ offsetPath = offsetPath' def
 -- TODO: Include arrowheads on examples to indicate direction so the "left" and
 -- "right" make sense.
 --
--- > import Diagrams.TwoD.Offset
+-- > import Geometry.TwoD.Offset
 -- > import Data.Default.Class
+-- > import Diagrams.TwoD.Text
 -- >
--- > corner :: (OrderedField n) => Located (Trail V2 n)
+-- > corner :: Located (Trail V2 Double)
 -- > corner = fromVertices (map p2 [(0, 0), (10, 0), (5, 6)]) `at` origin
 -- >
--- > offsetTrailExample :: Diagram SVG
--- > offsetTrailExample = pad 1.1 . centerXY . lwO 3 . hcat' (def & sep .~ 1 )
+-- > offsetTrailExample :: Diagram V2
+-- > offsetTrailExample = pad 1.1 . centerXY . lwO 3 . hsep 1
 -- >                    . map (uncurry showStyle)
 -- >                    $ [ (LineJoinMiter, "LineJoinMiter")
 -- >                      , (LineJoinRound, "LineJoinRound")
@@ -362,7 +364,7 @@ offsetPath = offsetPath' def
 -- >               <> fromLocTrail (offsetTrail' (def & offsetJoin .~ j) 2 corner) # lc green)
 -- >            === (strutY 3 <> text s # font "Helvetica" # bold)
 -- >
--- > offsetTrailLeftExample :: Diagram SVG
+-- > offsetTrailLeftExample :: Diagram V2
 -- > offsetTrailLeftExample = pad 1.1 . centerXY . lwO 3
 -- >                        $ (fromLocTrail c # lc blue)
 -- >                        <> (lc green . fromLocTrail
@@ -370,7 +372,7 @@ offsetPath = offsetPath' def
 -- >   where
 -- >     c = reflectY corner
 -- >
--- > offsetTrailOuterExample :: Diagram SVG
+-- > offsetTrailOuterExample :: Diagram V2
 -- > offsetTrailOuterExample = pad 1.1 . centerXY . lwO 3
 -- >                         $ (fromLocTrail c # lc blue)
 -- >                         <> (lc green . fromLocTrail
@@ -390,11 +392,11 @@ withTrailL f g l = withTrail (f . (`at` p)) (g . (`at` p)) (unLoc l)
 --   The cap styles applied to an outside corner can be seen here (with the original
 --   trail in white and the result of 'expandTrail'' filled in green):
 --
---   <<diagrams/src_Diagrams_TwoD_Offset_expandTrailExample.svg#diagram=expandTrailExample&width=600>>
+--   <<diagrams/src_Geometry_TwoD_Offset_expandTrailExample.svg#diagram=expandTrailExample&width=600>>
 --
 --   Loops result in a path with an inner and outer loop:
 --
---   <<diagrams/src_Diagrams_TwoD_Offset_expandLoopExample.svg#diagram=expandLoopExample&width=300>>
+--   <<diagrams/src_Geometry_TwoD_Offset_expandLoopExample.svg#diagram=expandLoopExample&width=300>>
 --
 expandTrail' :: (OrderedField n, RealFloat n, RealFrac n)
              => ExpandOpts n
@@ -445,11 +447,15 @@ expandPath' opts r = mconcat
 expandPath :: RealFloat n => n -> Path V2 n -> Path V2 n
 expandPath = expandPath' def
 
--- > import Diagrams.TwoD.Offset
+-- > import Geometry.TwoD.Offset
 -- > import Data.Default.Class
+-- > import Diagrams.TwoD.Text
 -- >
--- > expandTrailExample :: Diagram SVG
--- > expandTrailExample = pad 1.1 . centerXY . hcat' (def & sep .~ 1)
+-- > corner :: Located (Trail V2 Double)
+-- > corner = fromVertices (map p2 [(0, 0), (10, 0), (5, 6)]) `at` origin
+-- >
+-- > expandTrailExample :: Diagram V2
+-- > expandTrailExample = pad 1.1 . centerXY . hsep 1
 -- >                    . map (uncurry showStyle)
 -- >                    $ [ (LineCapButt,   "LineCapButt")
 -- >                      , (LineCapRound,  "LineCapRound")
@@ -464,8 +470,8 @@ expandPath = expandPath' def
 -- >                                      # lw none # fc green)
 -- >               === (strutY 3 <> text s # font "Helvetica" # bold)
 -- >
--- > expandLoopExample :: Diagram SVG
--- > expandLoopExample = pad 1.1 . centerXY $ ((strokeLocT t # lw veryThick # lc white)
+-- > expandLoopExample :: Diagram V2
+-- > expandLoopExample = pad 1.1 . centerXY $ ((stroke t # lw veryThick # lc white)
 -- >                                        <> (stroke t' # lw none # fc green))
 -- >   where
 -- >     t  = mapLoc glueTrail $ fromVertices (map p2 [(0, 0), (5, 0), (10, 5), (10, 10), (0, 0)])

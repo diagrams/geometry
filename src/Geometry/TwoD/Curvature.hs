@@ -49,30 +49,27 @@ import           Linear.Vector
 --
 -- Lets consider the following curve:
 --
--- <<diagrams/src_Diagrams_TwoD_Curvature_diagramA.svg#diagram=diagramA&height=200&width=400>>
+-- <<diagrams/src_Geometry_TwoD_Curvature_diagramA.svg#diagram=diagramA&height=200&width=400>>
 --
 -- The curve starts with positive curvature,
 --
--- <<diagrams/src_Diagrams_TwoD_Curvature_diagramPos.svg#diagram=diagramPos&height=200&width=400>>
+-- <<diagrams/src_Geometry_TwoD_Curvature_diagramPos.svg#diagram=diagramPos&height=200&width=400>>
 --
 -- approaches zero curvature
 --
--- <<diagrams/src_Diagrams_TwoD_Curvature_diagramZero.svg#diagram=diagramZero&height=200&width=400>>
+-- <<diagrams/src_Geometry_TwoD_Curvature_diagramZero.svg#diagram=diagramZero&height=200&width=400>>
 --
 -- then has negative curvature
 --
--- <<diagrams/src_Diagrams_TwoD_Curvature_diagramNeg.svg#diagram=diagramNeg&height=200&width=400>>
+-- <<diagrams/src_Geometry_TwoD_Curvature_diagramNeg.svg#diagram=diagramNeg&height=200&width=400>>
 --
--- > {-# LANGUAGE GADTs #-}
--- >
--- > import Diagrams.TwoD.Curvature
+-- > import Geometry.TwoD.Curvature
 -- > import Data.Monoid.Inf
--- > import Diagrams.Coordinates
 -- >
 -- > segmentA :: Segment V2 Double
--- > segmentA = Cubic (12 ^& 0) (8 ^& 10) (20 ^& 8)
+-- > segmentA = bezier3 (V2 12 0) (V2 8 10) (V2 20 8)
 -- >
--- > curveA = lw thick . strokeP . fromSegments $ [segmentA]
+-- > curveA = fromSegments [segmentA] # lw thick
 -- >
 -- > diagramA = pad 1.1 . centerXY $ curveA
 -- >
@@ -85,22 +82,22 @@ import           Linear.Vector
 -- > diagramWithRadius t = pad 1.1 . centerXY
 -- >          $ curveA
 -- >         <> showCurvature segmentA t
--- >          # withEnvelope (curveA :: D V2 Double)
+-- >          # withEnvelope (curveA :: Diagram V2)
 -- >          # lc red
 -- >
--- > showCurvature :: Segment V2 Double -> Double -> Diagram SVG
+-- > showCurvature :: Segment V2 Double -> Double -> Diagram V2
 -- > showCurvature bez@(Cubic b c d) t
 -- >   | v == (0,0) = mempty
 -- >   | otherwise  = go (radiusOfCurvature bez t)
 -- >   where
 -- >     v@(x,y) = unr2 $ firstDerivative b c d t
--- >     vp = (-y) ^& x
+-- >     vp = V2 (-y) x
 -- >
 -- >     firstDerivative b c d t = let tt = t*t in (3*(3*tt-4*t+1))*^b + (3*(2-3*t)*t)*^c + (3*tt)*^d
 -- >
 -- >     go Infinity   = mempty
 -- >     go (Finite r) = (circle (abs r) # translate vpr
--- >                  <> strokeP (origin ~~ (origin .+^ vpr)))
+-- >                  <> (origin ~~ (origin .+^ vpr)))
 -- >                   # moveTo (origin .+^ atParam bez t)
 -- >       where
 -- >         vpr = signorm vp ^* r

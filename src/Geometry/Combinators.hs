@@ -82,7 +82,7 @@ import           Linear.V2
 --   identity element, in which case the second object is returned
 --   unchanged).
 --
---   <<diagrams/src_Diagrams_Combinators_besideEx.svg#diagram=besideEx&height=200>>
+--   <<diagrams/src_Geometry_Combinators_besideEx.svg#diagram=besideEx&height=200>>
 --
 --   > besideEx = beside (r2 (20,30))
 --   >                   (circle 1 # fc orange)
@@ -131,7 +131,7 @@ atDirection = beside . fromDirection
 --   @ys@ is positioned beside @x@ /without/ reference to the other
 --   objects in @ys@, so this is not the same as iterating 'beside'.
 --
---   <<diagrams/src_Diagrams_Combinators_appendsEx.svg#diagram=appendsEx&width=200>>
+--   <<diagrams/src_Geometry_Combinators_appendsEx.svg#diagram=appendsEx&width=200>>
 --
 --   > appendsEx = appends c (zip (iterateN 6 (rotateBy (1/6)) unitX) (repeat c))
 --   >             # centerXY # pad 1.1
@@ -143,7 +143,7 @@ appends d1 apps = d1 <> mconcat (map (\(v,d) -> juxtapose (signorm v) d1 d) apps
 --   (e.g. diagrams or paths) by assigning them absolute positions in
 --   the vector space of the combined object.
 --
---   <<diagrams/src_Diagrams_Combinators_positionEx.svg#diagram=positionEx&height=300>>
+--   <<diagrams/src_Geometry_Combinators_positionEx.svg#diagram=positionEx&height=300>>
 --
 --   > positionEx = position (zip (map mkPoint [-3, -2.8 .. 3]) (repeat spot))
 --   >   where spot      = circle 0.2 # fc black

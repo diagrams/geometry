@@ -282,7 +282,6 @@ maxRayTraceP p v a = (p .+^) <$> maxRayTraceV p v a
 
 -- > maxRayTracePEx = mkTraceDiasABC def { sFilter = dropAllBut1 . filter (>0) }
 
-
 ------------------------------------------------------------
 -- Drawing trace diagrams
 ------------------------------------------------------------
@@ -297,10 +296,11 @@ maxRayTraceP p v a = (p .+^) <$> maxRayTraceV p v a
 -- >     [ 3 *^ unitX, 3 *^ unitY, 2 *^ unit_X, 1 *^ unit_Y
 -- >     , 1 *^ unitX, 1 *^ unit_Y, 2 *^ unit_X, 1 *^ unit_Y ]
 -- >
--- > thingy = strokeTrail thingyT
+-- > -- thingy = strokeTrail thingyT
+-- > thingy = stroke thingyT
 -- >
 -- > data TraceDiaOpts
--- >   = TDO { traceShape :: Diagram B
+-- >   = TDO { traceShape :: Diagram V2
 -- >         , basePt     :: P2 Double
 -- >         , dirV       :: V2 Double
 -- >         , sFilter    :: [Double] -> [Double]
@@ -321,7 +321,7 @@ maxRayTraceP p v a = (p .+^) <$> maxRayTraceV p v a
 -- >
 -- > dot' = circle 0.05 # lw none
 -- >
--- > mkTraceDia :: TraceDiaOpts -> Diagram B
+-- > mkTraceDia :: TraceDiaOpts -> Diagram V2
 -- > mkTraceDia tdo = mconcat
 -- >   [ mconcat $ map (place (dot' # fc red)) pts
 -- >   , if drawV tdo then resultArrow else mempty
@@ -353,9 +353,9 @@ maxRayTraceP p v a = (p .+^) <$> maxRayTraceV p v a
 -- > traceLine _ Nothing = mempty
 -- > traceLine p (Just q) = (p ~~ q) # dashingG [0.1,0.1] 0
 -- >
--- > mkTraceDias :: [TraceDiaOpts] -> Diagram B
+-- > mkTraceDias :: [TraceDiaOpts] -> Diagram V2
 -- > mkTraceDias = hcat' (with & sep .~ 1) . map mkTraceDia
 -- >
--- > mkTraceDiasABC :: TraceDiaOpts -> Diagram B
+-- > mkTraceDiasABC :: TraceDiaOpts -> Diagram V2
 -- > mkTraceDiasABC tdo = mkTraceDias (map (\p -> tdo { basePt = p }) [pointA, pointB, pointC])
 

@@ -20,7 +20,9 @@
 -- possible to do anything sensible with them under rotation), so they
 -- are not used in the diagrams core.  However, they do have their
 -- uses; this module provides definitions and functions for working
--- with them.
+-- with them.  In particular it is very fast to query whether a given
+-- point is contained in a bounding box (/e.g./ using the
+-- 'Geometry.Query.inquire' function).
 --
 -----------------------------------------------------------------------------
 
@@ -72,8 +74,14 @@ import           Geometry.Transform
 data BoundingBox v n
   = EmptyBox
   | BoundingBox !(Point v n) !(Point v n)
+    -- Invariant: the first point is coordinatewise <= the second point.
   deriving Eq
 
+type instance V (BoundingBox v n) = v
+type instance N (BoundingBox v n) = n
+
+-- | The combination of two bounding boxes is the smallest bounding
+--   box that contains both.
 instance (Additive v, Ord n) => Semigroup (BoundingBox v n) where
   EmptyBox <> bb2                        = bb2
   bb1      <> EmptyBox                   = bb1
@@ -87,18 +95,19 @@ instance (Additive v, Ord n) => Monoid (BoundingBox v n) where
   mempty = EmptyBox
   {-# INLINE mempty #-}
 
--- unexported utility
-boxPoints :: Traversal' (BoundingBox v n) (Point v n)
-boxPoints f (BoundingBox a b) = BoundingBox <$> f a <*> f b
-boxPoints _ eb                = pure eb
-{-# INLINE boxPoints #-}
-
 instance AsEmpty (BoundingBox v n) where
   _Empty = nearly emptyBox isEmptyBox
   {-# INLINE _Empty #-}
 
-type instance V (BoundingBox v n) = v
-type instance N (BoundingBox v n) = n
+-- A traversal over the two defining corners (pointwise min and max)
+-- of a bounding box.  This is an unexported internal utility; it
+-- should *not* be exported because it would allow making arbitrary
+-- modifications to the box's corners, which could invalidate the
+-- invariant that the first corner is coordinatewise <= the second.
+boxPoints :: Traversal' (BoundingBox v n) (Point v n)
+boxPoints f (BoundingBox a b) = BoundingBox <$> f a <*> f b
+boxPoints _ eb                = pure eb
+{-# INLINE boxPoints #-}
 
 instance (Additive v, Num n) => HasOrigin (BoundingBox v n) where
   moveOriginTo p = boxPoints %~ moveOriginTo p

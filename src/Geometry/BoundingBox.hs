@@ -279,12 +279,9 @@ boxTransform
 boxTransform u v = do
   (P ul, _) <- getCorners u
   (P vl, _) <- getCorners v
-  let -- i  = s (v, u) <-> s (u, v)
-      vec = liftU2 (/) (boxExtents v) (boxExtents u)
-      -- s = liftU2 (*) . uncurry (liftU2 (/)) . over both boxExtents
+  let vec = liftU2 (/) (boxExtents v) (boxExtents u)
       T m m_ _  = scalingV vec
   return $ T m m_ (vl ^-^ liftU2 (*) vec ul)
-  -- XXX IS THIS CORRECT?
 
 -- | Check whether a point is contained in a bounding box (inclusive
 --   of its boundary).

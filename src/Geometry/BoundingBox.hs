@@ -37,15 +37,15 @@ module Geometry.BoundingBox
   , boxExtents, boxCenter
   , boxTransform
 
-  , contains, contains'
-  , inside, inside', outside, outside'
+  , boxContains, boxContains'
+  , insideBox, insideBox', outsideBox, outsideBox'
 
     -- * Operations on bounding boxes
   , boxUnion, boxIntersection
   ) where
 
 import           Control.Applicative
-import           Control.Lens         hiding (contains, inside, outside)
+import           Control.Lens
 import           Data.Foldable        as F
 import           Data.Functor.Classes
 import           Data.Maybe           (fromMaybe)
@@ -279,24 +279,24 @@ boxTransform u v = do
 
 -- | Check whether a point is contained in a bounding box (inclusive
 --   of its boundary).
-contains :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> Point v n -> Bool
-contains b p = maybe False test $ getCorners b
+boxContains :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> Point v n -> Bool
+boxContains b p = maybe False test $ getCorners b
   where
     test (l, h) = F.and (liftI2 (<=) l p)
                && F.and (liftI2 (<=) p h)
 
 -- | Check whether a point is /strictly/ contained in a bounding box,
 --   /i.e./ excluding the boundary.
-contains' :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> Point v n -> Bool
-contains' b p = maybe False test $ getCorners b
+boxContains' :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> Point v n -> Bool
+boxContains' b p = maybe False test $ getCorners b
   where
     test (l, h) = F.and (liftI2 (<) l p)
                && F.and (liftI2 (<) p h)
 
 -- | Test whether the first bounding box is contained inside
 --   the second.
-inside :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
-inside u v = fromMaybe False $ do
+insideBox :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
+insideBox u v = fromMaybe False $ do
   (ul, uh) <- getCorners u
   (vl, vh) <- getCorners v
   return $ F.and (liftI2 (>=) ul vl)
@@ -304,8 +304,8 @@ inside u v = fromMaybe False $ do
 
 -- | Test whether the first bounding box is /strictly/ contained
 --   inside the second.
-inside' :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
-inside' u v = fromMaybe False $ do
+insideBox' :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
+insideBox' u v = fromMaybe False $ do
   (ul, uh) <- getCorners u
   (vl, vh) <- getCorners v
   return $ F.and (liftI2 (>) ul vl)
@@ -313,8 +313,8 @@ inside' u v = fromMaybe False $ do
 
 -- | Test whether the first bounding box lies outside the second
 --   (although they may intersect in their boundaries).
-outside :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
-outside u v = fromMaybe True $ do
+outsideBox :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
+outsideBox u v = fromMaybe True $ do
   (ul, uh) <- getCorners u
   (vl, vh) <- getCorners v
   return $ F.or (liftI2 (<=) uh vl)
@@ -322,8 +322,8 @@ outside u v = fromMaybe True $ do
 
 -- | Test whether the first bounding box lies /strictly/ outside the second
 --   (they do not intersect at all).
-outside' :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
-outside' u v = fromMaybe True $ do
+outsideBox' :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> BoundingBox v n -> Bool
+outsideBox' u v = fromMaybe True $ do
   (ul, uh) <- getCorners u
   (vl, vh) <- getCorners v
   return $ F.or (liftI2 (<) uh vl)

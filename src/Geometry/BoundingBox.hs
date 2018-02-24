@@ -48,12 +48,13 @@ module Geometry.BoundingBox
 
 import           Control.Applicative
 import           Control.Lens
+import           Data.Coerce
 import           Data.Foldable        as F
 import           Data.Functor.Classes
 import           Data.Maybe           (fromMaybe)
 import           Data.Semigroup
+import qualified Data.Sequence        as Seq
 import           Text.Read
-import qualified Data.Sequence as Seq
 
 import           Data.Traversable     as T
 import           Linear.Affine
@@ -114,9 +115,7 @@ instance (Additive v, Num n) => HasOrigin (BoundingBox v n) where
   {-# INLINE moveOriginTo #-}
 
 instance (Additive v, Foldable v, Ord n) => HasQuery (BoundingBox v n) Any where
-  getQuery EmptyBox          = mempty
-  getQuery (BoundingBox l u) = Query $ \p ->
-    Any $ F.and (liftI2 (<=) l p) && F.and (liftI2 (<=) p u)
+  getQuery = coerce (boxContains :: BoundingBox v n -> Point v n -> Bool)
   {-# INLINE getQuery #-}
 
 -- | Possible time values for intersecting a bounding box. Either we
@@ -218,6 +217,7 @@ instance (Read1 v, Read n) => Read (BoundingBox v n) where
 
 -- | An empty bounding box.  This is the same thing as @mempty@, but it doesn't
 --   require the same type constraints that the @Monoid@ instance does.
+--   This is a specialised version of 'Empty'.
 emptyBox :: BoundingBox v n
 emptyBox = EmptyBox
 {-# INLINE emptyBox #-}
@@ -232,12 +232,15 @@ fromCorners l h
   | otherwise               = EmptyBox
 {-# INLINE fromCorners #-}
 
--- | Create a degenerate bounding \"box\" containing only a single point.
+-- | Create a degenerate bounding \"box\" containing only a single
+--   point. This is a specialised version of
+--   'Geometry.Envelope.boundingBox'.
 fromPoint :: Point v n -> BoundingBox v n
 fromPoint p = BoundingBox p p
 {-# INLINE fromPoint #-}
 
 -- | Create the smallest bounding box containing all the given points.
+--   This is a specialised version of 'Geometry.Envelope.boundingBox'.
 fromPoints :: (Additive v, Ord n) => [Point v n] -> BoundingBox v n
 fromPoints = mconcat . map fromPoint
 {-# INLINE fromPoints #-}
@@ -284,7 +287,7 @@ boxTransform u v = do
   return $ T m m_ (vl ^-^ liftU2 (*) vec ul)
 
 -- | Check whether a point is contained in a bounding box (inclusive
---   of its boundary).
+--   of its boundary). This is a specialised version of 'inquire'.
 boxContains :: (Additive v, Foldable v, Ord n) => BoundingBox v n -> Point v n -> Bool
 boxContains b p = maybe False test $ getCorners b
   where
@@ -347,6 +350,6 @@ boxIntersection u v = maybe mempty (uncurry fromCorners) $ do
   return (liftI2 max ul vl, liftI2 min uh vh)
 
 -- | Form the smallest bounding box containing the given two bounding
---   boxes.  This function is just an alias for @mappend@.
+--   boxes. This is a specialised version of 'mappend'.
 boxUnion :: (Additive v, Ord n) => BoundingBox v n -> BoundingBox v n -> BoundingBox v n
 boxUnion = mappend

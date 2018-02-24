@@ -190,11 +190,11 @@ pathTrace = \(Path ts) p0 v ->
   F.foldMap (\(Loc (P p) l) -> trailTrace l (p0 .-^ p) v) ts
 {-# SPECIALISE pathTrace :: Path V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
-instance RealFloat n => Traced (Path V2 n) where
+instance OrderedField n => Traced (Path V2 n) where
   getTrace = \path -> Trace (pathTrace path)
   {-# INLINE getTrace #-}
 
-instance RealFloat n => HasQuery (Path V2 n) Crossings where
+instance OrderedField n => HasQuery (Path V2 n) Crossings where
   getQuery = F.foldMap getQuery . view _Path
   {-# INLINE getQuery #-}
 

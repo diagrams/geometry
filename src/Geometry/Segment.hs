@@ -454,7 +454,7 @@ envelopeOf l = \ !t !w ->
 
 -- trace ---------------------------------------------------------------
 
--- | Calculate the envelope using a fold over segments.
+-- | Calculate the trace using a fold over segments.
 traceOf
   :: (InSpace V2 n t, OrderedField n)
   => Fold t (Segment V2 n)
@@ -529,9 +529,9 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mem
 --   'Located' 'Loops'.
 --
 -- @
--- 'sample' :: 'Path' 'V2' 'Double'           -> 'Point' 'V2' 'Double' -> 'Crossings'
--- 'sample' :: 'Located' ('Line' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
--- 'sample' :: 'Located' ('Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
+-- 'sample' :: 'Geometry.Path.Path' 'V2' 'Double'            -> 'Point' 'V2' 'Double' -> 'Crossings'
+-- 'sample' :: 'Located' ('Geometry.Trail.Loop' 'V2' 'Double')  -> 'Point' 'V2' 'Double' -> 'Crossings'
+-- 'sample' :: 'Located' ('Geometry.Trail.Trail' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Crossings'
 -- @
 --
 --   Note that 'Line's have no inside or outside, so don't contribute
@@ -555,9 +555,9 @@ instance Monoid Crossings where
 --   (as opposed to loops), regardless of the winding number.
 --
 -- @
--- 'isInsideWinding' :: 'Path' 'V2' 'Double'           -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideWinding' :: 'Located' ('Line' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideWinding' :: 'Located' ('Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideWinding' :: 'Geometry.Path.Path' 'V2' 'Double'            -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideWinding' :: 'Located' ('Geometry.Trail.Loop' 'V2' 'Double')  -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideWinding' :: 'Located' ('Geometry.Trail.Trail' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
 -- @
 isInsideWinding :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
 isInsideWinding t = (/= 0) . sample t
@@ -571,9 +571,9 @@ isInsideWinding t = (/= 0) . sample t
 --   the number of crossings.
 --
 -- @
--- 'isInsideEvenOdd' :: 'Path' 'V2' 'Double'           -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideEvenOdd' :: 'Located' ('Line' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
--- 'isInsideEvenOdd' :: 'Located' ('Loop' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideEvenOdd' :: 'Geometry.Path.Path' 'V2' 'Double'            -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideEvenOdd' :: 'Located' ('Geometry.Trail.Loop' 'V2' 'Double')  -> 'Point' 'V2' 'Double' -> 'Bool'
+-- 'isInsideEvenOdd' :: 'Located' ('Geometry.Trail.Trail' 'V2' 'Double') -> 'Point' 'V2' 'Double' -> 'Bool'
 -- @
 isInsideEvenOdd :: HasQuery t Crossings => t -> Point (V t) (N t) -> Bool
 isInsideEvenOdd t = odd . sample t

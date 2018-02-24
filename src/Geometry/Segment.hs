@@ -142,11 +142,17 @@ import           Geometry.TwoD.Transform
 data Segment v n
   = Linear !(v n)
   | Cubic !(v n) !(v n) !(v n)
-  deriving (Functor, Eq)
+  deriving Functor
 
 type instance V (Segment v n) = v
 type instance N (Segment v n) = n
 type instance Codomain (Segment v n) = v
+
+instance (Eq1 v, Eq n) => Eq (Segment v n) where
+  Linear v1      == Linear v2      = eq1 v1 v2
+  Cubic a1 b1 c1 == Cubic a2 b2 c2 = eq1 a1 a2 && eq1 b1 b2 && eq1 c1 c2
+  _              == _              = False
+  {-# INLINE (==) #-}
 
 instance Show1 v => Show1 (Segment v) where
   liftShowsPrec x y d seg = case seg of
@@ -716,6 +722,12 @@ data ClosingSegment v n = LinearClosing | CubicClosing !(v n) !(v n)
 
 type instance V (ClosingSegment v n) = v
 type instance N (ClosingSegment v n) = n
+
+instance (Eq1 v, Eq n) => Eq (ClosingSegment v n) where
+  LinearClosing      == LinearClosing      = True
+  CubicClosing b1 c1 == CubicClosing b2 c2 = eq1 b1 b2 && eq1 c1 c2
+  _                  ==     _              = False
+  {-# INLINE (==) #-}
 
 instance Show1 v => Show1 (ClosingSegment v) where
   liftShowsPrec x y d = \case

@@ -76,10 +76,15 @@ data BoundingBox v n
   = EmptyBox
   | BoundingBox !(Point v n) !(Point v n)
     -- Invariant: the first point is coordinatewise <= the second point.
-  deriving Eq
 
 type instance V (BoundingBox v n) = v
 type instance N (BoundingBox v n) = n
+
+instance (Eq1 v, Eq n) => Eq (BoundingBox v n) where
+  EmptyBox          == EmptyBox          = True
+  BoundingBox a1 b1 == BoundingBox a2 b2 = eq1 a1 a2 && eq1 b1 b2
+  _                 == _                 = False
+  {-# INLINE (==) #-}
 
 -- | The combination of two bounding boxes is the smallest bounding
 --   box that contains both.

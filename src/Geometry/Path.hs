@@ -105,7 +105,7 @@ import           Geometry.Transform
 --   and they form a monoid under /superposition/ (placing one path on
 --   top of another) rather than concatenation.
 newtype Path v n = Path (Seq (Located (Trail v n)))
-  deriving (Semigroup, Monoid, Generic, Typeable)
+  deriving (Semigroup, Monoid, Generic, Typeable, Eq)
 
 _Path :: Iso (Path v n) (Path v' n') (Seq (Located (Trail v n))) (Seq (Located (Trail v' n')))
 _Path = coerced
@@ -144,10 +144,6 @@ instance Show1 v => Show1 (Path v) where
 
 instance (Show1 v, Show n) => Show (Path v n) where
   showsPrec = showsPrec1
-
--- deriving instance Show (v n) => Show (Path v n)
--- deriving instance Eq   (v n) => Eq   (Path v n)
--- deriving instance Ord  (v n) => Ord  (Path v n)
 
 type instance V (Path v n) = v
 type instance N (Path v n) = n
@@ -206,18 +202,10 @@ instance NFData (v n) => NFData (Path v n) where
   rnf (Path ts) = rnf ts
   {-# INLINE rnf #-}
 
-data SPInt = SP !Int !Int
-
--- hash something foldable with variable length where the data type is
--- completely defined by its elements
-hashFoldableWith :: Foldable f => (Int -> a -> Int) -> Int -> f a -> Int
-hashFoldableWith h salt arr = finalise (F.foldl' step (SP salt 0) arr)
-  where
-    finalise (SP s l) = hashWithSalt s l
-    step (SP s l) x   = SP (h s x) (l + 1)
-
 instance (Hashable1 v, Hashable n) => Hashable (Path v n) where
-  hashWithSalt s (Path ts) = hashFoldableWith hashWithSalt s ts
+  hashWithSalt s0 (Path ts) =
+    F.foldl' (\s a -> hashWithSalt s a) s0 ts
+      `hashWithSalt` Seq.length ts
   {-# INLINE hashWithSalt #-}
 
 instance Serial1 v => Serial1 (Path v) where

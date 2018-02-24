@@ -129,6 +129,13 @@ import           Linear                hiding (conjugate, translation)
 data Transformation v n = T !(v (v n)) !(v (v n)) !(v n)
   deriving Typeable
 
+eqMatrix :: (Eq1 v, Eq n) => v (v n) -> v (v n) -> Bool
+eqMatrix = liftEq eq1
+
+instance (Eq1 v, Eq n) => Eq (Transformation v n) where
+  T m1 mInv1 v1  == T m2 mInv2 v2 = eqMatrix m1 m2 && eqMatrix mInv1 mInv2 && eq1 v1 v2
+  {-# INLINE (==) #-}
+
 instance (Show1 v, Show n) => Show (Transformation v n) where
   showsPrec p (T m mInv v) = showParen (p > 10) $
     showString "T " . showMatrix 11 m

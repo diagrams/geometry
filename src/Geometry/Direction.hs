@@ -24,6 +24,7 @@ module Geometry.Direction
 
 import           Control.Lens   (Iso', iso, (%~))
 import           Data.Foldable as F
+import           Data.Functor.Classes
 
 import           Geometry.Angle
 import           Geometry.Space
@@ -42,7 +43,18 @@ import           Linear.Metric
 --
 --   If the constructor is used, the vector /must/ be a unit vector.
 newtype Direction v n = Dir (v n)
-  deriving (Read, Show, Eq, Ord, Functor) -- todo: special instances
+  deriving Functor
+
+instance (Eq1 v, Eq n) => Eq (Direction v n) where
+  Dir v1 == Dir v2 = eq1 v1 v2
+  {-# INLINE (==) #-}
+
+instance Show1 v => Show1 (Direction v) where
+  liftShowsPrec x y d (Dir v) = showParen (d > 10) $
+    showString "direction " . liftShowsPrec x y 11 v
+
+instance (Show1 v, Show n) => Show (Direction v n) where
+  showsPrec = showsPrec1
 
 type instance V (Direction v n) = v
 type instance N (Direction v n) = n

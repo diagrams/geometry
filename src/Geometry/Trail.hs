@@ -153,6 +153,10 @@ type instance V (Line v n) = v
 type instance N (Line v n) = n
 type instance Codomain (Line v n) = v
 
+instance (Eq1 v, Eq n) => Eq (Line v n) where
+  Line s1 _ == Line s2 _ = eq1 s1 s2
+  {-# INLINE (==) #-}
+
 instance Show1 v => Show1 (Line v) where
   liftShowsPrec x y d line = showParen (d > 10) $
     showString "fromSegments " . liftShowList x y (toListOf segments line)
@@ -293,20 +297,10 @@ instance NFData (v n) => NFData (Line v n) where
   rnf (Line ss o) = rnf ss `seq` rnf o
   {-# INLINE rnf #-}
 
-data SPInt = SP !Int !Int
-
--- hash something foldable with variable length where the data type is
--- completely defined by its elements
-hashFoldableWith :: Foldable f => (Int -> a -> Int) -> Int -> f a -> Int
-hashFoldableWith h salt arr = finalise (F.foldl' step (SP salt 0) arr)
-  where
-    finalise (SP s l) = hashWithSalt s l
-    step (SP s l) x   = SP (h s x) (l + 1)
-
 instance Hashable1 v => Hashable1 (Line v) where
-  liftHashWithSalt f s (Line ss o) =
-    hashFoldableWith (liftHashWithSalt f) s ss `hws` o
-    where hws = liftHashWithSalt f
+  liftHashWithSalt h s0 (Line ss _) =
+    F.foldl' (\s a -> liftHashWithSalt h s a) s0 ss
+      `hashWithSalt` Seq.length ss
   {-# INLINE liftHashWithSalt #-}
 
 instance (Hashable1 v, Hashable n) => Hashable (Line v n) where
@@ -346,9 +340,6 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Line v n) where
 instance (Additive v, Num n) => Reversing (Loop v n) where
   reversing = glueLine . reversing . cutLoop
 
-instance (Additive v, Num n) => Reversing (Trail v n) where
-  reversing = withTrail (OpenTrail . reversing) (ClosedTrail . reversing)
-
 -- | An eliminator for @Trail@ based on eliminating lines: if the
 --   trail is a line, the given function is applied; if it is a loop, it
 --   is first converted to a line with 'cutLoop'.  That is,
@@ -358,18 +349,6 @@ instance (Additive v, Num n) => Reversing (Trail v n) where
 -- @
 withLine :: (Additive v, Num n) => (Line v n -> r) -> Trail v n -> r
 withLine f = withTrail f (f . cutLoop)
-
-instance (Additive v, Num n) => Semigroup (Trail v n) where
-  Empty <> t2 = t2
-  t1 <> Empty = t1
-  t1 <> t2 = flip withLine t1 $ \l1 ->
-             flip withLine t2 $ \l2 ->
-             OpenTrail (l1 <> l2)
-  {-# INLINE (<>) #-}
-
-instance (Additive v, Num n) => Monoid (Trail v n) where
-  mempty = Empty
-  mappend = (<>)
 
 lineSegParam :: (Additive v, OrderedField n) => Int -> n -> Line v n -> v n
 lineSegParam n p (Line ss _) = ifoldl f zero ss where
@@ -402,6 +381,7 @@ instance (Additive v, Num n) => Reversing (Line v n) where
 
 -- | Loops are lines with a closing segment.
 data Loop v n = Loop !(Line v n) !(ClosingSegment v n)
+  deriving Eq
 
 type instance V (Loop v n) = v
 type instance N (Loop v n) = n
@@ -542,6 +522,7 @@ instance (Additive v, Num n) => EndValues (Loop v n) where
 data Trail v n
   = OpenTrail !(Line v n)
   | ClosedTrail !(Loop v n)
+  deriving Eq
 
 type instance V (Trail v n) = v
 type instance N (Trail v n) = n
@@ -554,6 +535,21 @@ instance Show1 v => Show1 (Trail v) where
 
 instance (Show1 v, Show n) => Show (Trail v n) where
   showsPrec = showsPrec1
+
+instance (Additive v, Num n) => Reversing (Trail v n) where
+  reversing = withTrail (OpenTrail . reversing) (ClosedTrail . reversing)
+
+instance (Additive v, Num n) => Semigroup (Trail v n) where
+  Empty <> t2 = t2
+  t1 <> Empty = t1
+  t1 <> t2 = flip withLine t1 $ \l1 ->
+             flip withLine t2 $ \l2 ->
+             OpenTrail (l1 <> l2)
+  {-# INLINE (<>) #-}
+
+instance (Additive v, Num n) => Monoid (Trail v n) where
+  mempty = Empty
+  mappend = (<>)
 
 -- | Convert a 'Line' into a 'Trail'.
 wrapLine :: Line v n -> Trail v n

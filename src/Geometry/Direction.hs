@@ -9,7 +9,10 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- Type for representing directions, polymorphic in vector space
+-- A type for representing /directions/, which can be thought of as
+-- vectors whose magnitude has been forgotten, along with various
+-- utility functions.  The 'Direction' type is polymorphic over the
+-- vector space.
 --
 -----------------------------------------------------------------------------
 
@@ -41,7 +44,8 @@ import           Linear.Metric
 --   magnitude.  @Direction@s can be used with 'fromDirection' and the
 --   lenses provided by its instances.
 --
---   If the constructor is used, the vector /must/ be a unit vector.
+--   If the constructor 'Dir' is used, the vector /must/ be a unit
+--   vector.
 newtype Direction v n = Dir (v n)
   deriving Functor
 
@@ -68,9 +72,10 @@ instance HasTheta v => HasTheta (Direction v) where
 instance HasPhi v => HasPhi (Direction v) where
   _phi = _Dir . _phi
 
--- | _Dir is provided to allow efficient implementations of functions
---   in particular vector-spaces, but should be used with care as it
---   exposes too much information.
+-- | @_Dir@ is provided to allow efficient implementations of
+--   functions in particular vector-spaces, but should be used with
+--   care as it exposes too much information.  In particular it must
+--   not be used to create a @Direction@ out of a non-unit vector.
 _Dir :: Iso' (Direction v n) (v n)
 _Dir = iso (\(Dir v) -> v) Dir
 {-# INLINE _Dir #-}
@@ -81,7 +86,7 @@ direction :: (Metric v, Floating n) => v n -> Direction v n
 direction = Dir . signorm
 {-# INLINE direction #-}
 
--- | Synonym for 'direction'.
+-- | A synonym for 'direction'.
 dir :: (Metric v, Floating n) => v n -> Direction v n
 dir = direction
 {-# INLINE dir #-}
@@ -91,12 +96,14 @@ fromDirection :: Direction v n -> v n
 fromDirection (Dir v) = v
 {-# INLINE fromDirection #-}
 
--- | Synonym for 'fromDirection'.
+-- | A synonym for 'fromDirection'.
 fromDir :: Direction v n -> v n
 fromDir = fromDirection
 {-# INLINE fromDir #-}
 
--- | compute the positive angle between the two directions in their common plane
+-- | Compute the positive angle between the two directions in their
+--   common plane, returning an angle in the range $[0,\pi]$.  In
+--   particular, note that @angleBetweenDirs@ is commutative.
 angleBetweenDirs :: (Metric v, Floating n)
   => Direction v n -> Direction v n -> Angle n
 angleBetweenDirs d1 d2 = angleBetween (fromDir d1) (fromDir d2)

@@ -108,7 +108,7 @@ angleBetweenDirs :: (Metric v, Floating n)
   => Direction v n -> Direction v n -> Angle n
 angleBetweenDirs d1 d2 = angleBetween (fromDir d1) (fromDir d2)
 
--- | @dirBetween p q@ returns the directions from @p@ to @q@
+-- | @dirBetween p q@ computes the direction from @p@ to @q@.
 dirBetween :: (Metric v, Floating n) => Point v n -> Point v n -> Direction v n
-dirBetween p q = dir $ p .-. q
+dirBetween p q = dir $ q .-. p
 

@@ -92,7 +92,7 @@ cubicSpline closed pps@(p:ps)
 
 -- Lines ---------------------------------------------------------------
 
--- | See 'cubicSpline`.
+-- | See 'cubicSpline'.
 cubicSplineLineVec
   :: (V.Vector vec (v n), V.Vector vec n, Additive v, Fractional n)
   => vec (v n)
@@ -111,7 +111,7 @@ cubicSplineLineV2D
   -> Line V2 Double
 cubicSplineLineV2D = cubicSplineLineVec . U.fromList
 
--- | See 'cubicSpline`.
+-- | See 'cubicSpline'.
 cubicSplineLine
   :: (Additive v, Fractional n)
   => [v n] -> Line v n
@@ -132,12 +132,12 @@ cubicSplineLoopVec vs
   dv  = cubicSplineLoopTangents vs off
 {-# INLINE cubicSplineLoopVec #-}
 
--- | See 'cubicSpline`.
+-- | See 'cubicSpline'.
 cubicSplineLoopV2D
   :: [V2 Double] -> Loop V2 Double
 cubicSplineLoopV2D = cubicSplineLoopVec . U.fromList
 
--- | See 'cubicSpline`.
+-- | See 'cubicSpline'.
 cubicSplineLoop
   :: (Additive v, Fractional n)
   => [v n] -> Loop v n

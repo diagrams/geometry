@@ -36,7 +36,6 @@ import           Geometry.Points
 import           Geometry.Located
 import           Geometry.Trail
 import           Geometry.Segment
--- import           Geometry.TrailLike (TrailLike, fromLocSegments)
 
 type BSpline v n = [Point v n]
 

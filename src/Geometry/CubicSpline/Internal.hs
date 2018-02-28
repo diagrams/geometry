@@ -224,7 +224,7 @@ cubicSplineLoopTangents vs vn = V.create $ do
 --      | 1       1 4 |
 --
 -- This matrix cannot be solved directly using the Thomas algorithm.
--- Instead we make use of the Sherman–Morrison formula which states
+-- Instead we make use of the Sherman-Morrison formula which states
 --
 --   (A + uv^T)^-1 = A^-1 - (A^-1 uv^T A^-1)/(1 + v^T A^-1 u)
 --
@@ -249,12 +249,12 @@ cubicSplineLoopTangents vs vn = V.create $ do
 -- Cx = w
 --
 -- where w is the vector containing sums of the offsets we're making the
--- cubic spline out of. To solve we multiple by C^-1 on the left:
+-- cubic spline out of. To solve we multiply by C^-1 on the left:
 --
 -- x = C^-1 w
 --   = (A + uv^T)^-1 x
 --
--- Now we make use of the Sherman–Morrison formula
+-- Now we make use of the Sherman-Morrison formula
 --
 -- x = (A^-1 - (A^-1 uv^T A^-1)/(1 + v^T A^-1 u)) w
 --   = A^-1 w - (A^-1 uv^T A^-1 w)/(1 + v^T A^-1 u)

@@ -70,7 +70,7 @@ infixl 6 |||
 --   @(===)@ is associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
 (===) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
-(===) = besideDir y_Dir
+(===) = atDirection y_Dir
 
 -- | Place two diagrams (or other juxtaposable objects) horizontally
 --   adjacent to one another, with the first diagram to the left of
@@ -79,17 +79,15 @@ infixl 6 |||
 --   associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
 (|||) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
-(|||) = besideDir x_Dir
+(|||) = atDirection x_Dir
 
--- | Lay out a list of juxtaposable objects in a row from left to right,
+-- | Lay out a list of enveloped objects in a row from left to right,
 --   so that their local origins lie along a single horizontal line,
 --   with successive envelopes tangent to one another.
 --
---   * For more control over the spacing, see 'hcat''.
---
---   * To align the diagrams vertically (or otherwise), use alignment
---     combinators (such as 'alignT' or 'alignB') from
---     "Diagrams.TwoD.Align" before applying 'hcat'.
+--   * To /align/ vertically (or otherwise), use alignment
+--     combinators (such as 'alignT' or 'alignB') before applying
+--     'hcat'.
 --
 --   * For non-axis-aligned layout, see 'cat'.
 hcat :: (R1 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
@@ -97,38 +95,39 @@ hcat :: (R1 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
 hcat = cat unitX
 
 -- | A convenient synonym for horizontal concatenation with
---   separation: @hsep s === hcat' (with & sep .~ s)@.
+--   separation: @'hsep' = 'sep' 'unitX'@.
 hsep :: (R1 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
      => n -> [a] -> a
 hsep = sep unitX
 
+-- | A convenient synonym for horizontal even separation: @'hsepEven' =
+--   'sepEven' 'unitX'@.
 hsepEven
-  :: (R1 v, InSpace v n a,  Enveloped a, HasOrigin a, Monoid a)
+  :: (R1 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
   => n -> [a] -> a
 hsepEven = sepEven unitX
-
 
 -- | Lay out a list of juxtaposable objects in a column from top to
 --   bottom, so that their local origins lie along a single vertical
 --   line, with successive envelopes tangent to one another.
 --
---   * For more control over the spacing, see 'vcat''.
---
 --   * To align the diagrams horizontally (or otherwise), use alignment
---     combinators (such as 'alignL' or 'alignR') from
---     "Diagrams.TwoD.Align" before applying 'vcat'.
+--     combinators (such as 'alignL' or 'alignR') before applying
+--     'vcat'.
 --
 --   * For non-axis-aligned layout, see 'cat'.
 vcat :: (R2 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
      => [a] -> a
 vcat = cat unit_Y
 
--- | A convenient synonym for vertical concatenation with
---   separation: @vsep s === vcat' (with & sep .~ s)@.
+-- | A convenient synonym for vertical concatenation from top to bottom
+--   with separation: @'vsep' = 'sep' 'unit_Y'@.
 vsep :: (R2 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
      => n -> [a] -> a
 vsep = sep unit_Y
 
+-- | A convenient synonym for horizontal even separation from top to
+-- bottom: @'hsepEven' = 'sepEven' 'unit_Y'@.
 vsepEven
   :: (R2 v, InSpace v n a, Enveloped a, HasOrigin a, Monoid a)
   => n -> [a] -> a

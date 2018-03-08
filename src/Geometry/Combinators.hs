@@ -21,7 +21,6 @@ module Geometry.Combinators
   (
     -- * Binary operations
     beside
-  , besideDir
   , atDirection
 
     -- * n-ary operations
@@ -107,19 +106,17 @@ import           Linear.V2
 --   To get something like @beside v x1 x2@ whose local origin is
 --   identified with that of @x2@ instead of @x1@, use @beside
 --   (negateV v) x2 x1@.
-beside :: (Metric (V a), Floating (N a), Juxtaposable a, Semigroup a) => Vn a -> a -> a -> a
+beside :: (Juxtaposable a, Semigroup a) => Vn a -> a -> a -> a
 beside v d1 d2 = d1 <> juxtapose v d1 d2
-
-besideDir :: (Juxtaposable a, Semigroup a) => Direction (V a) (N a) -> a -> a -> a
-besideDir d d1 d2 = d1 <> juxtapose (fromDir d) d1 d2
 
 -- | Place two diagrams (or other juxtaposable objects) adjacent to
 --   one another, with the second diagram placed in the direction 'd'
 --   from the first.  The local origin of the resulting combined
 --   diagram is the same as the local origin of the first.  See the
 --   documentation of 'beside' for more information.
-atDirection :: (InSpace v n a, Metric v, Floating n, Juxtaposable a, Semigroup a)
-            => Direction v n -> a -> a -> a
+atDirection
+  :: (Juxtaposable a, Semigroup a)
+  => Direction (V a) (N a) -> a -> a -> a
 atDirection = beside . fromDirection
 
 ------------------------------------------------------------
@@ -163,13 +160,21 @@ atPoints ps as = position $ zip ps as
 --   of the result will be the same as the local origin of the first
 --   object.
 --
---   See also 'cat'', which takes an extra options record allowing
+--   See also 'sep', which takes a distance parameter allowing
 --   certain aspects of the operation to be tweaked.
+--
+--   See also 'Geometry.TwoD.Combinators.hcat' and
+--   'Geometry.TwoD.Combinators.vcat'
 cat
   :: (InSpace v n a, Enveloped a, Monoid a, HasOrigin a)
   => v n -> [a] -> a
 cat v = sep v 0
 
+-- | Similar to 'cat' but with a gap parameter which is used as the
+--   distance between successive diagrams.
+--
+--   See also 'Geometry.TwoD.Combinators.hsep' and
+--   'Geometry.TwoD.Combinators.vsep'
 sep
   :: (InSpace v n t, Monoid t, Enveloped t, HasOrigin t)
   => v n -> n -> [t] -> t
@@ -192,6 +197,8 @@ sep (signorm -> v) s (t0:ts) = snd $ foldl' f (n0, t0) ts
 --
 --   >>> sepEven unitX $ map regPoly [3..7]
 --
+--   See also 'Geometry.TwoD.Combinators.hsepEven' and
+--   'Geometry.TwoD.Combinators.vsepEven'
 sepEven
   :: (InSpace v n t, Metric v, Floating n, Monoid t, HasOrigin t)
   => v n -> n -> [t] -> t

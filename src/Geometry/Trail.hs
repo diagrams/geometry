@@ -59,6 +59,8 @@ module Geometry.Trail
   , _Loop
   , _LocLine
   , _LocLoop
+  , _Trail
+  , _LocTrail
 
     -- * Modification
   , closeLine
@@ -560,6 +562,21 @@ wrapLine = OpenTrail
 wrapLoop :: Loop v n -> Trail v n
 wrapLoop = ClosedTrail
 {-# INLINE wrapLoop #-}
+
+-- | Trails are either lines or loops.
+_Trail :: Iso' (Trail v n) (Either (Line v n) (Loop v n))
+_Trail = iso (withTrail Left Right) (either OpenTrail ClosedTrail)
+{-# INLINE _Trail #-}
+
+-- | Located trails are either located lines or located loops
+_LocTrail :: Iso' (Located (Trail v n)) (Either (Located (Line v n)) (Located (Loop v n)))
+_LocTrail = iso fromLocTrail toLocTrail
+  where
+    fromLocTrail (Loc p (OpenTrail t))   = Left (Loc p t)
+    fromLocTrail (Loc p (ClosedTrail t)) = Right (Loc p t)
+    toLocTrail (Left (Loc p t))  = Loc p (OpenTrail t)
+    toLocTrail (Right (Loc p t)) = Loc p (ClosedTrail t)
+{-# INLINE _LocTrail #-}
 
 -- | Prism onto a 'Line'.
 _Line :: Prism' (Trail v n) (Line v n)

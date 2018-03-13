@@ -24,7 +24,7 @@
 -----------------------------------------------------------------------------
 module Geometry.Size
   ( -- * Size spec
-    SizeSpec
+    SizeSpec (..)
 
     -- ** Making size spec
   , mkSizeSpec

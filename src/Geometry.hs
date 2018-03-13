@@ -5,7 +5,10 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- This module reexports the geometry library.
+-- This module reexports the geometry library. Constructors that are
+-- not safe to use directly are not reexported from here but the
+-- constructors are available by importing the module they are defined
+-- in.
 --
 -----------------------------------------------------------------------------
 
@@ -13,6 +16,7 @@ module Geometry
   ( module Geometry.Angle
   , module Geometry.BoundingBox
   , module Geometry.Combinators
+  , module Geometry.CubicSpline
   , module Geometry.Direction
   , module Geometry.Envelope
   , module Geometry.HasOrigin
@@ -25,6 +29,9 @@ module Geometry
   , module Geometry.Segment
   , module Geometry.Size
   , module Geometry.Space
+  , module Geometry.Trace
+  , module Geometry.Trail
+  , module Geometry.Transform
 
     -- * TwoD
   , module Geometry.TwoD.Arc
@@ -49,16 +56,17 @@ module Geometry
   , module Geometry.ThreeD.Vector
   , module Geometry.ThreeD.Types
 
-  , module Geometry.Trace
-  , module Geometry.Trail
-  , module Geometry.Transform
   ) where
 
 import           Geometry.Angle
-import           Geometry.BoundingBox
+import           Geometry.BoundingBox        hiding (BoundingBox (..))
+import           Geometry.BoundingBox        (BoundingBox)
 import           Geometry.Combinators
-import           Geometry.Direction
-import           Geometry.Envelope
+import           Geometry.CubicSpline
+import           Geometry.Direction          hiding (Direction (..))
+import           Geometry.Direction          (Direction)
+import           Geometry.Envelope           hiding (Envelope (..))
+import           Geometry.Envelope           (Envelope)
 import           Geometry.HasOrigin
 import           Geometry.Juxtapose
 import           Geometry.Located
@@ -67,7 +75,8 @@ import           Geometry.Path
 import           Geometry.Points
 import           Geometry.Query
 import           Geometry.Segment
-import           Geometry.Size
+import           Geometry.Size               hiding (SizeSpec (..))
+import           Geometry.Size               (SizeSpec)
 import           Geometry.Space
 import           Geometry.ThreeD.Combinators
 import           Geometry.ThreeD.Shapes
@@ -75,9 +84,11 @@ import           Geometry.ThreeD.Size
 import           Geometry.ThreeD.Transform
 import           Geometry.ThreeD.Types
 import           Geometry.ThreeD.Vector
-import           Geometry.Trace
+import           Geometry.Trace              hiding (Trace (..))
+import           Geometry.Trace              (Trace)
 import           Geometry.Trail
-import           Geometry.Transform
+import           Geometry.Transform          hiding (Transformation (..))
+import           Geometry.Transform          (Transformation)
 import           Geometry.TwoD.Arc
 import           Geometry.TwoD.Combinators
 import           Geometry.TwoD.Curvature
@@ -90,4 +101,4 @@ import           Geometry.TwoD.Shapes
 import           Geometry.TwoD.Size
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
-import           Geometry.TwoD.Vector hiding (e)
+import           Geometry.TwoD.Vector        hiding (e)

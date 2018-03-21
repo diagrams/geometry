@@ -70,28 +70,25 @@ library
     ConstraintKinds TypeSynonymInstances
   build-depends:
     base >=4.9 && <5.0,
-    lens,
-    monoid-extras >=0.4 && <0.5,
-    linear >=1.20 && <1.21,
-    cereal >=0.5 && <0.6,
-    containers >=0.5 && <0.6,
-    data-default-class,
-    ghc-prim,
-    fingertree,
-    diagrams-solve,
     adjunctions >=4.3 && <4.4,
-    primitive >=0.6 && <0.7,
-    vector,
-    contravariant,
-    hashable >=1.2.5.0 && <1.3,
-    distributive >=0.5 && <0.6,
-    unordered-containers >=0.2 && <0.3,
     array >=0.5 && <0.6,
     binary,
     bytes,
+    cereal >=0.5 && <0.6,
+    containers >=0.5.9 && <0.6,
+    contravariant,
+    data-default-class,
     deepseq,
+    diagrams-solve,
+    distributive >=0.5 && <0.6,
+    hashable >=1.2.5.0 && <1.3,
+    intervals,
+    lens,
+    linear >=1.20 && <1.21,
+    monoid-extras >=0.4 && <0.5,
     profunctors,
-    intervals
+    unordered-containers >=0.2 && <0.3,
+    vector
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall

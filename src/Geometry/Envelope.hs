@@ -245,11 +245,13 @@ instance Enveloped b => Enveloped (S.Set b)
 -- | Compute the diameter of a enveloped object along a particular
 --   vector. Returns zero for the empty envelope.
 diameter :: (InSpace v n a, Enveloped a) => v n -> a -> n
-diameter v a = maybe 0 (\(lo,hi) -> (hi - lo)) (extent v a)
+diameter v a = maybe 0 (\(lo,hi) -> (hi - lo) * norm v) (extent v a)
 {-# INLINE diameter #-}
 
--- | Compute the range of an enveloped object along a certain
---   vector.  See also 'extentDir'.
+-- | Compute the range of an enveloped object along a certain vector.
+--   Returns a pair of scalars @(lo,hi)@ such that the object extends
+--   from @(lo *^ v)@ to @(hi *^ v)@.  Returns @Nothing@ for objects
+--   with an empty envelope.  See also 'extentDir'.
 extent :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (n, n)
 extent v = (_Just . both //~ n) . extentDir (review _Dir (v ^/ n))
   where

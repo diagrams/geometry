@@ -267,7 +267,10 @@ extentDir d t = case getEnvelope t of
                    in  Just (a, b)
 {-# INLINE extentDir #-}
 
--- | The smallest positive vector that bounds the envelope of an object.
+-- | The smallest positive vector that bounds the envelope of an
+--   object along each axis.  That is, the sum of vectors which bound
+--   the envelope along each axis.  For example, the @size@ of a
+--   radius 1 circle is the vector @(2,2)@.
 size :: (InSpace v n a, Enveloped a, HasBasis v) => a -> v n
 size a = fmap (\v -> diameter v a) eye
 {-# INLINE size #-}

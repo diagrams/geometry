@@ -44,7 +44,8 @@ import           Linear.Vector
 --
 --   The reason is that some things (e.g. vectors, 'Trail's) are
 --   transformable but are translationally invariant, i.e. have no
---   origin.
+--   origin.  Conversely, some types may have an origin and support
+--   translation, but not support arbitrary affine transformations.
 class HasOrigin t where
 
   -- | Move the local origin to another point.
@@ -65,14 +66,14 @@ moveOriginBy = moveOriginTo . P
 --   should have
 --
 --   @
---   moveTo (origin .^+ v) === moveOriginTo (origin .^- v)
+--   moveTo (origin .+^ v) === moveOriginTo (origin .-^ v)
 --   @
 --
 --   For types which are also 'Transformable', this is essentially the
 --   same as 'translate', i.e.
 --
 --   @
---   moveTo (origin .^+ v) === translate v
+--   moveTo (origin .+^ v) === translate v
 --   @
 moveTo :: (InSpace v n t, HasOrigin t) => Point v n -> t -> t
 moveTo = moveOriginBy . (origin .-.)

@@ -2,10 +2,6 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
-
--- The UndecidableInstances flag is needed under 6.12.3 for the
--- HasOrigin (a,b) instance.
 
 -----------------------------------------------------------------------------
 -- |

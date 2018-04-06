@@ -570,10 +570,10 @@ _Trail = iso (withTrail Left Right) (either OpenTrail ClosedTrail)
 
 -- | Located trails are either located lines or located loops
 _LocTrail :: Iso' (Located (Trail v n)) (Either (Located (Line v n)) (Located (Loop v n)))
-_LocTrail = iso fromLocTrail toLocTrail
+_LocTrail = iso fromLocTr toLocTrail
   where
-    fromLocTrail (Loc p (OpenTrail t))   = Left (Loc p t)
-    fromLocTrail (Loc p (ClosedTrail t)) = Right (Loc p t)
+    fromLocTr  (Loc p (OpenTrail t))   = Left (Loc p t)
+    fromLocTr  (Loc p (ClosedTrail t)) = Right (Loc p t)
     toLocTrail (Left (Loc p t))  = Loc p (OpenTrail t)
     toLocTrail (Right (Loc p t)) = Loc p (ClosedTrail t)
 {-# INLINE _LocTrail #-}

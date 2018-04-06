@@ -15,12 +15,8 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- diagrams-core defines the core library of primitives forming the
--- basis of an embedded domain-specific language for describing and
--- rendering diagrams.
---
--- The @Diagrams.Core.Envelope@ module defines a data type and type class for
--- \"envelopes\", aka functional bounding regions.
+-- A data type, type class, and associated utility functions for
+-- \"envelopes\", /aka/ functional bounding regions.
 --
 -----------------------------------------------------------------------------
 
@@ -38,8 +34,8 @@ module Geometry.Envelope
   , size
   , boxFit
 
-  , mCenterPoint
   , centerPoint
+  , centerPointMay
   ) where
 
 #if __GLASGOW_HASKELL__ < 710
@@ -65,13 +61,11 @@ import           Linear
 -- Envelopes
 ------------------------------------------------------------------------
 
--- | Every diagram comes equipped with an /envelope/.  What is an envelope?
---
---   Consider first the idea of a /bounding box/. A bounding box
---   expresses the distance to a bounding plane in every direction
---   parallel to an axis.  That is, a bounding box can be thought of
---   as the intersection of a collection of half-planes, two
---   perpendicular to each axis.
+-- | To understand what an envelope is, consider first the idea of a
+--   /bounding box/. A bounding box expresses the distance to a
+--   bounding plane in every direction parallel to an axis.  That is,
+--   a bounding box can be thought of as the intersection of a
+--   collection of half-planes, two perpendicular to each axis.
 --
 --   More generally, the intersection of half-planes in /every/
 --   direction would give a tight \"bounding region\", or convex hull.
@@ -82,17 +76,19 @@ import           Linear
 --   An envelope is an /extensional/ representation of such a
 --   \"bounding region\".  Instead of storing some sort of direct
 --   representation, we store a /function/ which takes a direction as
---   input and gives a distance to a bounding half-plane as output.
---   The important point is that envelopes can be composed, and
---   transformed by any affine transformation.
+--   input and outputs the extent of the object along the given
+--   direction.  The important point is that when represented by
+--   functions in this way, envelopes can easily be composed, as well
+--   as transformed by any affine transformation.
 --
---   Formally, given a vector @v@, the envelope computes a scalar @s@ such
---   that
---
---     * for every point @u@ inside the diagram,
---       if the projection of @(u - origin)@ onto @v@ is @s' *^ v@, then @s' <= s@.
---
---     * @s@ is the smallest such scalar.
+--   Formally, given a direction @d@, the envelope applied to @d@
+--   returns a pair of real numbers \( (l,h) \) (represented as an
+--   'Interval') representing the extent of the object along the
+--   direction @d@.  In particular, \(l\) is the largest value such that
+--   for any \(l' < l\), @origin .+^ (l' *^ fromDirection d)@ lies
+--   outside the diagram.  Likewise, \(h\) is the smallest value such
+--   that for any \(h' > h\), @origin .+^ (h' *^ fromDirection d)@ lies
+--   outside the diagram.
 --
 --   There is also a special \"empty envelope\".
 --
@@ -110,18 +106,23 @@ data Envelope v n
 type instance V (Envelope v n) = v
 type instance N (Envelope v n) = n
 
+-- | The @Semigroup@ instance for @Envelope@ combines them by taking a
+--   pointwise union of intervals (representing the union of the
+--   bounding regions).
 instance Ord n => Semigroup (Envelope v n) where
   EmptyEnvelope <> e2            = e2
   e1            <> EmptyEnvelope = e1
   Envelope f1   <> Envelope f2   = Envelope $ \v -> hull (f1 v) (f2 v)
   {-# INLINE (<>) #-}
 
+-- | @mempty@ is the empty envelope.
 instance Ord n => Monoid (Envelope v n) where
   mappend = (<>)
   {-# INLINE mappend #-}
   mempty = EmptyEnvelope
   {-# INLINE mempty #-}
 
+-- | Shift both endpoints of an interval by the same offset.
 shift :: Num a => a -> Interval a -> Interval a
 shift x (I a b) = I (a + x) (b + x)
 {-# INLINE shift #-}
@@ -132,6 +133,8 @@ pointEnvelope :: (Metric v, Fractional n) => Point v n -> Envelope v n
 pointEnvelope (P p) = Envelope $ \(Dir v) -> singleton (p `dot` v)
 {-# INLINE pointEnvelope #-}
 
+-- | Modify an envelope by directly specifying a modification to its
+--   underlying function.
 onEnvelope :: ((Direction v n -> Interval n) -> Direction v n -> Interval n) -> Envelope v n -> Envelope v n
 onEnvelope _ EmptyEnvelope = EmptyEnvelope
 onEnvelope m (Envelope f)  = Envelope (m f)
@@ -144,6 +147,9 @@ instance (Metric v, Fractional n) => HasOrigin (Envelope v n) where
   moveOriginTo (P u) = onEnvelope (\f (Dir v) -> shift (negate (u `dot` v)) (f (Dir v)))
   {-# INLINE moveOriginTo #-}
 
+-- | Since envelopes contain a function, they can't really be shown in
+--   a very useful way, but at least we can distinguish between empty
+--   and non-empty envelopes.
 instance Show (Envelope v n) where
   show EmptyEnvelope = "EmptyEnvelope"
   show _             = "<non-empty envelope>"
@@ -171,12 +177,18 @@ class (Metric (V a), OrderedField (N a)) => Enveloped a where
   --   Other types (e.g. 'Trail') may have some other default
   --   reference point at which the envelope will be based; their
   --   instances should document what it is.
+  --
+  --   'Foldable' containers have a default implementation of
+  --   'getEnvelope' which simply merges together the envelopes of all
+  --   its items (/i.e./ @foldMap getEnvelope@).
   getEnvelope :: a -> Envelope (V a) (N a)
 
   default getEnvelope :: (a ~ f b, Foldable f, Enveloped b, V (f b) ~ V b,  N (f b) ~ N b) => a -> Envelope (V a) (N a)
   getEnvelope = foldMap getEnvelope
   {-# INLINE getEnvelope #-}
 
+  -- | An axis-aligned bounding box can be obtained for an @Enveloped@
+  --   object (by querying its envelope along each axis).
   boundingBox :: HasBasis (V a) => a -> BoundingBox (V a) (N a)
   boundingBox a =
     case getEnvelope a of
@@ -217,9 +229,14 @@ instance Enveloped b => Enveloped [b] where
   {-# INLINE getEnvelope #-}
   boundingBox = foldMap boundingBox
   {-# INLINE boundingBox #-}
+-- XXX can't we just use the default implementations for the above instance?
 
 instance Enveloped b => Enveloped (M.Map k b)
 instance Enveloped b => Enveloped (S.Set b)
+
+-- XXX do we want to explicitly define boundingBox = foldMap
+-- boundingBox for the above instances?  Seems like it could be more
+-- efficient?
 
 ------------------------------------------------------------------------
 --  Computing with envelopes
@@ -232,7 +249,7 @@ diameter v a = maybe 0 (\(lo,hi) -> (hi - lo)) (extent v a)
 {-# INLINE diameter #-}
 
 -- | Compute the range of an enveloped object along a certain
---   direction.
+--   vector.  See also 'extentDir'.
 extent :: (InSpace v n a, Enveloped a) => v n -> a -> Maybe (n, n)
 extent v = (_Just . both //~ n) . extentDir (review _Dir (v ^/ n))
   where
@@ -240,7 +257,7 @@ extent v = (_Just . both //~ n) . extentDir (review _Dir (v ^/ n))
 {-# INLINE extent #-}
 
 -- | Compute the range of an enveloped object along a certain
---   direction. The input vector must have a magnitude of 1.
+--   direction.
 extentDir :: (InSpace v n a, Enveloped a) => Direction v n -> a -> Maybe (n, n)
 extentDir d t = case getEnvelope t of
   EmptyEnvelope -> Nothing
@@ -253,19 +270,20 @@ size :: (InSpace v n a, Enveloped a, HasBasis v) => a -> v n
 size a = fmap (\v -> diameter v a) eye
 {-# INLINE size #-}
 
--- | Get the center of a the bounding box of an enveloped object, return
---   'Nothing' for object with empty envelope.
-mCenterPoint :: (InSpace v n a, HasBasis v, Enveloped a)
+-- | Get the center of the bounding box of an enveloped object, or
+--   return 'Nothing' for an object with an empty envelope.
+centerPointMay :: (InSpace v n a, HasBasis v, Enveloped a)
             => a -> Maybe (Point v n)
-mCenterPoint = boxCenter . boundingBox
+centerPointMay = boxCenter . boundingBox
 
--- | Get the center of a the bounding box of an enveloped object, return
---   the origin for object with empty envelope.
+-- | Get the center of a the bounding box of an enveloped object, or
+--   return the origin for an object with an empty envelope.  See also
+--   'centerPointMay'.
 centerPoint :: (InSpace v n a, HasBasis v, Enveloped a)
             => a -> Point v n
-centerPoint = fromMaybe origin . mCenterPoint
+centerPoint = fromMaybe origin . centerPointMay
 
--- | Transforms an enveloped thing to fit within a @BoundingBox@.  If the
+-- | Transform an enveloped thing to fit within a given @BoundingBox@.  If the
 --   bounding box is empty, then the result is also @mempty@.
 boxFit
   :: (InSpace v n a, HasLinearMap v, Enveloped a, Transformable a, Monoid a)

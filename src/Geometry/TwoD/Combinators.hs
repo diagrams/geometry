@@ -79,7 +79,7 @@ infixl 6 |||
 --   associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
 (|||) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
-(|||) = atDirection x_Dir
+(|||) = atDirection xDir
 
 -- | Lay out a list of enveloped objects in a row from left to right,
 --   so that their local origins lie along a single horizontal line,

@@ -343,12 +343,12 @@ instance (Additive v, Fractional n) => Sectionable (Segment v n) where
   {-# INLINE splitAtParam #-}
 
   reverseDomain (Linear x1)      = Linear (negated x1)
-  reverseDomain (Cubic c1 c2 c3) = Cubic (c2 ^-^ c3) (c1 ^-^ c3) (negated c2)
+  reverseDomain (Cubic c1 c2 c3) = Cubic (c2 ^-^ c3) (c1 ^-^ c3) (negated c3)
   {-# INLINE reverseDomain #-}
 
 instance (Additive v, Num n) => Reversing (Segment v n) where
   reversing (Linear x1)      = Linear (negated x1)
-  reversing (Cubic c1 c2 c3) = Cubic (c2 ^-^ c3) (c1 ^-^ c3) (negated c2)
+  reversing (Cubic c1 c2 c3) = Cubic (c2 ^-^ c3) (c1 ^-^ c3) (negated c3)
   {-# INLINE reversing #-}
 
 instance (Metric v, OrderedField n) => HasArcLength (Segment v n) where

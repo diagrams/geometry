@@ -36,16 +36,15 @@
 -- a fixed location (useful for backend implementors).
 --
 -- Generally speaking, casual users of diagrams should not need this
--- module; the higher-level functionality provided by
--- "Diagrams.Trail", "Diagrams.TrailLike", and "Diagrams.Path" should
--- usually suffice.  However, directly manipulating segments can
--- occasionally be useful.
+-- module; the higher-level functionality provided by "Geometry.Trail"
+-- and "Geometry.Path" should usually suffice.  However, directly
+-- manipulating segments can occasionally be useful.
 --
 -----------------------------------------------------------------------------
 
 module Geometry.Segment
   (
-    -- * ClosedSegent
+    -- * Segments
     Segment (..)
   , straight
   , bezier3
@@ -53,13 +52,13 @@ module Geometry.Segment
 
   , HasSegments (..)
 
-  -- * Closing Segments
+  -- * Closing segments
   , ClosingSegment (..)
   , linearClosing
   , cubicClosing
   , closingSegment
 
-  -- * Fixed Segments
+  -- * Fixed segments
   , FixedSegment (..)
   , fixed
 
@@ -120,7 +119,7 @@ import           Data.Coerce
 import           Diagrams.Solve.Polynomial
 
 import           Geometry.Angle
-import Geometry.Direction
+import           Geometry.Direction
 import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
@@ -130,7 +129,7 @@ import           Geometry.Transform
 import           Geometry.TwoD.Transform
 
 ------------------------------------------------------------------------
--- Closed segments
+-- Segments
 ------------------------------------------------------------------------
 
 -- | The atomic constituents of the concrete representation currently
@@ -147,6 +146,9 @@ data Segment v n
 type instance V (Segment v n) = v
 type instance N (Segment v n) = n
 type instance Codomain (Segment v n) = v
+
+------------------------------------------------------------
+-- Instances
 
 instance (Eq1 v, Eq n) => Eq (Segment v n) where
   Linear v1      == Linear v2      = eq1 v1 v2
@@ -167,7 +169,7 @@ instance (Show1 v, Show n) => Show (Segment v n) where
   showsPrec = showsPrec1
 
 instance Each (Segment v n) (Segment v n) (v n) (v n) where
-  each f (Linear v) = Linear <$> f v
+  each f (Linear v)       = Linear <$> f v
   each f (Cubic c1 c2 c3) = Cubic <$> f c1 <*> f c2 <*> f c3
   {-# INLINE each #-}
 
@@ -222,6 +224,9 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Segment v n) where
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
 
+------------------------------------------------------------
+-- Smart constructors
+
 -- | @'straight' v@ constructs a translationally invariant linear
 --   segment with direction and length given by the vector @v@.
 straight :: v n -> Segment v n
@@ -253,7 +258,7 @@ class HasSegments t where
   default offset :: (Additive (V t), Num (N t)) => t -> Vn t
   offset = foldlOf' segments (\off seg -> off ^+^ offset seg) zero
 
-  -- | The number of segments
+  -- | The number of segments.
   numSegments :: t -> Int
   numSegments = lengthOf segments
 
@@ -535,7 +540,7 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mem
 -- @
 --
 --   Note that 'Line's have no inside or outside, so don't contribute
---   crossings
+--   crossings.
 newtype Crossings = Crossings Int
   deriving (Show, Eq, Ord, Num, Enum, Real, Integral)
 
@@ -713,8 +718,8 @@ segmentsEqual _ _ _ = undefined
 -- Closing segments
 ------------------------------------------------------------------------
 
--- | A ClosingSegment is use to determine how to close a loop. A linear
---   closing means close a trail with a straight line. A cubic closing
+-- | A ClosingSegment is used to determine how to close a loop. A linear
+--   closing means to close a trail with a straight line. A cubic closing
 --   segment means close the trail with a cubic bezier with control
 --   points c1 and c2.
 data ClosingSegment v n = LinearClosing | CubicClosing !(v n) !(v n)
@@ -918,7 +923,7 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (FixedSegment v n) 
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
 
--- | Fixed segments and a located segments are isomorphic.
+-- | Fixed segments and located segments are isomorphic.
 fixed :: (Additive v, Num n) => Iso' (FixedSegment v n) (Located (Segment v n))
 fixed = iso fromFixedSeg mkFixedSeg
 {-# INLINE fixed #-}

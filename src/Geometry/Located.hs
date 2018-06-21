@@ -86,8 +86,6 @@ data Located a = Loc
     --   the location.
   } deriving (Typeable, Generic)
 
--- instance (Serialize a, Serialize (V a (N a))) => Serialize (Located a)
-
 infix 5 `at`
 -- | Construct a @Located a@ from a value of type @a@ and a location.
 --   @at@ is intended to be used infix, like @x \`at\` origin@.

@@ -213,10 +213,7 @@ polyRegularTrail n r =
 --   adjacent to the vertex furthest in the direction of @v@ is
 --   perpendicular to @v@.
 orient :: OrderedField n => V2 n -> Located (Trail V2 n) -> Transformation V2 n
-orient v (Loc p t) = orientPoints v $ segmentPoints p (t ^.. segments)
-
-segmentPoints :: (Additive v, Num n) => Point v n -> [Segment v n] -> [Point v n]
-segmentPoints p = init . scanl (.+^) p . map offset
+orient v = orientPoints v . trailVertices
 
 orientPoints :: OrderedField n => V2 n -> [Point V2 n] -> Transformation V2 n
 orientPoints _ [ ] = mempty

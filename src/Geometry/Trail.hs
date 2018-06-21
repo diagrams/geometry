@@ -805,8 +805,7 @@ instance FromTrail t => FromTrail (Located t) where
   {-# INLINE fromLocTrail #-}
 
 instance (Additive v, Num n) => FromTrail [Point v n] where
-  fromLocTrail (viewLoc -> (p0, t)) = scanl (.+^) p0 offsets where
-    offsets = toListOf (segments . to offset) t
+  fromLocTrail = trailPoints
   {-# INLINE fromLocTrail #-}
 
 instance FromTrail (Trail v n) where
@@ -981,7 +980,7 @@ trailLocSegments t = zipWith at (toListOf segments (unLoc t)) (trailPoints t)
 --   This function is not re-exported from "Diagrams.Prelude"; to use
 --   it, import "Diagrams.Trail".
 trailPoints
-  :: (Metric v, OrderedField n)
+  :: (Additive v, Num n)
   => Located (Trail v n) -> [Point v n]
 trailPoints (viewLoc -> (p,t))
   = withTrail (linePoints . (`at` p)) (loopPoints . (`at` p)) t
@@ -1001,7 +1000,7 @@ trailPoints (viewLoc -> (p,t))
 --   This function is not re-exported from "Diagrams.Prelude"; to use
 --   it, import "Diagrams.Trail".
 linePoints
-  :: (Metric v, OrderedField n)
+  :: (Additive v, Num n)
   => Located (Line v n) -> [Point v n]
 linePoints (viewLoc -> (p,t))
   = segmentPoints p . toListOf segments $ t
@@ -1027,7 +1026,7 @@ loopSegments (Loop t c) = (toListOf segments t, c)
 --   This function is not re-exported from "Diagrams.Prelude"; to use
 --   it, import "Diagrams.Trail".
 loopPoints
-  :: (Metric v, OrderedField n)
+  :: (Additive v, Num n)
   => Located (Loop v n) -> [Point v n]
 loopPoints (viewLoc -> (p,t))
   = segmentPoints p . fst . loopSegments $ t

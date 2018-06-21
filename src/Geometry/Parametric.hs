@@ -30,7 +30,7 @@ module Geometry.Parametric
   , Tangential (..)
   , TangentEndValues (..)
 
-    -- ** Normals
+  -- ** Normals
   , normalAtParam
   , normalAtStart
   , normalAtEnd
@@ -228,13 +228,13 @@ class TangentEndValues t where
 --
 --   Examples of more specific types this function can have include
 --
---   * @Segment Closed V2 Double -> Double -> V2 Double@
+--   * @Segment V2 Double -> Double -> V2 Double@
 --
---   * @Trail' Line V2 Double -> Double -> V2 Double@
+--   * @Line V2 Double -> Double -> V2 Double@
 --
 --   * @Located (Trail V2 Double) -> Double -> V2 Double@
 --
---   See the instances listed for the 'Tangent' newtype for more.
+--   See the instances listed for the 'Tangential' type class for more.
 normalAtParam
   :: (InSpace V2 n t, Tangential t, Floating n)
   => t -> n -> V2 n
@@ -256,7 +256,9 @@ normalAtEnd = normize . tangentAtEnd
 normize :: Floating n => V2 n -> V2 n
 normize = negated . perp . signorm
 
--- instances
+------------------------------------------------------------
+-- Instances for Located
+------------------------------------------------------------
 
 type instance Codomain (Located a) = Point (Codomain a)
 

@@ -35,9 +35,9 @@
 -- and manipulating segments, as well as a definition of segments with
 -- a fixed location (useful for backend implementors).
 --
--- Generally speaking, casual users of diagrams should not need this
--- module; the higher-level functionality provided by "Geometry.Trail"
--- and "Geometry.Path" should usually suffice.  However, directly
+-- Generally speaking, casual users should not need this module; the
+-- higher-level functionality provided by "Geometry.Trail" and
+-- "Geometry.Path" should usually suffice.  However, directly
 -- manipulating segments can occasionally be useful.
 --
 -----------------------------------------------------------------------------

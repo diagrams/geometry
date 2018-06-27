@@ -42,7 +42,9 @@
 
 module Geometry.Trail
   (
-    -- * Trails
+    -- * Lines, loops, and trails
+    -- $trails
+
     Line (..)
   , Loop (..)
   , loopClosingSegment
@@ -68,7 +70,7 @@ module Geometry.Trail
   , glueLine
   , glueTrail
 
-    -- ** FromTrail
+    -- * Creation
   , FromTrail (..)
   , fromSegments
   , fromVertices
@@ -134,8 +136,8 @@ import           Linear.V3
 import           Linear.Vector
 
 
-import           Geometry.Envelope
 import           Geometry.Direction
+import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Parametric
 import           Geometry.Query
@@ -144,11 +146,48 @@ import           Geometry.Space
 import           Geometry.Trace
 import           Geometry.Transform
 
+-- $trails
+--
+-- A /trail/ is either a /line/ or a /loop/.
+--
+-- * A 'Line' (think "train line", not "straight line") is a path
+--   through space that may end in a different place than where it
+--   started. (A line may happen to end in the same place that it
+--   starts but this would just be a coincidence.)  Lines are not
+--   closed and hence they are never filled, even if they happen to
+--   start and end at the same place.
+--
+-- * A 'Loop' is a closed path through space which ends in the same
+--   place it starts, and hence can be filled (at least in 2D; in
+--   higher dimensions filling a loop probably does not make sense).
+--
+-- * The 'Trail' type is simply the sum of 'Line' and 'Loop', i.e.
+--   it is either one or the other.
+--
+-- Trails do not have an absolute location, i.e. they are
+-- /translationally invariant/.  If you want a concretely positioned
+-- trail, use the 'Located' wrapper.
+
 ------------------------------------------------------------------------
 -- The line type
 ------------------------------------------------------------------------
 
--- | A line is a sequence of segments. Lines have no position.
+-- | A 'Line' (think "train line", not "straight line") is a
+--   translationally invariant path through space.  Lines are not
+--   closed and hence they are never filled, even if they happen to
+--   start and end at the same place.
+--
+--   To construct a 'Line', use 'fromVertices', 'fromOffsets', '(~~)',
+--   'fromSegments', or any of the other @from@ functions in this
+--   module.
+--
+--   To turn a 'Line' into a 'Loop', use 'closeLine' or 'glueLine'; to
+--   turn a 'Line' into a 'Trail', use 'wrapLine'.  More generally,
+--   use 'fromLine' to turn a 'Line' into any instance of 'FromTrail'.
+--
+--   To reverse a 'Line', use 'reversing'.
+--
+--   Lines are represented as a sequence of 'Segment's.
 data Line v n = Line !(Seq (Segment v n)) !(v n)
 
 type instance V (Line v n) = v

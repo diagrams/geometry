@@ -26,9 +26,7 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- This module defines /trails/, translationally invariant paths through
--- space. Trails form a central part of the geometry API, so the
--- documentation for this module merits careful study.
+-- XXX rewrite this intro documentation
 --
 -- Related modules include:
 --
@@ -177,9 +175,10 @@ import           Geometry.Transform
 --   closed and hence they are never filled, even if they happen to
 --   start and end at the same place.
 --
---   To construct a 'Line', use 'fromVertices', 'fromOffsets', '(~~)',
---   'fromSegments', or any of the other @from@ functions in this
---   module.
+--   To construct a 'Line', use 'fromVertices', 'fromOffsets', ('~~'),
+--   'fromSegments', or any of the other @from...@ functions in this
+--   module.  The 'Semigroup' (and 'Monoid') instance can be used to
+--   construct bigger 'Line's out of smaller ones by concatenation.
 --
 --   To turn a 'Line' into a 'Loop', use 'closeLine' or 'glueLine'; to
 --   turn a 'Line' into a 'Trail', use 'wrapLine'.  More generally,
@@ -187,7 +186,9 @@ import           Geometry.Transform
 --
 --   To reverse a 'Line', use 'reversing'.
 --
---   Lines are represented as a sequence of 'Segment's.
+--   Lines are represented as a sequence of 'Segment's, concatenated
+--   end to end, together with the cached offset vector from the start
+--   of the line to the end.
 data Line v n = Line !(Seq (Segment v n)) !(v n)
 
 type instance V (Line v n) = v
@@ -231,13 +232,13 @@ instance HasSegments (Line v n) where
 -- Many of the folds over trails involve keeping the current position
 -- and some state. To make sure everything's strict we use a Pair.
 -- However this is still not ideal because it involves boxing and
--- unboxing the positing and state at every step, even with a
+-- unboxing the position and state at every step, even with a
 -- SPECIALISE.
 --
--- Normally ghc is smart enough to turn strict accumulators into unboxed
--- tuples, however this isn't possible in our case because the
+-- Normally GHC is smart enough to turn strict accumulators into unboxed
+-- tuples; however, this isn't possible in our case because the
 -- definition of foldl' for Data.Seq isn't inlined. This is for the best
--- because the definition is quite large, leading to slow compile times,
+-- because the definition is quite large, leading to slow compile times and
 -- masses of generated core for little performance benefit.
 --
 -- So for the important calculations (envelope, crossings) we make a
@@ -254,7 +255,7 @@ shift :: Num a => a -> Interval a -> Interval a
 shift = \ n (I a b) -> I (a + n) (b + n)
 {-# INLINE shift #-}
 
--- | Envelope of a line without a 'Envelope' wrapper. This is specialised
+-- | Envelope of a line without an 'Envelope' wrapper. This is specialised
 --   to @V2 Double@ and @V3 Double@.
 lineEnv :: (Metric v, OrderedField n) => Line v n -> v n -> Interval n
 lineEnv = \ !(Line t _) !w ->
@@ -271,7 +272,7 @@ lineEnv = \ !(Line t _) !w ->
 
 data LE2D = LE2D !Double !Double !Double !Double
 
--- ghc isn't smart enough to float out the segment unpacking (when using
+-- GHC isn't smart enough to float out the segment unpacking (when using
 -- offset/segmentEnvelope) so we do it ourselves
 lineEnv2Double :: Line V2 Double -> V2 Double -> Interval Double
 lineEnv2Double = \ !(Line t _) !w ->
@@ -420,7 +421,20 @@ instance (Additive v, Num n) => Reversing (Line v n) where
 -- The Loop type
 ------------------------------------------------------------------------
 
--- | Loops are lines with a closing segment.
+-- | A 'Loop' is a translationally invariant closed path through
+--   space.
+--
+--   To construct a 'Loop', use 'fromVertices', 'fromOffsets',
+--   'fromSegments', or any of the other @from...@ functions in this
+--   module, or make a 'Line' and then call 'closeLine' or 'glueLine'.
+--
+--   To turn a 'Loop' into a 'Line', use 'cutLoop'; to turn a 'Loop'
+--   into a 'Trail', use 'wrapLoop'.
+--
+--   To reverse a 'Loop', use 'reversing'.
+--
+--   Loops are represented as a 'Line' together with a closing
+--   segment.
 data Loop v n = Loop !(Line v n) !(ClosingSegment v n)
   deriving Eq
 
@@ -428,12 +442,12 @@ type instance V (Loop v n) = v
 type instance N (Loop v n) = n
 type instance Codomain (Loop v n) = v
 
--- | Construct a line from a list of segments.
+-- | Construct a @Loop@ from a list of segments and a 'ClosingSegment'.
 loopFromSegments :: (Additive v, Num n) => [Segment v n] -> ClosingSegment v n -> Loop v n
 loopFromSegments = Loop . lineFromSegments
 {-# INLINE loopFromSegments #-}
 
--- | The 'Segment' that closes the loop.
+-- | Get the 'Segment' that closes the loop.
 loopClosingSegment :: (Functor v, Num n) => Loop v n -> Segment v n
 loopClosingSegment (Loop t c) = closingSegment (offset t) c
 {-# INLINE loopClosingSegment #-}

@@ -379,9 +379,6 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Line v n) where
   get = deserializeWith Cereal.get
   {-# INLINE get #-}
 
-instance (Additive v, Num n) => Reversing (Loop v n) where
-  reversing = glueLine . reversing . cutLoop
-
 -- | An eliminator for @Trail@ based on eliminating lines: if the
 --   trail is a line, the given function is applied; if it is a loop, it
 --   is first converted to a line with 'cutLoop'.  That is,
@@ -568,6 +565,9 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Loop v n) where
 instance (Additive v, Num n) => EndValues (Loop v n) where
   atStart = const zero
   atEnd = const zero
+
+instance (Additive v, Num n) => Reversing (Loop v n) where
+  reversing = glueLine . reversing . cutLoop
 
 ------------------------------------------------------------------------
 -- Trail type

@@ -45,16 +45,11 @@ module Geometry.Trail
 
     Line (..)
   , Loop (..)
-  , loopClosingSegment
-  , lineFromSegments
-  , loopFromSegments
   , Trail (..)
-  , wrapLine, wrapLoop
-  , fixTrail
-  , withTrail
-  , withLine
 
     -- * Prisms
+    -- $prisms
+
   , _Line
   , _Loop
   , _LocLine
@@ -62,7 +57,12 @@ module Geometry.Trail
   , _Trail
   , _LocTrail
 
-    -- * Modification
+    -- * Conversion
+    -- $convert
+
+  , wrapLine
+  , wrapLoop
+
   , closeLine
   , closeTrail
   , glueLine
@@ -70,7 +70,15 @@ module Geometry.Trail
   , cutLoop
   , cutTrail
 
-    -- * Creation
+  , fixTrail
+
+    -- * Primitive constructors
+
+  , lineFromSegments
+  , loopFromSegments
+
+    -- * FromTrail
+
   , FromTrail (..)
   , fromSegments
   , fromVertices
@@ -83,6 +91,13 @@ module Geometry.Trail
   , fromOffsets
   , fromLocSegments
   , fromLocOffsets
+
+    -- * Extracting information
+
+  , withTrail
+  , withLine
+
+  , loopClosingSegment
 
   , trailLocSegments
 
@@ -97,7 +112,11 @@ module Geometry.Trail
   , trailVertices
   , trailVertices'
 
-    -- ** Internal functions
+  , explodeTrail
+
+    -- * Internal functions
+    -- $internal
+
   , lineEnv
   , loopEnv
   , trailEnv
@@ -106,7 +125,6 @@ module Geometry.Trail
   , trailTrace
   , lineSegParam
 
-  , explodeTrail
   ) where
 
 import           Control.DeepSeq                    (NFData (..))
@@ -420,7 +438,7 @@ instance (Additive v, Num n) => Reversing (Line v n) where
 -- The Loop type
 ------------------------------------------------------------------------
 
--- | A 'Loop' is a translationally invariant closed path through
+-- | A 'Loop' is a translationally invariant, /closed/ path through
 --   space.
 --
 --   To construct a 'Loop', use 'fromVertices', 'fromOffsets',
@@ -618,6 +636,15 @@ wrapLoop :: Loop v n -> Trail v n
 wrapLoop = ClosedTrail
 {-# INLINE wrapLoop #-}
 
+------------------------------------------------------------
+-- Prisms
+------------------------------------------------------------
+
+-- $prisms
+--
+-- A collection of 'Prism'\s that can be used to construct and
+-- deconstruct trails, lines, and loops.
+
 -- | Trails are either lines or loops.
 _Trail :: Iso' (Trail v n) (Either (Line v n) (Loop v n))
 _Trail = iso (withTrail Left Right) (either OpenTrail ClosedTrail)
@@ -660,6 +687,20 @@ withTrail lineR loopR = \case
   OpenTrail line   -> lineR line
   ClosedTrail loop -> loopR loop
 {-# INLINE withTrail #-}
+
+------------------------------------------------------------
+-- Conversion
+------------------------------------------------------------
+
+-- $convert
+--
+-- Turning a line into a loop can be done with 'glueLine' or
+-- 'closeLine', depending on whether the line already starts and ends
+-- in the same place or not.  Turning a loop into a line can be done
+-- with 'cutLoop'.  For convenience, all three functions have variants
+-- that operate on trails.
+--
+-- To turn a line or loop into a trail, use 'wrapLine' or 'wrapLoop'.
 
 -- | Turn a loop into a line by \"cutting\" it at the common start/end
 --   point, resulting in a line which just happens to start and end at
@@ -781,7 +822,7 @@ instance (Additive v, Num n) => HasSegments (Trail v n) where
   segments f (OpenTrail t)   = phantom (segments f t)
   segments f (ClosedTrail t) = phantom (segments f t)
   {-# INLINE segments #-}
-  offset (OpenTrail t) = offset t
+  offset (OpenTrail t)   = offset t
   offset (ClosedTrail t) = offset t
   {-# INLINE offset #-}
   numSegments (OpenTrail t)   = numSegments t
@@ -794,7 +835,7 @@ instance (Additive v, Num n) => AsEmpty (Trail v n) where
 
 instance (Metric v, Foldable v, OrderedField n) => Transformable (Trail v n) where
   {-# SPECIALISE instance Transformable (Trail V2 Double) #-}
-  transform t (OpenTrail l) = OpenTrail (transform t l)
+  transform t (OpenTrail l)   = OpenTrail (transform t l)
   transform t (ClosedTrail l) = ClosedTrail (transform t l)
 
 instance NFData (v n) => NFData (Trail v n) where
@@ -928,6 +969,7 @@ fromSegments segs = fromLocTrail (OpenTrail (lineFromSegments segs) `at` origin)
 a ~~ b = fromVertices [a,b]
 
 -- XXX not efficient
+-- | XXX comment me
 locatedSegments
   :: (InSpace v n t, HasSegments t)
   => Point v n
@@ -937,6 +979,9 @@ locatedSegments p0 = snd . mapAccumL f p0 . toListOf segments
   where
     f p seg = (p .+^ offset seg, seg `at` p)
 
+-- | Convert a located trail into a list of segments with absolute
+--   coordinates.  This may be particularly useful for backend
+--   implementors
 fixTrail
   :: (Metric v, OrderedField n)
   => Located (Trail v n) -> [FixedSegment v n]
@@ -964,7 +1009,6 @@ fromOffsets vs = fromLine (lineFromSegments $ map Linear vs)
 
 -- | Construct a trail-like thing of linear segments from a located
 --   list of offsets.
--- fromLocOffsets :: (V t ~ v, N t ~ n, V (v n) ~ v, N (v n) ~ n, FromTrail t) => Located [v n] -> t
 fromLocOffsets :: (InSpace v n t, InSpace v n (v n), Metric v, OrderedField n, FromTrail t) => Located [v n] -> t
 fromLocOffsets = fromLocLine . mapLoc fromOffsets
 

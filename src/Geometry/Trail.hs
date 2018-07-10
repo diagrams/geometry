@@ -67,6 +67,8 @@ module Geometry.Trail
   , closeTrail
   , glueLine
   , glueTrail
+  , cutLoop
+  , cutTrail
 
     -- * Creation
   , FromTrail (..)
@@ -672,6 +674,12 @@ cutLoop :: (Additive v, Num n) => Loop v n -> Line v n
 cutLoop (Loop Empty _) = Empty
 cutLoop (Loop line c)  = line |> closingSegment (offset line) c
 {-# INLINE cutLoop #-}
+
+-- | 'cutTrail' is a variant of 'cutLoop' for 'Trail', which performs
+--   'cutLoop' on loops and is the identity on lines.
+cutTrail :: (Additive v, Num n) => Trail v n -> Trail v n
+cutTrail = withTrail OpenTrail (OpenTrail . cutLoop)
+{-# INLINE cutTrail #-}
 
 -- | Make a line into a loop by adding a new linear segment from the
 --   line's end to its start.

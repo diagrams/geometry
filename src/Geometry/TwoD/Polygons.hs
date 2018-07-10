@@ -47,7 +47,7 @@ module Geometry.TwoD.Polygons (
 
   ) where
 
-import           Control.Lens hiding (at, transform)
+import           Control.Lens            hiding (at, transform)
 import           Control.Monad           (forM, liftM)
 import           Control.Monad.ST        (ST, runST)
 import           Data.Array.ST           (STUArray, newArray, readArray,
@@ -58,14 +58,14 @@ import           Data.Maybe              (catMaybes)
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Monoid             (mconcat, mempty)
 #endif
-import           Data.Semigroup
 import           Data.Ord                (comparing)
+import           Data.Semigroup
 
 import           Geometry.Angle
-import           Geometry.Space
 import           Geometry.Located
 import           Geometry.Path
 import           Geometry.Points         (centroid)
+import           Geometry.Space
 import           Geometry.Trail
 import           Geometry.Transform
 import           Geometry.TwoD.Transform
@@ -163,10 +163,10 @@ polyTrail po = transform ori tr where
       PolySides ans szs -> polySidesTrail ans szs
       PolyRegular n r   -> polyRegularTrail n r
   ori = case po^.polyOrient of
-      OrientH      -> orient unit_Y tr
-      OrientV      -> orient unitX  tr
-      OrientTo v   -> orient v      tr
-      NoOrient     -> mempty
+      OrientH    -> orient unit_Y tr
+      OrientV    -> orient unitX  tr
+      OrientTo v -> orient v      tr
+      NoOrient   -> mempty
 {-# SPECIALIZE polyTrail :: PolygonOpts Double -> Located (Trail V2 Double) #-}
 
 -- | Generate the polygon described by the given options.

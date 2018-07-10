@@ -67,9 +67,7 @@ import           Geometry.Located
 import           Geometry.Path
 import           Geometry.Points         (centroid)
 import           Geometry.Trail
-import           Geometry.Segment
 import           Geometry.Transform
--- import           Geometry.TrailLike
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector    (leftTurn, unitX, unitY, unit_Y)

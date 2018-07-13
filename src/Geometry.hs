@@ -86,7 +86,8 @@ import           Geometry.ThreeD.Types
 import           Geometry.ThreeD.Vector
 import           Geometry.Trace              hiding (Trace (..))
 import           Geometry.Trace              (Trace)
-import           Geometry.Trail
+import           Geometry.Trail              hiding (linePoints, loopPoints,
+                                              trailPoints)
 import           Geometry.Transform          hiding (Transformation (..))
 import           Geometry.Transform          (Transformation)
 import           Geometry.TwoD.Arc

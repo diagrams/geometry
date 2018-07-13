@@ -26,7 +26,9 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- XXX rewrite this intro documentation
+-- This module defines /lines/, /loops/, and /trails/, which represent
+-- translation-invariant paths through space, along with many related
+-- functions for working with them.
 --
 -- Related modules include:
 --
@@ -47,7 +49,7 @@ module Geometry.Trail
   , Loop (..)
   , Trail (..)
 
-    -- * Prisms
+    -- ** Prisms
     -- $prisms
 
   , _Line
@@ -72,12 +74,15 @@ module Geometry.Trail
 
   , fixTrail
 
-    -- * Primitive constructors
+    -- * Construction and destruction
+    -- ** Primitive constructors
+    -- $prim
 
   , lineFromSegments
   , loopFromSegments
 
-    -- * FromTrail
+    -- ** FromTrail
+    -- $fromtrail
 
   , FromTrail (..)
   , fromSegments
@@ -92,7 +97,8 @@ module Geometry.Trail
   , fromLocSegments
   , fromLocOffsets
 
-    -- * Extracting information
+    -- ** Destruction
+    -- $destruct
 
   , withTrail
   , withLine
@@ -185,6 +191,13 @@ import           Geometry.Transform
 -- Trails do not have an absolute location, i.e. they are
 -- /translationally invariant/.  If you want a concretely positioned
 -- trail, use the 'Located' wrapper.
+
+-- $prim
+-- These functions directly construct a line or loop from a list of
+-- segments.  They can occasionally be useful if you want to directly
+-- construct some segments (/e.g./ using a function like 'bezier3'),
+-- but typically you would use one of the @fromXXX@ functions in the
+-- next section instead.
 
 ------------------------------------------------------------------------
 -- The line type
@@ -895,9 +908,27 @@ instance (Additive v, Num n) => EndValues (Trail v n) where
     ClosedTrail l -> atEnd l
 
 ------------------------------------------------------------------------
--- From trail
+-- FromTrail
 ------------------------------------------------------------------------
 
+-- $fromtrail
+--
+-- The functions in this section are all polymorphic in their output,
+-- returning any instance of the 'FromTrail' class.  This means they
+-- can be used to construct lines, loops, trails, or their 'Located'
+-- variants, in addition to vertex lists, paths, and diagrams.
+-- Functions like 'fromLine', 'fromLocLoop', /etc./ can also be used
+-- to convert among various trail-like things.
+--
+-- There are many functions in other modules follow a similar pattern,
+-- such as functions to construct various shapes like rectangles,
+-- regular polygons, and so on; such functions can also be used to
+-- construct any trail-like thing.
+
+-- | @FromTrail@ instances are things which can be constructed from a
+--   located trail. Instances include lines, loops, trails, lists of
+--   vertices, paths, diagrams, and 'Located' variants of all the
+--   above.
 class FromTrail t where
   -- | Make a @t@ from a trail.
   fromLocTrail :: Located (Trail (V t) (N t)) -> t
@@ -922,22 +953,28 @@ instance (Metric v, OrderedField n) => FromTrail (Loop v n) where
   fromLocTrail = withTrail glueLine id . unLoc
   {-# INLINE fromLocTrail #-}
 
+-- | Construct a trail-like thing from a line, with the origin as the
+--   location.
 fromLine :: (InSpace v n t, FromTrail t) => Line v n -> t
 fromLine = fromLocTrail . (`at` origin) . review _Line
 {-# INLINE fromLine #-}
 
+-- | Construct a trail-like thing from a 'Located' line.
 fromLocLine :: (InSpace v n t, FromTrail t) => Located (Line v n) -> t
 fromLocLine = fromLocTrail . review _LocLine
 {-# INLINE fromLocLine #-}
 
+-- | Construct a trail-like thing from a loop, placing it at the origin.
 fromLoop :: (InSpace v n t, FromTrail t) => Loop v n -> t
 fromLoop = fromLocTrail . (`at` origin) . review _Loop
 {-# INLINE fromLoop #-}
 
+-- | Construct a trail-like thing from a 'Located' loop.
 fromLocLoop :: (InSpace v n t, FromTrail t) => Located (Loop v n) -> t
 fromLocLoop = fromLocTrail . review _LocLoop
 {-# INLINE fromLocLoop #-}
 
+-- | Constuct a trail-like thing from a 'Trail', placing it at the origin.
 fromTrail :: (InSpace v n t, FromTrail t) => Trail v n -> t
 fromTrail = fromLocTrail . (`at` origin)
 {-# INLINE fromTrail #-}
@@ -969,7 +1006,8 @@ fromSegments segs = fromLocTrail (OpenTrail (lineFromSegments segs) `at` origin)
 a ~~ b = fromVertices [a,b]
 
 -- XXX not efficient
--- | XXX comment me
+-- | Given a starting location for the first segment and an object
+--   composed of segments, return a list of its 'Located' segments.
 locatedSegments
   :: (InSpace v n t, HasSegments t)
   => Point v n
@@ -1008,7 +1046,8 @@ fromOffsets vs = fromLine (lineFromSegments $ map Linear vs)
 {-# INLINE fromOffsets #-}
 
 -- | Construct a trail-like thing of linear segments from a located
---   list of offsets.
+--   list of offsets.  Like 'fromOffsets', but with a starting
+--   location specified.
 fromLocOffsets :: (InSpace v n t, InSpace v n (v n), Metric v, OrderedField n, FromTrail t) => Located [v n] -> t
 fromLocOffsets = fromLocLine . mapLoc fromOffsets
 
@@ -1059,6 +1098,12 @@ trailLocSegments
   => Located (Trail v n) -> [Located (Segment v n)]
 trailLocSegments t = zipWith at (toListOf segments (unLoc t)) (trailPoints t)
 
+------------------------------------------------------------------------
+
+-- $destruct
+-- Various ways to take lines, loops, or trails and extract
+-- information from them.
+
 -- Points --------------------------------------------------------------
 
 -- | Extract the points of a concretely located trail, /i.e./ the points
@@ -1082,8 +1127,8 @@ trailLocSegments t = zipWith at (toListOf segments (unLoc t)) (trailPoints t)
 --   is a sharp corner, excluding points where the trail is
 --   differentiable, see 'trailVertices'.
 --
---   This function is not re-exported from "Diagrams.Prelude"; to use
---   it, import "Diagrams.Trail".
+--   This function is not re-exported from "Geometry"; to use
+--   it, import "Geometry.Trail".
 trailPoints
   :: (Additive v, Num n)
   => Located (Trail v n) -> [Point v n]
@@ -1102,8 +1147,8 @@ trailPoints (viewLoc -> (p,t))
 --   is a sharp corner, excluding points where the trail is
 --   differentiable, see 'lineVertices'.
 --
---   This function is not re-exported from "Diagrams.Prelude"; to use
---   it, import "Diagrams.Trail".
+--   This function is not re-exported from "Geometry"; to use
+--   it, import "Geometry.Trail".
 linePoints
   :: (Additive v, Num n)
   => Located (Line v n) -> [Point v n]
@@ -1128,14 +1173,15 @@ loopSegments (Loop t c) = (toListOf segments t, c)
 --   is a sharp corner, excluding points where the trail is
 --   differentiable, see 'lineVertices'.
 --
---   This function is not re-exported from "Diagrams.Prelude"; to use
---   it, import "Diagrams.Trail".
+--   This function is not re-exported from "Geometry"; to use
+--   it, import "Geometry.Trail".
 loopPoints
   :: (Additive v, Num n)
   => Located (Loop v n) -> [Point v n]
 loopPoints (viewLoc -> (p,t))
   = segmentPoints p . fst . loopSegments $ t
 
+-- | Internal function to turn a list of segments into a list of vertices.
 segmentPoints :: (Additive v, Num n) => Point v n -> [Segment v n] -> [Point v n]
 segmentPoints p = scanl (.+^) p . map offset
 

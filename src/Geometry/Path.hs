@@ -37,11 +37,8 @@ module Geometry.Path
     -- $construct
 
   , ToPath (..)
-  -- , pathFromTrail
-  -- , pathFromTrailAt
-  -- , pathFromLocTrail
 
-  --   -- * Eliminating paths
+    -- * Eliminating paths
 
   , pathPoints
   , pathVertices'
@@ -50,14 +47,11 @@ module Geometry.Path
   , pathCentroid
   , pathLocSegments, fixPath
 
-  --   -- * Modifying paths
+  , explodePath
+
+   -- * Modifying paths
 
   , scalePath
-  -- , reversePath
-
-  --   -- * Miscellaneous
-
-  , explodePath
   , partitionPath
 
   ) where
@@ -75,7 +69,7 @@ import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Hashable.Lifted
 import           Data.Semigroup
-import           Data.Sequence                      (Seq)
+import           Data.Sequence                      (Seq ((:<|)))
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
 import           Data.Typeable
@@ -85,10 +79,10 @@ import           Text.Show                          (showListWith)
 
 import           Linear
 
+import           Geometry.Direction
 import           Geometry.Envelope
 import           Geometry.Located
 import           Geometry.Points
-import           Geometry.Direction
 import           Geometry.Query
 import           Geometry.Segment
 import           Geometry.Space
@@ -100,7 +94,7 @@ import           Geometry.Transform
 -- Paths
 ------------------------------------------------------------------------
 
--- | A /path/ is a (possibly empty) list of 'Located' 'Trail's.
+-- | A /path/ is a (possibly empty) sequence of 'Located' 'Trail's.
 --   Hence, unlike trails, paths are not translationally invariant,
 --   and they form a monoid under /superposition/ (placing one path on
 --   top of another) rather than concatenation.
@@ -151,7 +145,7 @@ type instance N (Path v n) = n
 instance (Additive v, Num n) => HasOrigin (Path v n) where
   moveOriginTo = over _Path . fmap . moveOriginTo
 
--- | Paths are trail-like; a trail can be used to construct a
+-- | Paths are trail-like; a located trail can be used to construct a
 --   singleton path.
 instance FromTrail (Path v n) where
   fromLocTrail = coerce (Seq.singleton :: Located (Trail v n) -> Seq (Located (Trail v n)))
@@ -247,10 +241,17 @@ instance (Serial1 v, Cereal.Serialize n) => Cereal.Serialize (Path v n) where
 
 -- | Type class for things that can be converted to a 'Path'.
 --
---   Note that this class is different from 'TrailLike'. 'TrailLike' is
---   usually the result of a library function to give you a convenient,
---   polymorphic result ('Path', 'Diagram' etc.). There is overlap in
---   utility but this class allows us to convert things to paths.
+--   Note that this class is different from 'FromTrail'. 'FromTrail'
+--   is usually the result of a library function to give you a
+--   convenient, polymorphic *result* ('Path', 'Diagram'
+--   etc.). 'ToPath' takes a polymorphic *input* and converts it to a
+--   'Path'.  There is necessarily some overlap in utility (for
+--   example, to convert a 'Trail' to a 'Path' one could equivalently
+--   use either 'fromTrail' or 'toPath').
+--
+--   Instances include paths, trails, lines, loops, segments and fixed
+--   segments, 'Located' variants of these, and lists of things that
+--   can be converted to a path.
 --
 class ToPath t where
   -- | Convert something to a 'Path'.
@@ -295,25 +296,6 @@ instance ToPath (FixedSegment v n) where
 instance ToPath a => ToPath [a] where
   toPath = F.foldMap toPath
 
--- -- $construct
--- -- Since paths are 'TrailLike', any function producing a 'TrailLike'
--- -- can be used to construct a (singleton) path.  The functions in this
--- -- section are provided for convenience.
-
--- -- | Convert a trail to a path beginning at the origin.
--- pathFromTrail :: (Metric v, OrderedField n) => Trail v n -> Path v n
--- pathFromTrail = trailLike . (`at` origin)
-
--- -- | Convert a trail to a path with a particular starting point.
--- pathFromTrailAt :: (Metric v, OrderedField n) => Trail v n -> Point v n -> Path v n
--- pathFromTrailAt t p = trailLike (t `at` p)
-
--- -- | Convert a located trail to a singleton path.  This is equivalent
--- --   to 'trailLike', but provided with a more specific name and type
--- --   for convenience.
--- pathFromLocTrail :: (Metric v, OrderedField n) => Located (Trail v n) -> Path v n
--- pathFromLocTrail = trailLike
-
 ------------------------------------------------------------
 --  Eliminating paths  -------------------------------------
 ------------------------------------------------------------
@@ -346,8 +328,8 @@ pathVertices = fmap trailVertices . view _Wrapped'
 --   is a sharp corner, excluding points differentiable points, see
 --   'pathVertices'.
 --
---   This function is not re-exported from "Diagrams.Prelude"; to use
---   it, import "Diagrams.Path".
+--   This function is not re-exported from "Geometry"; to use
+--   it, import "Geometry.Path".
 pathPoints :: (Metric v, OrderedField n) => Path v n -> [[Point v n]]
 pathPoints = fmap trailPoints . view _Wrapped'
 

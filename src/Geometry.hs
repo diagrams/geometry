@@ -71,7 +71,7 @@ import           Geometry.HasOrigin
 import           Geometry.Juxtapose
 import           Geometry.Located
 import           Geometry.Parametric
-import           Geometry.Path
+import           Geometry.Path               hiding (pathPoints)
 import           Geometry.Points
 import           Geometry.Query
 import           Geometry.Segment

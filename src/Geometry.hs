@@ -49,6 +49,7 @@ module Geometry
   , module Geometry.TwoD.Vector
 
     -- * ThreeD
+  , module Geometry.ThreeD.Camera
   , module Geometry.ThreeD.Combinators
   , module Geometry.ThreeD.Size
   , module Geometry.ThreeD.Shapes
@@ -78,6 +79,7 @@ import           Geometry.Segment
 import           Geometry.Size               hiding (SizeSpec (..))
 import           Geometry.Size               (SizeSpec)
 import           Geometry.Space
+import           Geometry.ThreeD.Camera
 import           Geometry.ThreeD.Combinators
 import           Geometry.ThreeD.Shapes
 import           Geometry.ThreeD.Size

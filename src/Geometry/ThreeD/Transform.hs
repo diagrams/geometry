@@ -19,43 +19,53 @@
 -----------------------------------------------------------------------------
 
 module Geometry.ThreeD.Transform
-  -- ( T3
+  ( T3
 
-  --   -- * Rotation
-  -- , aboutX, aboutY, aboutZ
-  -- , rotationAbout, rotateAbout
-  -- -- , pointAt, pointAt'
-  -- , Euler (..)
-  -- , Rotational (..)
+    -- * Rotation
+  , aboutX, aboutY, aboutZ
+  , rotationAbout, rotateAbout
+  , pointAt, pointAt'
 
-  -- -- * Scaling
-  -- , scalingX, scalingY, scalingZ
-  -- , scaleX, scaleY, scaleZ
-  -- , scaling, scale
+    -- ** Euler angles
+  , Euler (..), yaw, pitch, roll
 
-  -- -- * Translation
-  -- , translationX, translateX
-  -- , translationY, translateY
-  -- , translationZ, translateZ
-  -- , translation, translate
+    -- ** Rotational class
+  , Rotational (..)
+  , rotateWith
 
-  --   -- * Reflection
-  -- , reflectionX, reflectX
-  -- , reflectionY, reflectY
-  -- , reflectionZ, reflectZ
-  -- , reflectionAcross, reflectAcross
+  -- * Scaling
+  , scalingX, scalingY, scalingZ
+  , scaleX, scaleY, scaleZ
+  , scaling, scale
 
-  -- ) where
-  where
+  -- * Translation
+  , translationX, translateX
+  , translationY, translateY
+  , translationZ, translateZ
+  , translation, translate
+
+    -- * Reflection
+  , reflectionX, reflectX
+  , reflectionY, reflectY
+  , reflectionZ, reflectZ
+  , reflectionAcross, reflectAcross
+
+  ) where
 
 import           Geometry.Angle
+import           Geometry.Direction
+import           Geometry.Points
 import           Geometry.Space
 import           Geometry.ThreeD.Types
 import           Geometry.Transform
+import           Geometry.TwoD.Transform
 
-import           Control.Lens          hiding (transform)
+import           Control.Lens            hiding (transform)
+import           Data.Functor.Rep
+import           Data.Semigroup
 
-import           Linear.Matrix         hiding (translation)
+import           Linear                  (cross, dot, signorm)
+import           Linear.Matrix           hiding (translation)
 import           Linear.Quaternion
 import           Linear.Vector
 
@@ -73,61 +83,61 @@ import           Linear.Vector
 --   Note that writing @aboutZ (1\/4)@, with no type annotation, will
 --   yield an error since GHC cannot figure out which sort of angle
 --   you want to use.
--- aboutZ :: Floating n => Angle n -> T3 n
--- aboutZ a = fromOrthogonal $
---   V3 (V3 c    s 0)
---      (V3 (-s) c 0)
---      (V3 0    0 1)
---   where s = sinA a; c = cosA a
+aboutZ :: Floating n => Angle n -> T3 n
+aboutZ a = fromOrthogonal $
+  V3 (V3 c    s 0)
+     (V3 (-s) c 0)
+     (V3 0    0 1)
+  where s = sinA a; c = cosA a
 
 -- | Like 'aboutZ', but rotates about the X axis, bringing positive y-values
 -- towards the positive z-axis.
--- aboutX :: Floating n => Angle n -> T3 n
--- aboutX a = fromOrthogonal $
---   V3 (V3 1   0  0)
---      (V3 0   c  s)
---      (V3 0 (-s) c)
---   where s = sinA a; c = cosA a
+aboutX :: Floating n => Angle n -> T3 n
+aboutX a = fromOrthogonal $
+  V3 (V3 1   0  0)
+     (V3 0   c  s)
+     (V3 0 (-s) c)
+  where s = sinA a; c = cosA a
 
 -- | Like 'aboutZ', but rotates about the Y axis, bringing postive
 -- x-values towards the negative z-axis.
--- aboutY :: Floating n => Angle n -> T3 n
--- aboutY a = fromOrthogonal $
---   V3 (V3 c 0 (-s))
---      (V3 0 1   0 )
---      (V3 s 0   c )
---   where s = sinA a; c = cosA a
+aboutY :: Floating n => Angle n -> T3 n
+aboutY a = fromOrthogonal $
+  V3 (V3 c 0 (-s))
+     (V3 0 1   0 )
+     (V3 s 0   c )
+  where s = sinA a; c = cosA a
 
 -- | @rotationAbout p d a@ is a rotation about a line parallel to @d@
 --   passing through @p@.
--- rotationAbout
---   :: Floating n
---   => P3 n               -- ^ origin of rotation
---   -> Direction V3 n     -- ^ direction of rotation axis
---   -> Angle n            -- ^ angle of rotation
---   -> T3 n
--- rotationAbout (P p) d a = conjugate (translation p) (axisRotation d a)
+rotationAbout
+  :: Floating n
+  => P3 n               -- ^ origin of rotation
+  -> Direction V3 n     -- ^ direction of rotation axis
+  -> Angle n            -- ^ angle of rotation
+  -> T3 n
+rotationAbout (P p) d a = conjugate (translation p) (axisRotation d a)
 
--- axisRotation :: Floating n => Direction V3 n -> Angle n -> T3 n
--- axisRotation d a = fromOrthogonal $
---   V3 (V3 (t*x*x + c)   (t*x*y - z*s) (t*x*z + y*s))
---      (V3 (t*x*y + z*s) (t*y*y + c)   (t*y*z - x*s))
---      (V3 (t*x*z - y*s) (t*y*z + x*s) (t*z*z + c))
---   where
---   c = cosA a
---   s = sinA a
---   t = 1 - c
---   V3 x y z = fromDirection d
+axisRotation :: Floating n => Direction V3 n -> Angle n -> T3 n
+axisRotation d a = fromOrthogonal $
+  V3 (V3 (t*x*x + c)   (t*x*y - z*s) (t*x*z + y*s))
+     (V3 (t*x*y + z*s) (t*y*y + c)   (t*y*z - x*s))
+     (V3 (t*x*z - y*s) (t*y*z + x*s) (t*z*z + c))
+  where
+  c = cosA a
+  s = sinA a
+  t = 1 - c
+  V3 x y z = fromDirection d
 
--- | @rotationAbout p d a@ is a rotation about a line parallel to @d@
---   passing through @p@.
--- rotateAbout
---   :: (InSpace V3 n t, Floating n, Transformable t)
---   => P3 n            -- ^ origin of rotation
---   -> Direction V3 n  -- ^ direction of rotation axis
---   -> Angle n         -- ^ angle of rotation
---   -> t -> t
--- rotateAbout p d theta = transform (rotationAbout p d theta)
+-- | @rotateAbout p d a@ rotates about a line parallel to @d@ passing
+--   through @p@.
+rotateAbout
+  :: (InSpace V3 n t, Floating n, Transformable t)
+  => P3 n            -- ^ origin of rotation
+  -> Direction V3 n  -- ^ direction of rotation axis
+  -> Angle n         -- ^ angle of rotation
+  -> t -> t
+rotateAbout p d theta = transform (rotationAbout p d theta)
 
 -- | @pointAt about initial final@ produces a rotation which brings
 -- the direction @initial@ to point in the direction @final@ by first
@@ -136,28 +146,28 @@ import           Linear.Vector
 -- without tilting, it will be, otherwise if only tilting is
 -- necessary, no panning will occur.  The tilt will always be between
 -- ± 1/4 turn.
--- pointAt :: Floating n
---         => Direction V3 n -> Direction V3 n -> Direction V3 n
---         -> Transformation V3 n
--- pointAt a i f = pointAt' (fromDirection a) (fromDirection i) (fromDirection f)
+pointAt :: Floating n
+        => Direction V3 n -> Direction V3 n -> Direction V3 n
+        -> Transformation V3 n
+pointAt a i f = pointAt' (fromDirection a) (fromDirection i) (fromDirection f)
 
 -- | pointAt' has the same behavior as 'pointAt', but takes vectors
 -- instead of directions.
--- pointAt' :: Floating n => V3 n -> V3 n -> V3 n -> Transformation V3 n
--- pointAt' about initial final = pointAtUnit (signorm about) (signorm initial) (signorm final)
+pointAt' :: Floating n => V3 n -> V3 n -> V3 n -> Transformation V3 n
+pointAt' about initial final = pointAtUnit (signorm about) (signorm initial) (signorm final)
 
 -- | pointAtUnit has the same behavior as @pointAt@, but takes unit vectors.
--- pointAtUnit :: Floating n => V3 n -> V3 n -> V3 n -> Transformation V3 n
--- pointAtUnit about initial final = tilt <> pan where
---   -- rotating u by (signedAngle rel u v) about rel gives a vector in the direction of v
---   signedAngle rel u v = signum (cross u v `dot` rel) *^ angleBetween u v
---   inPanPlaneF = final ^-^ project about final
---   inPanPlaneI = initial ^-^ project about initial
---   panAngle    = signedAngle about inPanPlaneI inPanPlaneF
---   pan         = rotationAbout origin (direction about) panAngle
---   tiltAngle   = signedAngle tiltAxis (transform pan initial) final
---   tiltAxis    = cross final about
---   tilt        = rotationAbout origin (direction tiltAxis) tiltAngle
+pointAtUnit :: Floating n => V3 n -> V3 n -> V3 n -> Transformation V3 n
+pointAtUnit about initial final = tilt <> pan where
+  -- rotating u by (signedAngle rel u v) about rel gives a vector in the direction of v
+  signedAngle rel u v = signum (cross u v `dot` rel) *^ angleBetween u v
+  inPanPlaneF = final ^-^ project about final
+  inPanPlaneI = initial ^-^ project about initial
+  panAngle    = signedAngle about inPanPlaneI inPanPlaneF
+  pan         = rotationAbout origin (direction about) panAngle
+  tiltAngle   = signedAngle tiltAxis (transform pan initial) final
+  tiltAxis    = cross final about
+  tilt        = rotationAbout origin (direction tiltAxis) tiltAngle
 
 -- Scaling -------------------------------------------------
 
@@ -208,21 +218,20 @@ reflectZ = transform reflectionZ
 --   the point @p@ and normal to vector @v@. This also works as a 2D
 --   transform where @v@ is the normal to the line passing through point
 --   @p@.
--- reflectionAcross :: (Metric v, Fractional n)
---   => Point v n -> v n -> Transformation v n
--- reflectionAcross = undefined -- p v
-  -- conjugate (translation (origin .-. p)) reflect
-  --   where
-  --     reflect = fromLinear t (linv t)
-  --     t       = f v <-> f (negated v)
-  --     f u w   = w ^-^ 2 *^ project u w
+reflectionAcross :: (HasLinearMap v, Fractional n)
+  => Point v n -> v n -> Transformation v n
+reflectionAcross p v =
+  conjugate (translation (origin .-. p)) reflect
+    where
+      reflect = fromLinear (f v) (f (negated v))
+      f u     = eye & fmapRep (\w -> w ^-^ 2 *^ project u w)
 
 -- | @reflectAcross p v@ reflects a diagram across the plane though
 --   the point @p@ and the vector @v@. This also works as a 2D transform
 --   where @v@ is the normal to the line passing through point @p@.
--- reflectAcross :: (InSpace v n t, Metric v, Fractional n, Transformable t)
---   => Point v n -> v n -> t -> t
--- reflectAcross p v = transform (reflectionAcross p v)
+reflectAcross :: (InSpace v n t, HasLinearMap v, Transformable t, Fractional n)
+  => Point v n -> v n -> t -> t
+reflectAcross p v = transform (reflectionAcross p v)
 
 -- | Things representing 3D rotations.
 class Rotational t where
@@ -305,12 +314,6 @@ e2q (Euler y p r) = Quaternion qw (V3 qx qy qz)
     cr = cosA (0.5*^r)
     sr = sinA (0.5*^r)
 {-# INLINE e2q #-}
-
-clamp :: Ord n => n -> n -> n -> n
-clamp a b x
-  | x < a     = a
-  | x > b     = b
-  | otherwise = x
 
 instance Rotational Euler where
   euler = iso id id -- stupid redundant constraint checker

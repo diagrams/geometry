@@ -1,17 +1,18 @@
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.Core.V
+-- Module      :  Geometry.Space
 -- Copyright   :  (c) 2011-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- Type family for identifying associated vector spaces.
+-- Type families for identifying associated vector spaces.
 --
 -----------------------------------------------------------------------------
 
@@ -19,7 +20,7 @@ module Geometry.Space
   ( -- * Type families
     V, N
 
-  -- * Type symomyms
+    -- * Type symomyms
   , Vn
   , InSpace, SameSpace
   , HasLinearMap
@@ -28,21 +29,21 @@ module Geometry.Space
   ) where
 
 import           Control.Monad.ST
-import           Data.Map
-import           Data.Sequence
-import           Data.Tree
-import           Data.IntMap
+import           Data.Functor.Rep
 import           Data.HashMap.Lazy
+import           Data.IntMap
+import           Data.Map
 import           Data.Monoid.Coproduct
 import           Data.Monoid.Deletable
 import           Data.Monoid.Split
 import           Data.Semigroup
+import           Data.Sequence
 import           Data.Set
-import           Data.Functor.Rep
+import           Data.Tree
 
-import           Linear.Vector
-import           Linear.Metric
 import           Linear.Affine
+import           Linear.Metric
+import           Linear.Vector
 
 ------------------------------------------------------------------------
 -- Vector spaces
@@ -50,9 +51,10 @@ import           Linear.Affine
 
 -- | Many sorts of objects have an associated vector space in which
 --   they \"live\".  The type function @V@ maps from object types to
---   the associated vector space. The resulting vector space has kind @* -> *@
---   which means it takes another value (a number) and returns a concrete
---   vector. For example 'V2' has kind @* -> *@ and @V2 Double@ is a vector.
+--   the associated vector space. The resulting vector space has kind
+--   @* -> *@ which means it takes another type (representing the type
+--   of scalars) and returns a concrete vector type. For example 'V2'
+--   has kind @* -> *@ and @V2 Double@ represents a vector.
 type family V a :: * -> *
 
 -- Note, to use these instances one often needs a constraint of the form
@@ -77,7 +79,8 @@ type instance V (Deletable m) = V m
 type instance V (Split m)     = V m
 type instance V (m :+: n)     = V m
 
--- | The numerical field for the object, the number type used for calculations.
+-- | N represents the numeric scalar type used for the vector space of
+--   an object.
 type family N a :: *
 
 type instance N (a,b)   = N a
@@ -102,33 +105,28 @@ type instance N (m :+: n)     = N m
 
 -- | Conveient type alias to retrieve the vector type associated with an
 --   object's vector space. This is usually used as @Vn a ~ v n@ where @v@ is
---   the vector space and @n@ is the numerical field.
+--   the vector space and @n@ is the scalar type.
 type Vn a = V a (N a)
 
 -- | @InSpace v n a@ means the type @a@ belongs to the vector space @v n@,
---   where @v@ is 'Additive' and @n@ is a 'Num'.
-class (V a ~ v, N a ~ n, Additive v, Num n) => InSpace v n a
-instance (V a ~ v, N a ~ n, Additive v, Num n) => InSpace v n a
+--   where @v@ is 'Additive' and @n@ is 'Num'.
+type InSpace v n a = (V a ~ v, N a ~ n, Additive v, Num n)
 
 -- | @SameSpace a b@ means the types @a@ and @b@ belong to the same
 --   vector space @v n@.
-class (V a ~ V b, N a ~ N b) => SameSpace a b
-instance (V a ~ V b, N a ~ N b) => SameSpace a b
+type SameSpace a b = (V a ~ V b, N a ~ N b)
 
 -- Symonyms ------------------------------------------------------------
 
--- | 'HasLinearMap' is a poor man's class constraint synonym, just to
---   help shorten some of the ridiculously long constraint sets.
-class (Metric v, HasBasis v, Traversable v) => HasLinearMap v
-instance (Metric v, HasBasis v, Traversable v) => HasLinearMap v
+-- | 'HasLinearMap' is a constraint synonym provided to help shorten
+--   some of the ridiculously long constraint sets.
+type HasLinearMap v = (Metric v, HasBasis v, Traversable v)
 
 -- | An 'Additive' vector space whose representation is made up of basis elements.
-class (Additive v, Representable v, Rep v ~ E v) => HasBasis v
-instance (Additive v, Representable v, Rep v ~ E v) => HasBasis v
+type HasBasis v = (Additive v, Representable v, Rep v ~ E v)
 
 -- | When dealing with envelopes we often want scalars to be an
 --   ordered field (i.e. support all four arithmetic operations and be
 --   totally ordered) so we introduce this class as a convenient
 --   shorthand.
-class (Floating s, Ord s) => OrderedField s
-instance (Floating s, Ord s) => OrderedField s
+type OrderedField s = (Floating s, Ord s)

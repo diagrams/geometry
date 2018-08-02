@@ -3,7 +3,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Diagrams.ThreeD.Size
+-- Module      :  Geometry.ThreeD.Size
 -- Copyright   :  (c) 2014-2017 diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
@@ -13,21 +13,21 @@
 -----------------------------------------------------------------------------
 module Geometry.ThreeD.Size
   (
-    -- ** Computing sizes
+    -- * Computing sizes
     extentX, extentY, extentZ
 
-    -- ** Specifying sizes
+    -- * Specifying sizes
   , mkSizeSpec3D
   , dims3D
 
   ) where
 
-import           Geometry.Space
 import           Geometry.Envelope
 import           Geometry.Size
-import           Geometry.TwoD.Size
+import           Geometry.Space
 import           Geometry.ThreeD.Types
 import           Geometry.ThreeD.Vector
+import           Geometry.TwoD.Size
 
 ------------------------------------------------------------
 -- Computing geometry sizes

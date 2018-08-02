@@ -23,10 +23,10 @@
 --
 -----------------------------------------------------------------------------
 module Geometry.Size
-  ( -- * Size spec
+  ( -- * Size specs
     SizeSpec (..)
 
-    -- ** Making size spec
+    -- ** Making size specs
   , mkSizeSpec
   , dims
   , absolute
@@ -143,7 +143,7 @@ sized :: (InSpace v n a, HasLinearMap v, Transformable a, Enveloped a)
 sized spec a = transform (requiredScaling spec (size a)) a
 
 -- | Uniformly scale an enveloped object so that it \"has the same
---   size as\" (fits within the width and height of) some other
+--   size as\" (fits within the bounding box of) some other
 --   object.
 sizedAs :: (InSpace v n a, SameSpace a b, HasLinearMap v, Transformable a,
             Enveloped a, Enveloped b)

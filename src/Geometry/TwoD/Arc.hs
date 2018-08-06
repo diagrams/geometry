@@ -1,7 +1,7 @@
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ViewPatterns     #-}
 {-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE ViewPatterns     #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.TwoD.Arc
@@ -29,17 +29,18 @@ module Geometry.TwoD.Arc
   ) where
 
 import           Geometry.Angle
-import           Geometry.Transform
-import           Geometry.Space
 import           Geometry.Direction
 import           Geometry.Located        (at)
 import           Geometry.Segment
+import           Geometry.Space
 import           Geometry.Trail
+import           Geometry.Transform
 import           Geometry.TwoD.Transform
 import           Geometry.TwoD.Types
-import           Geometry.TwoD.Vector    (unitX, unitY, unit_Y, e)
+import           Geometry.TwoD.Vector    (e, unitX, unitY, unit_Y)
 
-import           Control.Lens            ((&), (<>~), (^.), over, each, reversing)
+import           Control.Lens            (each, over, reversing, (&), (<>~),
+                                          (^.))
 import           Data.Semigroup          ((<>))
 
 import           Linear.Affine
@@ -50,9 +51,9 @@ import           Linear.Vector
 --   http://www.tinaja.com/glib/bezcirc2.pdf
 
 -- | @bezierFromSweepQ1 s@ constructs a 'Cubic' segment that starts in
---  the positive y direction and sweeps counterclockwise through an
---  angle @s@.  The approximation is only valid for angles in the
---  first quadrant.
+--   the positive y direction and sweeps counterclockwise through an
+--   angle @s@.  The approximation is only valid for angles in the
+--   first quadrant.
 bezierFromSweepQ1 :: Floating n => Angle n -> Segment V2 n
 bezierFromSweepQ1 s = over each (^-^ unitX) . rotate (s ^/ 2) $ bezier3 c2 c1 p0
   where p0@(V2 x y) = e (s ^/ 2)

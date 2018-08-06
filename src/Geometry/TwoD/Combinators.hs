@@ -36,7 +36,7 @@ module Geometry.TwoD.Combinators
 
     -- * Centering
   , centerX, centerY, centerXY
-  , snugCenterX, snugCenterY, snugCenterXY
+  , snugCenterX, snugCenterY
 
 
   ) where
@@ -55,9 +55,9 @@ import           Geometry.TwoD.Vector
 infixl 6 ===
 infixl 6 |||
 
--- | Place two diagrams (or other objects) vertically adjacent to one
---   another, with the first diagram above the second.  Since Haskell
---   ignores whitespace in expressions, one can thus write
+-- | Place two objects vertically adjacent to one another, with the
+--   first object above the second.  Since Haskell ignores whitespace
+--   in expressions, one can even write
 --
 --   @
 --       c
@@ -66,7 +66,7 @@ infixl 6 |||
 --   @
 --
 --   to place @c@ above @d@.  The local origin of the resulting
---   combined diagram is the same as the local origin of the first.
+--   combined object is the same as the local origin of the first.
 --   @(===)@ is associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
 (===) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
@@ -74,7 +74,7 @@ infixl 6 |||
 
 -- | Place two diagrams (or other juxtaposable objects) horizontally
 --   adjacent to one another, with the first diagram to the left of
---   the second.  The local origin of the resulting combined diagram
+--   the second.  The local origin of the resulting combined object
 --   is the same as the local origin of the first.  @(|||)@ is
 --   associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
@@ -111,7 +111,7 @@ hsepEven = sepEven unitX
 --   bottom, so that their local origins lie along a single vertical
 --   line, with successive envelopes tangent to one another.
 --
---   * To align the diagrams horizontally (or otherwise), use alignment
+--   * To align the objects horizontally (or otherwise), use alignment
 --     combinators (such as 'alignL' or 'alignR') before applying
 --     'vcat'.
 --
@@ -137,7 +137,7 @@ vsepEven = sepEven unit_Y
 -- Alignment
 ------------------------------------------------------------------------
 
--- | Align along the left edge, i.e. translate the diagram in a
+-- | Align along the left edge, /i.e./ translate the object in a
 --   horizontal direction so that the local origin is on the left edge
 --   of the envelope.
 alignL :: (InSpace V2 n a, Enveloped a, HasOrigin a) => a -> a
@@ -146,40 +146,53 @@ alignL = align unit_X
 snugL :: (InSpace V2 n a, Fractional n, Traced a, HasOrigin a) => a -> a
 snugL = snug unit_X
 
--- | Align along the right edge.
+-- | Align along the right edge, /i.e./ translate so the origin is on
+--   the right edge of the envelope.
 alignR
   :: (InSpace V2 n a, Enveloped a, HasOrigin a)
   => a -> a
 alignR = align unitX
 
+-- | Translate so the origin is on the right edge of the trace.
 snugR
   :: (InSpace V2 n a, Fractional n, Traced a, HasOrigin a)
   => a -> a
 snugR = snug unitX
 
-
--- | Align along the top edge.
+-- | Align along the top edge, /i.e./ translate so the origin is on
+--   the top edge of the envelope.
 alignT
   :: (InSpace V2 n a, Enveloped a, HasOrigin a)
   => a -> a
 alignT = align unitY
 
+-- | Translate so the origin is on the top edge of the trace.
 snugT
   :: (InSpace V2 n a, Fractional n, Traced a, HasOrigin a)
   => a -> a
 snugT = snug unitY
 
--- | Align along the bottom edge.
+-- | Align along the bottom edge, /i.e./ translate so the origin is on
+--   the bottom edge of the envelope.
 alignB
   :: (InSpace V2 n a, Enveloped a, HasOrigin a)
   => a -> a
 alignB = align unit_Y
 
+-- | Translate so the origin is on the bottom edge of the trace.
 snugB
   :: (InSpace V2 n a, Fractional n, Traced a, HasOrigin a)
   => a -> a
 snugB = snug unit_Y
 
+-- | 'alignTL' performs 'alignL' and 'alignT' (the order does not
+--   matter; any two alignments commute).  Note that this is not the
+--   same as aligning along a diagonal vector.  In general it leaves
+--   the origin at the "top left corner" of the object.  'alignTR',
+--   'alignBL', and 'alignBR' are similar.  No similar @snugXX@
+--   functions are provided since unlike alignments via an envelope,
+--   snug operations (/i.e./ alignments via a trace) do not commute in
+--   general.
 alignTL, alignTR, alignBL, alignBR
   :: (InSpace V2 n a, Enveloped a, HasOrigin a)
   => a -> a
@@ -225,36 +238,42 @@ snugY
   => n -> a -> a
 snugY = snugBy unitY
 
--- | Center the local origin along the X-axis.
+-- | Center the local origin along the X-axis, relative to the
+--   envelope.
 centerX
   :: (InSpace v n a, R1 v, Enveloped a, HasOrigin a)
   => a -> a
 centerX = alignBy unitX 0
 
+-- | Center the local origin along the X-axis, relative to the trace.
+--   That is, take a horizontal slice of the object through the local
+--   origin, and center the local origin along that slice.
 snugCenterX
   :: (InSpace v n a, R1 v, Fractional n, Traced a, HasOrigin a)
   => a -> a
 snugCenterX = snugBy unitX 0
 
--- | Center the local origin along the Y-axis.
+-- | Center the local origin along the Y-axis, relative to the
+-- envelope.
 centerY
   :: (InSpace v n a, R2 v, Enveloped a, HasOrigin a)
   => a -> a
 centerY = alignBy unitY 0
 
+-- | Center the local origin along the Y-axis, relative to the trace.
+--   That is, take a vertical slice of the object through the local
+--   origin, and center the local origin along that slice.
 snugCenterY
   :: (InSpace v n a, R2 v, Fractional n, Traced a, HasOrigin a)
   => a -> a
 snugCenterY = snugBy unitY 0
 
--- | Center along both the X- and Y-axes.
+-- | Center along both the X- and Y-axes, relative to the envelope.
+--
+--   (Note: no corresponding 'snugCenterXY' is provided since it is
+--   not well-defined; different results would be obtained depending
+--   on which axis we centered along first.)
 centerXY
   :: (InSpace v n a, R2 v, Enveloped a, HasOrigin a)
   => a -> a
 centerXY = centerX . centerY
-
-snugCenterXY
-  :: (InSpace v n a, R2 v, Fractional n, Traced a, HasOrigin a)
-  => a -> a
-snugCenterXY = snugCenterX . snugCenterY
-

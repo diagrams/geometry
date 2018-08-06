@@ -78,6 +78,7 @@ pattern P4 x y z w = P (V4 x y z w)
 {-# COMPLETE P4 #-}
 #endif
 
+-- | Reflect a point through the origin.
 mirror :: (Additive v, Num n) => Point v n -> Point v n
 mirror = reflectThrough origin
 

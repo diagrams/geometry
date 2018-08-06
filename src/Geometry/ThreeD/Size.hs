@@ -39,11 +39,11 @@ import           Geometry.TwoD.Size
 extentZ :: (InSpace v n a, R3 v, Enveloped a) => a -> Maybe (n, n)
 extentZ = extent unitZ
 
--- | Make a 'SizeSpec' from possibly-specified width and height.
+-- | Make a 3D 'SizeSpec' from possibly-specified width, height, and depth.
 mkSizeSpec3D :: Num n => Maybe n -> Maybe n -> Maybe n -> SizeSpec V3 n
 mkSizeSpec3D x y z = mkSizeSpec (V3 x y z)
 
--- | Make a 'SizeSpec' from a width and height.
+-- | Make a 3D 'SizeSpec' from a width, height, and depth.
 dims3D :: n -> n -> n -> SizeSpec V3 n
 dims3D x y z = dims (V3 x y z)
 

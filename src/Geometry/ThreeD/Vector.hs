@@ -16,17 +16,17 @@ module Geometry.ThreeD.Vector
 
 import           Control.Lens          ((&), (.~))
 
+import           Geometry.Direction
 import           Geometry.ThreeD.Types
 import           Geometry.TwoD.Vector
-import           Geometry.Direction
 
 import           Linear.Vector
 
--- | The unit vector in the positive Y direction.
+-- | The unit vector in the positive Z direction.
 unitZ :: (R3 v, Additive v, Num n) => v n
 unitZ = zero & _z .~ 1
 
--- | The unit vector in the negative X direction.
+-- | The unit vector in the negative Z direction.
 unit_Z :: (R3 v, Additive v, Num n) => v n
 unit_Z = zero & _z .~ (-1)
 

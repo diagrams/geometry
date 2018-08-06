@@ -16,7 +16,7 @@
 --
 -- Affine transformations, parameterized by any vector space.  For
 -- transformations on particular vector spaces, see /e.g./
--- "Diagrams.TwoD.Transform".
+-- "Geometry.TwoD.Transform" and "Geometry.ThreeD.Transform".
 --
 -----------------------------------------------------------------------------
 
@@ -148,7 +148,7 @@ showMatrix = liftShowsPrec showsPrec1 (liftShowList showsPrec showList)
 type instance V (Transformation v n) = v
 type instance N (Transformation v n) = n
 
--- | Identity matrix.
+-- | The identity matrix.
 eye :: (HasBasis v, Num n) => v (v n)
 eye = tabulate $ \(E e) -> zero & e .~ 1
 {-# INLINE eye #-}
@@ -163,7 +163,7 @@ transl :: Transformation v n -> v n
 transl (T _ _ v) = v
 {-# INLINE transl #-}
 
--- | Get the translational component of a transformation.
+-- | Get the matrix transpose of (the linear part of) a transformation.
 transp :: Distributive v => Transformation v n -> v (v n)
 transp (T m _ _) = distribute m
 {-# INLINE transp #-}
@@ -174,6 +174,11 @@ dropTransl :: (Additive v, Num n) => Transformation v n -> Transformation v n
 dropTransl (T a a' _) = T a a' zero
 {-# INLINE dropTransl #-}
 
+-- | Append (/i.e./ compose) two transformations. Satisfies the law
+--
+-- @
+-- 'transform' (t1 `tappend` t2) a === 'transform' t1 ('transform' t2 a)
+-- @
 tappend :: (Additive v, Foldable v, Num n)
         => Transformation v n -> Transformation v n -> Transformation v n
 tappend (T m1 m1Inv v1) (T m2 m2Inv v2)
@@ -181,6 +186,7 @@ tappend (T m1 m1Inv v1) (T m2 m2Inv v2)
 {-# SPECIALIZE INLINE tappend :: Transformation V2 Double -> Transformation V2 Double -> Transformation V2 Double #-}
 {-# SPECIALIZE INLINE tappend :: Transformation V3 Double -> Transformation V3 Double -> Transformation V3 Double #-}
 
+-- | The empty, /i.e./ identity transformation.
 tempty :: (HasBasis v, Num n) => Transformation v n
 tempty = T eye eye zero
 {-# INLINE tempty #-}
@@ -266,12 +272,14 @@ fromLinear :: (Additive v, Num n) => v (v n) -> v (v n) -> Transformation v n
 fromLinear l1 l2 = T l1 l2 zero
 {-# INLINE fromLinear #-}
 
--- | An involuted linear map is one whose inverse is its self.
+-- | Create a transformation from an involuted linear map, /i.e./ one
+--   whose inverse is itself.
 fromInvoluted :: (Additive v, Num n) => v (v n) -> Transformation v n
 fromInvoluted m = fromLinear m m
 {-# INLINE fromInvoluted #-}
 
--- | An orthogonal linear map is one whose inverse is also its transpose.
+-- | Create a transformation from an orthogonal linear map, /i.e./ one
+--   one whose inverse is also its transpose.
 fromOrthogonal :: (Additive v, Distributive v, Num n) => v (v n) -> Transformation v n
 fromOrthogonal t = fromLinear t (transpose t)
 {-# INLINE fromOrthogonal #-}
@@ -322,23 +330,23 @@ det m = sum [(-1)^i * (c1 !! i) * det (minor i 0 m) | i <- [0 .. (n-1)]]
 listRep :: Foldable v => v n -> [n]
 listRep = toList
 
--- | Convert the linear part of a `Transformation` to a matrix
+-- | Convert the linear part of a 'Transformation' to a matrix
 --   representation as a list of column vectors which are also lists.
 matrixRep :: (Additive v, Traversable v, Num n) => Transformation v n -> [[n]]
 matrixRep (T m _ _) = map (toList . (m !*)) basis
 
--- | Convert a `Transformation v` to a homogeneous matrix representation.
---   The final list is the translation.
---   The representation leaves off the last row of the matrix as it is
---   always [0,0, ... 1] and this representation is the defacto standard
---   for backends.
+-- | Convert a @'Transformation' v@ to a homogeneous matrix
+--   representation.  The final list is the translation.  The
+--   representation leaves off the last row of the matrix as it is
+--   always [0,0, ... 1] and this representation is the de facto
+--   standard for backends.
 matrixHomRep :: (Additive v, Traversable v, Num n) => Transformation v n -> [[n]]
 matrixHomRep t = mr ++ [toList tl]
   where
     mr = matrixRep t
     tl = transl t
 
--- | The determinant of (the linear part of) a `Transformation`.
+-- | The determinant of (the linear part of) a 'Transformation'.
 determinant :: (Additive v, Traversable v, Num n) => Transformation v n -> n
 determinant = det . matrixRep
 {-# NOINLINE determinant #-}
@@ -349,7 +357,7 @@ determinant = det . matrixRep
   "det44" determinant = \(T m _ _) -> det44 m;
  #-}
 
--- | Determine whether a `Transformation` includes a reflection
+-- | Determine whether a 'Transformation' includes a reflection
 --   component, that is, whether it reverses orientation.
 isReflection :: (Additive v, Traversable v, Num n, Ord n) => Transformation v n -> Bool
 isReflection = (<0) . determinant
@@ -418,13 +426,14 @@ instance (SameSpace s t, SameSpace t u, Transformable t, Transformable s, Transf
                         , transform t z
                         )
 
--- Transform functions by conjugation. That is, reverse-transform argument and
--- forward-transform result. Intuition: If someone shrinks you, you see your
--- environment enlarged. If you rotate right, you see your environment
--- rotating left. Etc. This technique was used extensively in Pan for modular
--- construction of image filters. Works well for curried functions, since all
--- arguments get inversely transformed.
-
+-- | Functions can be transformed by conjugation. That is,
+--   reverse-transform the argument and forward-transform the
+--   result. Intuition: If someone shrinks you, you see your
+--   environment enlarged. If you rotate right, you see your
+--   environment rotating left. Etc. This technique was used
+--   extensively in Pan for modular construction of image
+--   filters. Works well for curried functions, since all arguments
+--   get inversely transformed.
 instance ( InSpace v n s, SameSpace s t, Foldable v, Num n
          , Transformable t, Transformable s)
          => Transformable (s -> t) where
@@ -492,7 +501,8 @@ scaling :: (HasBasis v, Fractional n) => n -> Transformation v n
 scaling s = fromLinear (fmap (s *^) eye) (fmap (^/ s) eye)
 {-# INLINE scaling #-}
 
--- | Create a uniform scaling transformation.
+-- | Create a transformation from a vector specifying the scaling
+--   factor along each dimension.
 scalingV :: (HasLinearMap v, Fractional n) => v n -> Transformation v n
 scalingV s = fromLinear (scaled s) (scaled $ fmap recip s)
 {-# INLINE scalingV #-}
@@ -500,11 +510,11 @@ scalingV s = fromLinear (scaled s) (scaled $ fmap recip s)
 -- | Scale uniformly in every dimension by the given scalar.
 scale :: (InSpace v n a, HasBasis v, Eq n, Fractional n, Transformable a)
       => n -> a -> a
-scale 0 = error "scale by zero!  Halp!"  -- XXX what should be done here?
 scale s = transform $ scaling s
 {-# INLINE scale #-}
 
--- | Scale uniformly in every dimension by the given scalar.
+-- | Scale by a given factor along each dimension, as specified by the
+--   given vector.
 scaleV :: (InSpace v n a, HasLinearMap v, Fractional n, Transformable a)
        => v n -> a -> a
 scaleV s = transform $ scalingV s

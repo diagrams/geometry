@@ -68,12 +68,10 @@ import           Linear.Vector
 
 -- > traceEx = mkTraceDia def
 
--- | Every diagram comes equipped with a /trace/.  Intuitively, the
---   trace for a diagram is like a raytracer: given a line
+-- | A trace for a given object is like a raytracer: given a ray
 --   (represented as a base point and a direction vector), the trace
---   computes a sorted list of signed distances from the base point to
---   all intersections of the line with the boundary of the
---   diagram.
+--   computes a list of signed distances from the base point to all
+--   intersections of the ray with the boundary of the object.
 --
 --   Note that the outputs are not absolute distances, but multipliers
 --   relative to the input vector.  That is, if the base point is @p@
@@ -81,6 +79,8 @@ import           Linear.Vector
 --   @s@, then there is an intersection at the point @p .+^ (s *^ v)@.
 --
 --   <<diagrams/src_Diagrams_Core_Trace_traceEx.svg#diagram=traceEx&width=200>>
+--
+--   Traces form a semigroup with pointwise minimum as composition.
 
 newtype Trace v n = Trace { appTrace :: Point v n -> v n -> Seq n }
   deriving (Semigroup, Monoid)
@@ -98,10 +98,6 @@ mkTrace :: (Point v n -> v n -> Seq n) -> Trace v n
 mkTrace = Trace
 {-# INLINE mkTrace #-}
 
--- | Traces form a semigroup with pointwise minimum as composition.
---   Hence, if @t1@ is the trace for diagram @d1@, and
---   @e2@ is the trace for @d2@, then @e1 \`mappend\` e2@
---   is the trace for @d1 \`atop\` d2@.
 instance (Additive v, Num n) => HasOrigin (Trace v n) where
   moveOriginTo (P u) = _Wrapping' Trace %~ \f p -> f (p .+^ u)
 
@@ -117,6 +113,12 @@ instance (Additive v, Foldable v, Num n) => Transformable (Trace v n) where
 ------------------------------------------------------------------------
 
 -- | @Traced@ abstracts over things which have a trace.
+--
+--   If @a@ is also a 'Semigroup' then 'getTrace' must satisfy the law
+--
+-- @
+-- 'getTrace' (a1 <> a2) = 'getTrace' a1 <> 'getTrace' a2
+-- @
 class (Additive (V a), Ord (N a)) => Traced a where
 
   -- | Compute the trace of an object.
@@ -217,7 +219,7 @@ maxTraceP p v a = (p .+^) <$> maxTraceV p v a
 -- | Get a modified 'Trace' for an object which only returns positive
 --   boundary points, /i.e./ those boundary points given by a positive
 --   scalar multiple of the direction vector.  Note, this property
---   will be destroyed if the resulting 'Trace' is translated at all.
+--   may be destroyed if the resulting 'Trace' is translated at all.
 getRayTrace :: (InSpace v n a, Traced a) => a -> Trace v n
 getRayTrace = \a -> Trace $ \p v -> Seq.filter (>=0) $ appTrace (getTrace a) p v
 {-# INLINE getRayTrace #-}

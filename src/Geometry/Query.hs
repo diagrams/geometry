@@ -28,13 +28,11 @@ module Geometry.Query
 
 import           Data.Monoid
 
--- import           Control.Applicative
 import           Control.Lens
 import           Data.Distributive
 import           Data.Functor.Rep
 import           Data.Profunctor
--- import           Data.Profunctor.Closed
-import qualified Data.Profunctor.Rep    as P
+import qualified Data.Profunctor.Rep   as P
 import           Data.Profunctor.Sieve
 import           Data.Semigroup
 
@@ -42,8 +40,8 @@ import           Linear.Affine
 import           Linear.Vector
 
 import           Geometry.HasOrigin
-import           Geometry.Transform
 import           Geometry.Space
+import           Geometry.Transform
 
 ------------------------------------------------------------------------
 -- Queries
@@ -116,7 +114,7 @@ instance (Additive v, Foldable v, Num n) => Transformable (Query v n m) where
   transform t = queryPoint %~ papply (inv t)
   {-# INLINE transform #-}
 
--- | Types which can answer a 'Query' about points inquire the geometric
+-- | Types which can answer a 'Query' about points inside the geometric
 --   object.
 --
 --   If @t@ and @m@ are both a 'Semigroup's, 'getQuery' should satisfy

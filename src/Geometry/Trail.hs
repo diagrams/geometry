@@ -599,8 +599,17 @@ instance (Additive v, Num n) => EndValues (Loop v n) where
   atStart = const zero
   atEnd = const zero
 
+
 instance (Additive v, Num n) => Reversing (Loop v n) where
   reversing = glueLine . reversing . cutLoop
+
+instance (Additive v, Num n) => TangentEndValues (Loop v n) where
+  tangentAtStart = \case
+    Loop (s :< _) _ -> tangentAtStart s
+    _               -> zero
+  {-# INLINE tangentAtStart #-}
+  tangentAtEnd (Loop line c) = tangentAtEnd $ closingSegment (offset line) c
+  {-# INLINE tangentAtEnd #-}
 
 ------------------------------------------------------------------------
 -- Trail type

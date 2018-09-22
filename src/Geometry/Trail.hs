@@ -159,7 +159,6 @@ import           Linear.V2
 import           Linear.V3
 import           Linear.Vector
 
-
 import           Geometry.Direction
 import           Geometry.Envelope
 import           Geometry.Located
@@ -338,7 +337,7 @@ instance OrderedField n => Traced (Line V2 n) where
   getTrace = \l -> Trace (\p v -> lineTrace l p v)
   {-# INLINE getTrace #-}
 
-instance (Additive v, Num n, Foldable v) => Transformable (Line v n) where
+instance (Additive v, Foldable v, Num n) => Transformable (Line v n) where
   {-# SPECIALISE instance Transformable (Line V2 Double) #-}
   {-# SPECIALISE instance Transformable (Line V3 Double) #-}
   transform t (Line ss o) = Line (transform t ss) (apply t o)
@@ -547,7 +546,7 @@ instance OrderedField n => HasQuery (Loop V2 n) Crossings where
   getQuery l = Query (loopCrossings l)
   {-# INLINE getQuery #-}
 
-instance (Metric v, OrderedField n, Foldable v) => Transformable (Loop v n) where
+instance (Metric v, Foldable v, Num n) => Transformable (Loop v n) where
   {-# SPECIALISE instance Transformable (Loop V2 Double) #-}
   transform t (Loop l c) = Loop (transform t l) (transform t c)
 
@@ -855,7 +854,7 @@ instance (Additive v, Num n) => AsEmpty (Trail v n) where
   _Empty = nearly (OpenTrail Empty) (\case OpenTrail Empty -> True; _ -> False)
   {-# INLINE _Empty #-}
 
-instance (Metric v, Foldable v, OrderedField n) => Transformable (Trail v n) where
+instance (Metric v, Foldable v, Num n) => Transformable (Trail v n) where
   {-# SPECIALISE instance Transformable (Trail V2 Double) #-}
   transform t (OpenTrail l)   = OpenTrail (transform t l)
   transform t (ClosedTrail l) = ClosedTrail (transform t l)

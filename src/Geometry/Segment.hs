@@ -744,7 +744,7 @@ instance Show1 v => Show1 (ClosingSegment v) where
 instance (Show1 v, Show n) => Show (ClosingSegment v n) where
   showsPrec = showsPrec1
 
-instance (Metric v, Foldable v, OrderedField n) => Transformable (ClosingSegment v n) where
+instance (Metric v, Foldable v, Num n) => Transformable (ClosingSegment v n) where
   transform t (CubicClosing c1 c2) = CubicClosing (apply t c1) (apply t c2)
   transform _ LinearClosing        = LinearClosing
   {-# INLINE transform #-}

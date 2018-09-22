@@ -340,7 +340,7 @@ lineTrace = \l p v -> traceOf segments origin l p v
 {-# SPECIALIZE lineTrace :: Line V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
 instance OrderedField n => Traced (Line V2 n) where
-  getTrace = \l -> Trace (\p v -> lineTrace l p v)
+  getTrace = Trace . lineTrace
   {-# INLINE getTrace #-}
 
 instance (Additive v, Foldable v, Num n) => Transformable (Line v n) where

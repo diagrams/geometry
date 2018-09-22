@@ -146,11 +146,14 @@ import           Data.Functor.Classes
 import           Data.Functor.Contravariant         (phantom)
 import           Data.Hashable
 import           Data.Hashable.Lifted
+import           Data.Monoid.Action
 import           Data.Semigroup
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
 import           Data.Traversable                   (mapAccumL)
+import           Geometry.Angle
+import           Geometry.TwoD.Transform
 import           Numeric.Interval.NonEmpty.Internal
 
 import           Linear.Affine
@@ -246,6 +249,9 @@ instance (Additive v, Num n) => Monoid (Line v n) where
   {-# INLINE mappend #-}
   mempty = Line mempty zero
   {-# INLINE mempty #-}
+
+instance Floating n => Action (Angle n) (Line V2 n) where
+  act = rotate
 
 lineSeq :: Lens' (Line v n) (Seq (Segment v n))
 lineSeq f (Line s o) = f s <&> \s' -> Line s' o
@@ -525,6 +531,9 @@ loopCrossings = \(Loop (Line l o) cs) q ->
         Pair a c -> c + segmentCrossings q a (closingSegment o cs)
 {-# NOINLINE loopCrossings #-}
 
+instance Floating n => Action (Angle n) (Loop V2 n) where
+  act = rotate
+
 data LCD = LCD !Crossings !Double !Double
 
 mkP2 :: a -> a -> Point V2 a
@@ -646,6 +655,9 @@ instance (Additive v, Num n) => Semigroup (Trail v n) where
 instance (Additive v, Num n) => Monoid (Trail v n) where
   mempty = Empty
   mappend = (<>)
+
+instance Floating n => Action (Angle n) (Trail V2 n) where
+  act = rotate
 
 -- | Convert a 'Line' into a 'Trail'.
 wrapLine :: Line v n -> Trail v n

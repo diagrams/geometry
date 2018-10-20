@@ -290,8 +290,8 @@ reflectAbout p v = transform (reflectionAbout p v)
 shearingX :: Num n => n -> T2 n
 shearingX d =
   fromLinear
-    (V2 (V2 1   d)  (V2 1 0))
-    (V2 (V2 1 (-d)) (V2 1 0))
+    (V2 (V2 1   d)  (V2 0 1))
+    (V2 (V2 1 (-d)) (V2 0 1))
 {-# INLINE shearingX #-}
 
 -- | @shearX d@ performs a shear in the x-direction which sends
@@ -305,8 +305,8 @@ shearX = transform . shearingX
 shearingY :: Num n => n -> T2 n
 shearingY d =
   fromLinear
-    (V2 (V2 1 0) (V2 d    0))
-    (V2 (V2 1 0) (V2 (-d) 0))
+    (V2 (V2 1 0) (V2 d    1))
+    (V2 (V2 1 0) (V2 (-d) 1))
 {-# INLINE shearingY #-}
 
 -- | @shearY d@ performs a shear in the y-direction which sends
@@ -314,4 +314,3 @@ shearingY d =
 shearY :: (InSpace V2 n t, Transformable t) => n -> t -> t
 shearY = transform . shearingY
 {-# INLINE shearY #-}
-

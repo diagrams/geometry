@@ -35,7 +35,6 @@ module Geometry.ThreeD.Combinators
   , centerX, centerY, centerZ
   , centerXY, centerXZ, centerYZ, centerXYZ
   , snugCenterX, snugCenterY, snugCenterZ
-  , snugCenterXY, snugCenterXZ, snugCenterYZ, snugCenterXYZ
 
   ) where
 
@@ -118,20 +117,10 @@ snugCenterZ = snugBy unitZ 0
 centerXZ :: (InSpace v n a, R3 v, Enveloped a, HasOrigin a) => a -> a
 centerXZ = centerX . centerZ
 
-snugCenterXZ :: (InSpace v n a, R3 v, Enveloped a, HasOrigin a, Traced a) => a -> a
-snugCenterXZ = snugCenterX . snugCenterZ
-
 -- | Center along both the Y- and Z-axes.
 centerYZ :: (InSpace v n a, R3 v, Enveloped a, HasOrigin a) => a -> a
 centerYZ = centerZ . centerY
 
-snugCenterYZ :: (InSpace v n a, R3 v, Enveloped a, HasOrigin a, Traced a) => a -> a
-snugCenterYZ = snugCenterZ . snugCenterY
-
 -- | Center an object in three dimensions.
 centerXYZ :: (InSpace v n a, R3 v, Enveloped a, HasOrigin a) => a -> a
 centerXYZ = centerX . centerY . centerZ
-
-snugCenterXYZ :: (InSpace v n a, R3 v, Enveloped a, HasOrigin a, Traced a) => a -> a
-snugCenterXYZ = snugCenterX . snugCenterY . snugCenterZ
-

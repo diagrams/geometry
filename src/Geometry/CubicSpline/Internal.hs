@@ -75,11 +75,11 @@ cubicSplineLoopFromTangents vv off dv = Loop line close
       c2 = (2*^alpha^+^ beta)^/3
       --
       alpha = x
-      beta  = 3*^v ^-^ 2*^x ^-^ x'
+      beta  = 3*^vn ^-^ 2*^x ^-^ x'
       --
       x' = dv V.! 0
       x  = dv V.! n
-      v  = off
+      vn = negated off
 
 {-# SPECIALISE
   cubicSplineLoopFromTangents :: U.Vector (V2 Double) -> V2 Double -> U.Vector (V2 Double) -> Loop V2 Double

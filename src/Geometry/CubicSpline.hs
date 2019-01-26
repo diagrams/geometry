@@ -129,7 +129,7 @@ cubicSplineLoopVec vs
   where
   n   = V.length vs
   off = V.foldl' (^+^) zero vs
-  dv  = cubicSplineLoopTangents vs off
+  dv  = cubicSplineLoopTangents vs (negated off)
 {-# INLINE cubicSplineLoopVec #-}
 
 -- | See 'cubicSpline'.

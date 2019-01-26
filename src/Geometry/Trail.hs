@@ -146,11 +146,14 @@ import           Data.Functor.Classes
 import           Data.Functor.Contravariant         (phantom)
 import           Data.Hashable
 import           Data.Hashable.Lifted
+import           Data.Monoid.Action
 import           Data.Semigroup
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
 import           Data.Traversable                   (mapAccumL)
+import           Geometry.Angle
+import           Geometry.TwoD.Transform
 import           Numeric.Interval.NonEmpty.Internal
 
 import           Linear.Affine
@@ -158,7 +161,6 @@ import           Linear.Metric
 import           Linear.V2
 import           Linear.V3
 import           Linear.Vector
-
 
 import           Geometry.Direction
 import           Geometry.Envelope
@@ -248,6 +250,9 @@ instance (Additive v, Num n) => Monoid (Line v n) where
   mempty = Line mempty zero
   {-# INLINE mempty #-}
 
+instance Floating n => Action (Angle n) (Line V2 n) where
+  act = rotate
+
 lineSeq :: Lens' (Line v n) (Seq (Segment v n))
 lineSeq f (Line s o) = f s <&> \s' -> Line s' o
 {-# INLINE lineSeq #-}
@@ -335,10 +340,10 @@ lineTrace = \l p v -> traceOf segments origin l p v
 {-# SPECIALIZE lineTrace :: Line V2 Double -> Point V2 Double -> V2 Double -> Seq Double #-}
 
 instance OrderedField n => Traced (Line V2 n) where
-  getTrace = \l -> Trace (\p v -> lineTrace l p v)
+  getTrace = Trace . lineTrace
   {-# INLINE getTrace #-}
 
-instance (Additive v, Num n, Foldable v) => Transformable (Line v n) where
+instance (Additive v, Foldable v, Num n) => Transformable (Line v n) where
   {-# SPECIALISE instance Transformable (Line V2 Double) #-}
   {-# SPECIALISE instance Transformable (Line V3 Double) #-}
   transform t (Line ss o) = Line (transform t ss) (apply t o)
@@ -526,6 +531,9 @@ loopCrossings = \(Loop (Line l o) cs) q ->
         Pair a c -> c + segmentCrossings q a (closingSegment o cs)
 {-# NOINLINE loopCrossings #-}
 
+instance Floating n => Action (Angle n) (Loop V2 n) where
+  act = rotate
+
 data LCD = LCD !Crossings !Double !Double
 
 mkP2 :: a -> a -> Point V2 a
@@ -547,7 +555,7 @@ instance OrderedField n => HasQuery (Loop V2 n) Crossings where
   getQuery l = Query (loopCrossings l)
   {-# INLINE getQuery #-}
 
-instance (Metric v, OrderedField n, Foldable v) => Transformable (Loop v n) where
+instance (Metric v, Foldable v, Num n) => Transformable (Loop v n) where
   {-# SPECIALISE instance Transformable (Loop V2 Double) #-}
   transform t (Loop l c) = Loop (transform t l) (transform t c)
 
@@ -599,8 +607,17 @@ instance (Additive v, Num n) => EndValues (Loop v n) where
   atStart = const zero
   atEnd = const zero
 
+
 instance (Additive v, Num n) => Reversing (Loop v n) where
   reversing = glueLine . reversing . cutLoop
+
+instance (Additive v, Num n) => TangentEndValues (Loop v n) where
+  tangentAtStart = \case
+    Loop (s :< _) _ -> tangentAtStart s
+    _               -> zero
+  {-# INLINE tangentAtStart #-}
+  tangentAtEnd (Loop line c) = tangentAtEnd $ closingSegment (offset line) c
+  {-# INLINE tangentAtEnd #-}
 
 ------------------------------------------------------------------------
 -- Trail type
@@ -638,6 +655,9 @@ instance (Additive v, Num n) => Semigroup (Trail v n) where
 instance (Additive v, Num n) => Monoid (Trail v n) where
   mempty = Empty
   mappend = (<>)
+
+instance Floating n => Action (Angle n) (Trail V2 n) where
+  act = rotate
 
 -- | Convert a 'Line' into a 'Trail'.
 wrapLine :: Line v n -> Trail v n
@@ -846,7 +866,7 @@ instance (Additive v, Num n) => AsEmpty (Trail v n) where
   _Empty = nearly (OpenTrail Empty) (\case OpenTrail Empty -> True; _ -> False)
   {-# INLINE _Empty #-}
 
-instance (Metric v, Foldable v, OrderedField n) => Transformable (Trail v n) where
+instance (Metric v, Foldable v, Num n) => Transformable (Trail v n) where
   {-# SPECIALISE instance Transformable (Trail V2 Double) #-}
   transform t (OpenTrail l)   = OpenTrail (transform t l)
   transform t (ClosedTrail l) = ClosedTrail (transform t l)

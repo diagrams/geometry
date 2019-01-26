@@ -662,28 +662,43 @@ paramsTangentTo (V2 tx ty) (Cubic (V2 x1 y1) (V2 x2 y2) (V2 x3 y3)) =
       c = tx*y1 - ty*x1
 paramsTangentTo _ (Linear {}) = []
 
+-- | Split a 'Sectionable' up at the given parameters and return each
+--   segment, in order.
 splitAtParams :: (InSpace v n t, Ord n, Fractional n, Sectionable t) => t -> [n] -> [t]
 splitAtParams t = unsafeSplitAtParams t . nub . sort . filter (\x -> x >= 0 && x < 1)
-
--- splitAtParams
---   :: (Metric v, OrderedField n) => Segment v n -> [n] -> [Segment v n]
--- splitAtParams = go 1 where
---   go !_ seg []     = [seg]
---   go t0 seg (t:ts) = s1 : go t' s2 ts
---     where
---       (s1,s2) = seg `splitAtParam` (t - t0)
---       t' = (t - t0) / (1 - t0)
 
 -- | Split a sectionable between a list of times. The list should be
 --   sorted, distinct and between 0 and 1.
 unsafeSplitAtParams :: (InSpace v n t, Fractional n, Sectionable t) => t -> [n] -> [t]
 unsafeSplitAtParams seg0 ts0 = build $ \(|>) z ->
   let go !_ seg []     = seg |> z
-      go t0 seg (t:ts) = s1 |> go t' s2 ts
+      go t0 seg (t:ts) = s1 |> go t s2 ts
         where
-          (s1,s2) = seg `splitAtParam` (t - t0)
+          -- We want to split where t would lie on the original segment
+          -- [0,1] and the partial segment @seg@ we've got to split
+          -- corresponds to [t0,1] of the original segment. To get the
+          -- new parameter we shift back to the origin (-t0) and rescale
+          -- (* 1/(1-t0)).
+          --
+          -- seg0
+          -- [-----|----------|-------------]
+          -- 0     t0         t             1
+          --
+          -- seg
+          --       [----------|-------------]
+          --       t0         t             1
+          --
+          -- seg shifted
+          -- [----------|-------------]
+          -- 0        t - t0        1 - t0
+          --
+          -- seg scaled
+          -- [---------------|--------------]
+          -- 0      (t - t0) / (1 - t0)     1
+          --
           t' = (t - t0) / (1 - t0)
-  in go 1 seg0 ts0
+          (s1,s2) = seg `splitAtParam` t'
+  in go 0 seg0 ts0
   -- does fusion actually help here?
   -- would probably be better if ts was given as a (unboxed) vector
 
@@ -744,7 +759,7 @@ instance Show1 v => Show1 (ClosingSegment v) where
 instance (Show1 v, Show n) => Show (ClosingSegment v n) where
   showsPrec = showsPrec1
 
-instance (Metric v, Foldable v, OrderedField n) => Transformable (ClosingSegment v n) where
+instance (Metric v, Foldable v, Num n) => Transformable (ClosingSegment v n) where
   transform t (CubicClosing c1 c2) = CubicClosing (apply t c1) (apply t c2)
   transform _ LinearClosing        = LinearClosing
   {-# INLINE transform #-}

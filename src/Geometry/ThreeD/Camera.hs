@@ -47,6 +47,7 @@ module Geometry.ThreeD.Camera
   -- , aspect, camAspect
   , camForwardRight
   , camForward
+  , camUp
   , cameraLens
   )
   where
@@ -207,6 +208,9 @@ camForwardRight cam = (fw, V3 cy 0 (-sy))
     sp = sinA p
     cp = cosA p
 {-# INLINE camForwardRight #-}
+
+camUp :: RealFloat n => Lens' (Camera l n) (V3 n)
+camUp f (Camera loc angle up l) = f up <&> \up' -> Camera loc angle up' l
 
 camForward :: RealFloat n => Lens' (Camera l n) (V3 n)
 camForward f cam = f (fst $ camForwardRight cam) <&> \v ->

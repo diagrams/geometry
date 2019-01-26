@@ -85,7 +85,7 @@ library
     intervals,
     lens,
     linear,
-    monoid-extras > 0.5,
+    monoid-extras,
     profunctors,
     unordered-containers,
     vector

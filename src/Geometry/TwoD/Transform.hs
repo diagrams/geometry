@@ -152,7 +152,7 @@ scalingX c =
     (eye & _x . _x //~ c)
 {-# INLINE scalingX #-}
 
--- | Scale a diagram by the given factor in the x (horizontal)
+-- | Scale an object by the given factor in the x (horizontal)
 --   direction.  To scale uniformly, use 'scale'.
 scaleX :: (InSpace v n t, HasBasis v, R1 v, Fractional n, Transformable t) => n -> t -> t
 scaleX = transform . scalingX
@@ -167,39 +167,39 @@ scalingY c =
     (eye & _y . _y //~ c)
 {-# INLINE scalingY #-}
 
--- | Scale a diagram by the given factor in the y (vertical)
+-- | Scale an object by the given factor in the y (vertical)
 --   direction.  To scale uniformly, use 'scale'.
 scaleY :: (InSpace v n t, HasBasis v, R2 v, Fractional n, Transformable t)
   => n -> t -> t
 scaleY = transform . scalingY
 {-# INLINE scaleY #-}
 
--- | @scaleToX w@ scales a diagram in the x (horizontal) direction by
+-- | @scaleToX w@ scales an object in the x (horizontal) direction by
 --   whatever factor required to make its width @w@.  @scaleToX@
---   should not be applied to diagrams with a width of 0, such as
+--   should not be applied to objects with a width of 0, such as
 --   'vrule'.
 scaleToX :: (InSpace v n t, HasBasis v, R1 v, Enveloped t, Transformable t) => n -> t -> t
 scaleToX w d = scaleX (w / diameter unitX d) d
 {-# INLINE scaleToX #-}
 
--- | @scaleToY h@ scales a diagram in the y (vertical) direction by
+-- | @scaleToY h@ scales an object in the y (vertical) direction by
 --   whatever factor required to make its height @h@.  @scaleToY@
---   should not be applied to diagrams with a height of 0, such as
+--   should not be applied to objects with a height of 0, such as
 --   'hrule'.
 scaleToY :: (InSpace v n t, HasBasis v, R2 v, Enveloped t, Transformable t) => n -> t -> t
 scaleToY h d = scaleY (h / diameter unitY d) d
 {-# INLINE scaleToY #-}
 
--- | @scaleUToX w@ scales a diagram /uniformly/ by whatever factor
+-- | @scaleUToX w@ scales an object /uniformly/ by whatever factor
 --   required to make its width @w@.  @scaleUToX@ should not be
---   applied to diagrams with a width of 0, such as 'vrule'.
+--   applied to objects with a width of 0, such as 'vrule'.
 scaleUToX :: (InSpace v n t, HasBasis v, R1 v, Enveloped t, Transformable t) => n -> t -> t
 scaleUToX w d = scale (w / diameter unitX d) d
 {-# INLINE scaleUToX #-}
 
--- | @scaleUToY h@ scales a diagram /uniformly/ by whatever factor
+-- | @scaleUToY h@ scales an object /uniformly/ by whatever factor
 --   required to make its height @h@.  @scaleUToY@ should not be applied
---   to diagrams with a height of 0, such as 'hrule'.
+--   to objects with a height of 0, such as 'hrule'.
 scaleUToY :: (InSpace v n t, HasBasis v, R2 v, Enveloped t, Transformable t) => n -> t -> t
 scaleUToY h d = scale (h / diameter unitY d) d
 {-# INLINE scaleUToY #-}
@@ -212,7 +212,7 @@ translationX :: (HasBasis v, R1 v, Num n) => n -> Transformation v n
 translationX x = translation (zero & _x .~ x)
 {-# INLINE translationX #-}
 
--- | Translate a diagram by the given distance in the x (horizontal)
+-- | Translate an object by the given distance in the x (horizontal)
 --   direction.
 translateX :: (InSpace v n t, HasBasis v, R1 v, Transformable t) => n -> t -> t
 translateX = transform . translationX
@@ -224,7 +224,7 @@ translationY :: (HasBasis v, R2 v, Num n) => n -> Transformation v n
 translationY y = translation (zero & _y .~ y)
 {-# INLINE translationY #-}
 
--- | Translate a diagram by the given distance in the y (vertical)
+-- | Translate an object by the given distance in the y (vertical)
 --   direction.
 translateY :: (InSpace v n t, HasBasis v, R2 v, Transformable t)
   => n -> t -> t
@@ -233,37 +233,37 @@ translateY = transform . translationY
 
 -- Reflection ----------------------------------------------
 
--- | Construct a transformation which flips a diagram from left to
+-- | Construct a transformation which flips an object from left to
 --   right, i.e. sends the point (x,y) to (-x,y).
 reflectionX :: (HasBasis v, R1 v, Num n) => Transformation v n
 reflectionX = fromInvoluted (eye & _x . _x .~ -1) -- (V2 (V2 (-1) 0) (V2 0 1))
 {-# INLINE reflectionX #-}
 
--- | Flip a diagram from left to right, i.e. send the point (x,y) to
+-- | Flip an object from left to right, i.e. send the point (x,y) to
 --   (-x,y).
 reflectX :: (InSpace v n t, HasBasis v, R1 v, Transformable t) => t -> t
 reflectX = transform reflectionX
 {-# INLINE reflectX #-}
 
--- | Construct a transformation which flips a diagram from top to
+-- | Construct a transformation which flips an object from top to
 --   bottom, i.e. sends the point (x,y) to (x,-y).
 reflectionY :: (HasBasis v, R2 v, Num n) => Transformation v n
 reflectionY = fromInvoluted (eye & _y . _y .~ -1) -- (V2 (V2 1 0) (V2 0 (-1)))
 {-# INLINE reflectionY #-}
 
--- | Flip a diagram from top to bottom, i.e. send the point (x,y) to
+-- | Flip an object from top to bottom, i.e. send the point (x,y) to
 --   (x,-y).
 reflectY :: (InSpace v n t, HasBasis v, R2 v, Transformable t) => t -> t
 reflectY = transform reflectionY
 {-# INLINE reflectY #-}
 
--- | Construct a transformation which flips the diagram about x=y, i.e.
---   sends the point (x,y) to (y,x).
+-- | Construct a transformation which flips the object about the line \(x=y\), i.e.
+--   sends the point \((x,y)\) to \((y,x)\).
 reflectionXY :: Num n => Transformation V2 n
 reflectionXY = fromInvoluted (V2 (V2 0 1) (V2 1 0))
 {-# INLINE reflectionXY #-}
 
--- | Flips the diagram about x=y, i.e. send the point (x,y) to (y,x).
+-- | Flips the object about x=y, i.e. send the point (x,y) to (y,x).
 reflectXY :: (InSpace V2 n t, Transformable t) => t -> t
 reflectXY = transform reflectionXY
 {-# INLINE reflectXY #-}
@@ -276,7 +276,7 @@ reflectionAbout p d =
             reflectionY
 {-# INLINE reflectionAbout #-}
 
--- | @reflectAbout p d@ reflects a diagram in the line determined by
+-- | @reflectAbout p d@ reflects an object in the line determined by
 --   the point @p@ and direction @d@.
 reflectAbout :: (InSpace V2 n t, OrderedField n, Transformable t)
              => P2 n -> Direction V2 n -> t -> t

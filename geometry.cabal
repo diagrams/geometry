@@ -1,18 +1,27 @@
 name:                geometry
 version:             0.1.0.0
--- synopsis:            
--- description:         
+synopsis:            Generic library for describing and manipulating 2- and 3-dimensional
+                     geometry.
+description:         This library consists of all the purely geometric
+                     definitions used in the diagrams vector graphics EDSL, split out into
+                     their own package for easier reuse in other projects.
+homepage:            https://diagrams.github.io
 license:             BSD3
 license-file:        LICENSE
 author:              Christopher Chalmers
-maintainer:          c.chalmers@me.com
--- copyright:           
--- category:            
+maintainer:          diagrams-discuss@googlegroups.com
+bug-reports:         https://github.com/diagrams/geometry/issues
+category:            Graphics
 build-type:          Simple
 extra-source-files:  ChangeLog.md
-cabal-version:       >=1.10
-
+cabal-version:       1.18
+extra-source-files:  ChangeLog.md, README.md, diagrams/*.svg
+extra-doc-files:     diagrams/*.svg
 tested-with: GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
+
+source-repository head
+  type:     git
+  location: http://github.com/diagrams/geometry.git
 
 library
   exposed-modules:
@@ -60,7 +69,6 @@ library
     Geometry.TwoD.Transform
     Geometry.TwoD.Types
     Geometry.TwoD.Vector
-  -- other-modules:       
   other-extensions:
     BangPatterns DeriveFunctor EmptyDataDecls FlexibleContexts
     FlexibleInstances GADTs GeneralizedNewtypeDeriving
@@ -71,7 +79,7 @@ library
     DefaultSignatures DataKinds LambdaCase DeriveDataTypeable
     ConstraintKinds TypeSynonymInstances
   build-depends:
-    base,
+    base >= 4.6 && < 4.13,
     adjunctions,
     array,
     binary,

@@ -14,13 +14,9 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- @diagrams-core@ defines the core library of primitives
--- forming the basis of an embedded domain-specific language for
--- describing and rendering diagrams.
---
 -- The @Trace@ module defines a data type and type class for
 -- \"traces\", aka functional boundaries, essentially corresponding to
--- embedding a raytracer with each diagram.
+-- a raytracer.
 --
 -----------------------------------------------------------------------------
 

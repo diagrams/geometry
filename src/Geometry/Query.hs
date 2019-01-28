@@ -141,7 +141,7 @@ inquire :: HasQuery t Any => t -> Point (V t) (N t) -> Bool
 inquire t = getAny . sample t
 {-# INLINE inquire #-}
 
--- | Sample a diagram's query function at a given point.
+-- | Sample an object's query function at a given point.
 --
 -- @
 -- 'sample' :: 'QDiagram' b v n m -> 'Point' v n -> m

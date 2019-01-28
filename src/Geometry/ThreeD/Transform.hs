@@ -180,7 +180,7 @@ scalingZ c =
     (eye & _z . _z //~ c)
 {-# INLINE scalingZ #-}
 
--- | Scale a diagram by the given factor in the z direction.  To scale
+-- | Scale an object by the given factor in the z direction.  To scale
 -- uniformly, use 'scale'.
 scaleZ :: (InSpace v n t, HasBasis v, R3 v, Fractional n, Transformable t) => n -> t -> t
 scaleZ = transform . scalingZ
@@ -194,7 +194,7 @@ translationZ :: (HasBasis v, R3 v, Num n) => n -> Transformation v n
 translationZ z = translation (zero & _z .~ z)
 {-# INLINE translationZ #-}
 
--- | Translate a diagram by the given distance in the y
+-- | Translate an object by the given distance in the y
 --   direction.
 translateZ :: (InSpace v n t, HasBasis v, R3 v, Transformable t) => n -> t -> t
 translateZ = transform . translationZ
@@ -202,14 +202,14 @@ translateZ = transform . translationZ
 
 -- Reflection ----------------------------------------------
 
--- | Construct a transformation which flips a diagram across z=0,
--- i.e. sends the point (x,y,z) to (x,y,-z).
+-- | Construct a transformation which flips an object across the line \(z=0\),
+--   i.e. sends the point \((x,y,z)\) to \((x,y,-z)\).
 reflectionZ :: (HasBasis v, R3 v, Num n) => Transformation v n
 reflectionZ = fromInvoluted $ eye & _z . _z .~ (-1)
 {-# INLINE reflectionZ #-}
 
--- | Flip a diagram across z=0, i.e. send the point (x,y,z) to
--- (x,y,-z).
+-- | Flip an object across the line \(z=0\), i.e. send the point \((x,y,z)\) to
+--   \((x,y,-z)\).
 reflectZ :: (InSpace v n t, HasBasis v, R3 v, Transformable t) => t -> t
 reflectZ = transform reflectionZ
 {-# INLINE reflectZ #-}
@@ -226,7 +226,7 @@ reflectionAcross p v =
       reflect = fromLinear (f v) (f (negated v))
       f u     = eye & fmapRep (\w -> w ^-^ 2 *^ project u w)
 
--- | @reflectAcross p v@ reflects a diagram across the plane though
+-- | @reflectAcross p v@ reflects an object across the plane though
 --   the point @p@ and the vector @v@. This also works as a 2D transform
 --   where @v@ is the normal to the line passing through point @p@.
 reflectAcross :: (InSpace v n t, HasLinearMap v, Transformable t, Fractional n)

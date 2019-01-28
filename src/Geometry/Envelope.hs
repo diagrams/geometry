@@ -41,7 +41,8 @@ module Geometry.Envelope
 #if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative                ((<$>))
 #endif
-import           Control.Lens                       (op, _Just, (//~), both, review)
+import           Control.Lens                       (both, op, review, (//~),
+                                                     _Just)
 import qualified Data.Map                           as M
 import           Data.Maybe                         (fromMaybe)
 import           Data.Semigroup
@@ -50,8 +51,8 @@ import           Linear.Metric
 import           Numeric.Interval.NonEmpty.Internal
 
 import           Geometry.BoundingBox
-import           Geometry.HasOrigin
 import           Geometry.Direction
+import           Geometry.HasOrigin
 import           Geometry.Points
 import           Geometry.Space
 import           Geometry.Transform
@@ -86,9 +87,9 @@ import           Linear
 --   'Interval') representing the extent of the object along the
 --   direction @d@.  In particular, \(l\) is the largest value such that
 --   for any \(l' < l\), @origin .+^ (l' *^ fromDirection d)@ lies
---   outside the diagram.  Likewise, \(h\) is the smallest value such
+--   outside the object.  Likewise, \(h\) is the smallest value such
 --   that for any \(h' > h\), @origin .+^ (h' *^ fromDirection d)@ lies
---   outside the diagram.
+--   outside the object.
 --
 --   There is also a special \"empty envelope\".
 --

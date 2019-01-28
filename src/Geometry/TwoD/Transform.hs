@@ -234,25 +234,25 @@ translateY = transform . translationY
 -- Reflection ----------------------------------------------
 
 -- | Construct a transformation which flips an object from left to
---   right, i.e. sends the point (x,y) to (-x,y).
+--   right, i.e. sends the point \((x,y)\) to \((-x,y)\).
 reflectionX :: (HasBasis v, R1 v, Num n) => Transformation v n
 reflectionX = fromInvoluted (eye & _x . _x .~ -1) -- (V2 (V2 (-1) 0) (V2 0 1))
 {-# INLINE reflectionX #-}
 
--- | Flip an object from left to right, i.e. send the point (x,y) to
---   (-x,y).
+-- | Flip an object from left to right, i.e. send the point \((x,y)\) to
+--   \((-x,y)\).
 reflectX :: (InSpace v n t, HasBasis v, R1 v, Transformable t) => t -> t
 reflectX = transform reflectionX
 {-# INLINE reflectX #-}
 
 -- | Construct a transformation which flips an object from top to
---   bottom, i.e. sends the point (x,y) to (x,-y).
+--   bottom, i.e. sends the point \((x,y)\) to \((x,-y)\).
 reflectionY :: (HasBasis v, R2 v, Num n) => Transformation v n
 reflectionY = fromInvoluted (eye & _y . _y .~ -1) -- (V2 (V2 1 0) (V2 0 (-1)))
 {-# INLINE reflectionY #-}
 
--- | Flip an object from top to bottom, i.e. send the point (x,y) to
---   (x,-y).
+-- | Flip an object from top to bottom, i.e. send the point \((x,y)\) to
+--   \((x,-y)\).
 reflectY :: (InSpace v n t, HasBasis v, R2 v, Transformable t) => t -> t
 reflectY = transform reflectionY
 {-# INLINE reflectY #-}
@@ -263,7 +263,7 @@ reflectionXY :: Num n => Transformation V2 n
 reflectionXY = fromInvoluted (V2 (V2 0 1) (V2 1 0))
 {-# INLINE reflectionXY #-}
 
--- | Flips the object about x=y, i.e. send the point (x,y) to (y,x).
+-- | Flips the object about x=y, i.e. send the point \((x,y)\) to \((y,x)\).
 reflectXY :: (InSpace V2 n t, Transformable t) => t -> t
 reflectXY = transform reflectionXY
 {-# INLINE reflectXY #-}

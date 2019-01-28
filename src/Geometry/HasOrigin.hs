@@ -22,8 +22,8 @@ module Geometry.HasOrigin
   , place
   ) where
 
-import qualified Data.Map              as M
-import qualified Data.Set              as S
+import qualified Data.Map       as M
+import qualified Data.Set       as S
 
 import           Geometry.Space
 
@@ -53,7 +53,7 @@ class HasOrigin t where
   --   Note that this function is in some sense dual to 'translate'
   --   (for types which are also 'Transformable'); moving the origin
   --   itself while leaving the object \"fixed\" is dual to fixing the
-  --   origin and translating the diagram.
+  --   origin and translating the object.
   moveOriginTo :: Point (V t) (N t) -> t -> t
 
 -- | Move the local origin by a relative vector.

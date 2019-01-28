@@ -15,7 +15,6 @@
 
 module Geometry.TwoD.Ellipse
     (
-      -- * Ellipse and circle diagrams
       unitCircle
     , circle
     , ellipse

@@ -1,11 +1,11 @@
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE ViewPatterns          #-}
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.Combinators
@@ -13,7 +13,7 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- Higher-level tools for combining diagrams.
+-- Higher-level tools for combining geometric objects.
 --
 -----------------------------------------------------------------------------
 
@@ -48,24 +48,24 @@ module Geometry.Combinators
 
   ) where
 
-import           Data.Monoid.WithSemigroup
-import           Data.Maybe (fromMaybe)
-import           Data.Semigroup
-import           Data.Foldable (foldl')
+import           Control.Lens              ((&))
 import           Control.Lens.Cons
-import           Control.Lens ((&))
+import           Data.Foldable             (foldl')
+import           Data.Maybe                (fromMaybe)
+import           Data.Monoid.WithSemigroup
+import           Data.Semigroup
 
 import           Geometry.Direction
-import           Geometry.Juxtapose
-import           Geometry.Trace
 import           Geometry.Envelope
+import           Geometry.Juxtapose
 import           Geometry.Space
+import           Geometry.Trace
 import           Geometry.Transform
 
 import           Linear.Affine
 import           Linear.Metric
-import           Linear.Vector
 import           Linear.V2
+import           Linear.Vector
 
 ------------------------------------------------------------
 -- Combining two objects
@@ -95,11 +95,11 @@ import           Linear.V2
 --   mempty === d1@), and there should also be a special case to make
 --   it a left identity, as described above.
 --
---   In older versions of diagrams, @beside@ put the local origin of
---   the result at the point of tangency between the two inputs.  That
---   semantics can easily be recovered by performing an alignment on
---   the first input before combining.  That is, if @beside'@ denotes
---   the old semantics,
+--   In older versions of the @diagrams@ library, @beside@ put the
+--   local origin of the result at the point of tangency between the
+--   two inputs.  That semantics can easily be recovered by performing
+--   an alignment on the first input before combining.  That is, if
+--   @beside'@ denotes the old semantics,
 --
 --   > beside' v x1 x2 = beside v (x1 # align v) x2
 --
@@ -109,11 +109,11 @@ import           Linear.V2
 beside :: (Juxtaposable a, Semigroup a) => Vn a -> a -> a -> a
 beside v d1 d2 = d1 <> juxtapose v d1 d2
 
--- | Place two diagrams (or other juxtaposable objects) adjacent to
---   one another, with the second diagram placed in the direction 'd'
---   from the first.  The local origin of the resulting combined
---   diagram is the same as the local origin of the first.  See the
---   documentation of 'beside' for more information.
+-- | Place two juxtaposable objects adjacent to one another, with the
+--   second placed in the direction 'd' from the first.  The local
+--   origin of the resulting combined object is the same as the local
+--   origin of the first.  See the documentation of 'beside' for more
+--   information.
 atDirection
   :: (Juxtaposable a, Semigroup a)
   => Direction (V a) (N a) -> a -> a -> a
@@ -171,7 +171,7 @@ cat
 cat v = sep v 0
 
 -- | Similar to 'cat' but with a gap parameter which is used as the
---   distance between successive diagrams.
+--   distance between successive objects.
 --
 --   See also 'Geometry.TwoD.Combinators.hsep' and
 --   'Geometry.TwoD.Combinators.vsep'

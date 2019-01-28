@@ -8,7 +8,6 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE ViewPatterns               #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -----------------------------------------------------------------------------
 -- |
@@ -18,9 +17,9 @@
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
 -- Paths in two dimensions are special since we may stroke them to
--- create a 2D diagram, and (eventually) perform operations such as
--- intersection and union.  They also have a trace, whereas paths in
--- higher dimensions do not.
+-- create a 2D diagram, and perform operations such as intersection
+-- and union.  They also have a trace, whereas paths in higher
+-- dimensions do not.
 --
 -----------------------------------------------------------------------------
 
@@ -39,11 +38,11 @@ module Geometry.TwoD.Path
   , intersectPointsT, intersectPointsT'
   ) where
 
-import           Control.Lens              hiding (at, transform)
-import           Geometry.Space
-import           Geometry.Located          (Located)
+import           Control.Lens          hiding (at, transform)
+import           Geometry.Located      (Located)
 import           Geometry.Path
 import           Geometry.Segment
+import           Geometry.Space
 import           Geometry.Trail
 import           Geometry.TwoD.Segment
 import           Geometry.TwoD.Types

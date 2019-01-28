@@ -25,14 +25,14 @@ module Geometry.TwoD.Size
 
   ) where
 
-import           Geometry.Space
 import           Geometry.Envelope
 import           Geometry.Size
+import           Geometry.Space
 import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector
 
 ------------------------------------------------------------
--- Computing diagram sizes
+-- Computing sizes
 ------------------------------------------------------------
 
 -- | Compute the width of an enveloped object.

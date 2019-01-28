@@ -9,8 +9,8 @@
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
--- Diagram combinators specialized to two dimensions. For more general
--- combinators, see "Diagrams.Combinators".
+-- Geometric combinators specialized to two dimensions. For more general
+-- combinators, see "Geometry.Combinators".
 --
 -----------------------------------------------------------------------------
 
@@ -72,12 +72,12 @@ infixl 6 |||
 (===) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
 (===) = atDirection y_Dir
 
--- | Place two diagrams (or other juxtaposable objects) horizontally
---   adjacent to one another, with the first diagram to the left of
---   the second.  The local origin of the resulting combined object
---   is the same as the local origin of the first.  @(|||)@ is
---   associative and has 'mempty' as an identity.  See the
---   documentation of 'beside' for more information.
+-- | Place two juxtaposable objects horizontally adjacent to one
+--   another, with the first object to the left of the second.  The
+--   local origin of the resulting combined object is the same as the
+--   local origin of the first.  @(|||)@ is associative and has
+--   'mempty' as an identity.  See the documentation of 'beside' for
+--   more information.
 (|||) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
 (|||) = atDirection xDir
 

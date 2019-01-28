@@ -18,10 +18,11 @@
 --
 -- Bounding boxes are not very compositional (/e.g./ it is not
 -- possible to do anything sensible with them under rotation), so they
--- are not used in the diagrams core.  However, they do have their
--- uses; this module provides definitions and functions for working
--- with them.  In particular it is very fast to query whether a given
--- point is contained in a bounding box (/e.g./ using the
+-- are not a good choice for a fundamental simplified representation
+-- of an object's geometry.  However, they do have their uses; this
+-- module provides definitions and functions for working with them.
+-- In particular it is very fast to query whether a given point is
+-- contained in a bounding box (/e.g./ using the
 -- 'Geometry.Query.inquire' function).
 --
 -----------------------------------------------------------------------------

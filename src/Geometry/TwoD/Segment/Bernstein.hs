@@ -9,7 +9,7 @@
 --
 -- Bernstein polynomials, used internally by code to find
 -- intersections of paths.  This module is probably not of any
--- relevance to most users of diagrams.
+-- relevance to most users.
 -----------------------------------------------------------------------------
 module Geometry.TwoD.Segment.Bernstein
   ( BernsteinPoly (..)
@@ -22,8 +22,8 @@ module Geometry.TwoD.Segment.Bernstein
   ) where
 
 import           Data.List           (tails)
-import           Geometry.Space
 import           Geometry.Parametric
+import           Geometry.Space
 import           Linear.V1
 
 -- | Compute the binomial coefficients of degree n.

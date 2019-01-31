@@ -1007,7 +1007,7 @@ fromTrail = fromLocTrail . (`at` origin)
 --
 --   > fromSegmentsEx = fromSegments
 --   >   [ straight (r2 (1,1))
---   >   , bézier3  (r2 (1,1)) unitX unit_Y
+--   >   , bezier3  (r2 (1,1)) unitX unit_Y
 --   >   , straight unit_X
 --   >   ]
 --   >   # centerXY # pad 1.1

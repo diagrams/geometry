@@ -161,7 +161,7 @@ instance Show1 v => Show1 (Segment v) where
     Linear v       -> showParen (d > 10) $
       showString "straight " . liftShowsPrec x y 11 v
     Cubic v1 v2 v3 -> showParen (d > 10) $
-      showString "bézier3 " . liftShowsPrec x y 11 v1 . showChar ' '
+      showString "bezier3 " . liftShowsPrec x y 11 v1 . showChar ' '
                             . liftShowsPrec x y 11 v2 . showChar ' '
                             . liftShowsPrec x y 11 v3
 

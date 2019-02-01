@@ -85,7 +85,7 @@ library
     binary,
     bytes,
     cereal,
-    containers,
+    containers >= 0.5.9.1 && < 0.7,
     contravariant,
     data-default-class,
     deepseq,

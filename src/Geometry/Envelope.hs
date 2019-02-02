@@ -41,7 +41,7 @@ import           Control.Lens                       (both, op, review, (//~),
                                                      _Just)
 import qualified Data.Map                           as M
 import           Data.Maybe                         (fromMaybe)
-import           Data.Semigroup
+import qualified Data.Semigroup                     as Sem
 import qualified Data.Set                           as S
 import           Linear.Metric
 import           Numeric.Interval.NonEmpty.Internal
@@ -106,7 +106,7 @@ type instance N (Envelope v n) = n
 -- | The @Semigroup@ instance for @Envelope@ combines them by taking a
 --   pointwise union of intervals (representing the union of the
 --   bounding regions).
-instance Ord n => Semigroup (Envelope v n) where
+instance Ord n => Sem.Semigroup (Envelope v n) where
   EmptyEnvelope <> e2            = e2
   e1            <> EmptyEnvelope = e1
   Envelope f1   <> Envelope f2   = Envelope $ \v -> hull (f1 v) (f2 v)

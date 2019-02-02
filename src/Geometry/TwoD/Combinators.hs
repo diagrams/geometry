@@ -41,7 +41,7 @@ module Geometry.TwoD.Combinators
 
   ) where
 
-import           Data.Semigroup
+import qualified Data.Semigroup       as Sem
 
 import           Geometry.Combinators
 import           Geometry.Envelope
@@ -69,7 +69,7 @@ infixl 6 |||
 --   combined object is the same as the local origin of the first.
 --   @(===)@ is associative and has 'mempty' as an identity.  See the
 --   documentation of 'beside' for more information.
-(===) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
+(===) :: (InSpace V2 n a, Juxtaposable a, Sem.Semigroup a) => a -> a -> a
 (===) = atDirection y_Dir
 
 -- | Place two juxtaposable objects horizontally adjacent to one
@@ -78,7 +78,7 @@ infixl 6 |||
 --   local origin of the first.  @(|||)@ is associative and has
 --   'mempty' as an identity.  See the documentation of 'beside' for
 --   more information.
-(|||) :: (InSpace V2 n a, Juxtaposable a, Semigroup a) => a -> a -> a
+(|||) :: (InSpace V2 n a, Juxtaposable a, Sem.Semigroup a) => a -> a -> a
 (|||) = atDirection xDir
 
 -- | Lay out a list of enveloped objects in a row from left to right,

@@ -41,11 +41,11 @@ module Geometry.Trace
   ) where
 
 import           Control.Lens
-import qualified Data.Map            as M
-import           Data.Semigroup
-import           Data.Sequence       (Seq)
-import qualified Data.Sequence       as Seq
-import qualified Data.Set            as S
+import qualified Data.Map           as M
+import qualified Data.Semigroup     as Sem
+import           Data.Sequence      (Seq)
+import qualified Data.Sequence      as Seq
+import qualified Data.Set           as S
 
 import           Geometry.HasOrigin
 import           Geometry.Space
@@ -75,7 +75,7 @@ import           Linear.Vector
 --   Traces form a semigroup with pointwise minimum as composition.
 
 newtype Trace v n = Trace { appTrace :: Point v n -> v n -> Seq n }
-  deriving (Semigroup, Monoid)
+  deriving (Sem.Semigroup, Monoid)
 
 type instance V (Trace v n) = v
 type instance N (Trace v n) = n

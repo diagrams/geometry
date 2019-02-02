@@ -34,7 +34,7 @@ import           Data.Functor.Rep
 import           Data.Profunctor
 import qualified Data.Profunctor.Rep   as P
 import           Data.Profunctor.Sieve
-import           Data.Semigroup
+import qualified Data.Semigroup        as Sem
 
 import           Linear.Affine
 import           Linear.Vector
@@ -55,7 +55,7 @@ import           Geometry.Transform
 --   the graphics-drawingcombinators package,
 --   <http://hackage.haskell.org/package/graphics-drawingcombinators>.
 newtype Query v n m = Query { runQuery :: Point v n -> m }
-  deriving (Functor, Applicative, Monad, Semigroup, Monoid)
+  deriving (Functor, Applicative, Monad, Sem.Semigroup, Monoid)
 
 instance Distributive (Query v n) where
   distribute a = Query $ \p -> fmap (\(Query q) -> q p) a

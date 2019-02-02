@@ -45,6 +45,7 @@ import           Data.Typeable
 
 import           Geometry.Angle
 import           Geometry.BoundingBox
+import           Geometry.Direction
 import           Geometry.Envelope
 import           Geometry.Points
 import           Geometry.Query
@@ -53,7 +54,6 @@ import           Geometry.ThreeD.Types
 import           Geometry.ThreeD.Vector
 import           Geometry.Trace
 import           Geometry.Transform
-import           Geometry.Direction
 
 import           Linear.Affine
 import           Linear.Metric

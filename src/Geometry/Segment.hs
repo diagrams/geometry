@@ -101,7 +101,7 @@ import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Hashable.Lifted
 import           Data.List                          (nub, sort)
-import           Data.Semigroup
+import qualified Data.Semigroup                     as Sem
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
@@ -544,7 +544,7 @@ traceOf fold p0 trail p v@(V2 !vx !vy) = view _3 $ foldlOf' fold f (p0,False,mem
 newtype Crossings = Crossings Int
   deriving (Show, Eq, Ord, Num, Enum, Real, Integral)
 
-instance Semigroup Crossings where
+instance Sem.Semigroup Crossings where
   (<>) = coerce ((+) :: Int -> Int -> Int)
   {-# INLINE (<>) #-}
 

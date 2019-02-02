@@ -45,7 +45,7 @@ module Geometry.TwoD.Offset
 
 import           Control.Applicative
 import           Control.Lens            hiding (at)
-import           Data.Semigroup
+import qualified Data.Semigroup          as Sem
 import           Data.Typeable
 import           Prelude
 
@@ -90,7 +90,7 @@ instance Default LineCap where
   def = LineCapButt
 
 -- | 'Last' semigroup structure.
-instance Semigroup LineCap where
+instance Sem.Semigroup LineCap where
   _ <> b = b
 
 -- | How should the join points between line segments be drawn? The
@@ -103,7 +103,7 @@ data LineJoin
   deriving (Eq, Ord, Show, Typeable)
 
 -- | Last semigroup structure.
-instance Semigroup LineJoin where
+instance Sem.Semigroup LineJoin where
   _ <> b = b
 
 

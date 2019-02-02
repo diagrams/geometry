@@ -53,7 +53,7 @@ import           Control.Lens.Cons
 import           Data.Foldable             (foldl')
 import           Data.Maybe                (fromMaybe)
 import           Data.Monoid.WithSemigroup
-import           Data.Semigroup
+import qualified Data.Semigroup            as Sem
 
 import           Geometry.Direction
 import           Geometry.Envelope
@@ -106,7 +106,7 @@ import           Linear.Vector
 --   To get something like @beside v x1 x2@ whose local origin is
 --   identified with that of @x2@ instead of @x1@, use @beside
 --   (negateV v) x2 x1@.
-beside :: (Juxtaposable a, Semigroup a) => Vn a -> a -> a -> a
+beside :: (Juxtaposable a, Sem.Semigroup a) => Vn a -> a -> a -> a
 beside v d1 d2 = d1 <> juxtapose v d1 d2
 
 -- | Place two juxtaposable objects adjacent to one another, with the
@@ -115,7 +115,7 @@ beside v d1 d2 = d1 <> juxtapose v d1 d2
 --   origin of the first.  See the documentation of 'beside' for more
 --   information.
 atDirection
-  :: (Juxtaposable a, Semigroup a)
+  :: (Juxtaposable a, Sem.Semigroup a)
   => Direction (V a) (N a) -> a -> a -> a
 atDirection = beside . fromDirection
 

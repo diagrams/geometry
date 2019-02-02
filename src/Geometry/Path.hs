@@ -68,7 +68,7 @@ import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Hashable.Lifted
-import           Data.Semigroup
+import qualified Data.Semigroup                     as Sem
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
@@ -99,7 +99,7 @@ import           Geometry.Transform
 --   and they form a monoid under /superposition/ (placing one path on
 --   top of another) rather than concatenation.
 newtype Path v n = Path (Seq (Located (Trail v n)))
-  deriving (Semigroup, Monoid, Generic, Typeable, Eq)
+  deriving (Sem.Semigroup, Monoid, Generic, Typeable, Eq)
 
 _Path :: Iso (Path v n) (Path v' n') (Seq (Located (Trail v n))) (Seq (Located (Trail v' n')))
 _Path = coerced

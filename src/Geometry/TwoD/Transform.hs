@@ -60,7 +60,6 @@ import           Geometry.TwoD.Types
 import           Geometry.TwoD.Vector
 
 import           Control.Lens         hiding (at, transform)
-import           Data.Semigroup
 
 import           Linear.Affine
 import           Linear.Vector

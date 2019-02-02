@@ -41,7 +41,6 @@ module Geometry.TwoD.Combinators
 
   ) where
 
-import           Data.Semigroup
 
 import           Geometry.Combinators
 import           Geometry.Envelope

@@ -28,6 +28,7 @@ module Geometry.Space
   , OrderedField
   ) where
 
+import Data.Semigroup
 import           Control.Monad.ST
 import           Data.Functor.Rep
 import           Data.HashMap.Lazy
@@ -36,7 +37,6 @@ import           Data.Map
 import           Data.Monoid.Coproduct
 import           Data.Monoid.Deletable
 import           Data.Monoid.Split
-import           Data.Semigroup
 import           Data.Sequence
 import           Data.Set
 import           Data.Tree

@@ -53,9 +53,9 @@ import           Data.Coerce
 import           Data.Foldable        as F
 import           Data.Functor.Classes
 import           Data.Maybe           (fromMaybe)
-import           Data.Semigroup
 import qualified Data.Sequence        as Seq
 import           Text.Read
+import           Data.Semigroup
 
 import           Data.Traversable     as T
 import           Linear.Affine

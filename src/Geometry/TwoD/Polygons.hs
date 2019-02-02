@@ -59,7 +59,6 @@ import           Data.Maybe              (catMaybes)
 import           Data.Monoid             (mconcat, mempty)
 #endif
 import           Data.Ord                (comparing)
-import           Data.Semigroup
 
 import           Geometry.Angle
 import           Geometry.Located

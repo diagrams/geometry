@@ -50,7 +50,6 @@ import           Data.Foldable        as F
 import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Maybe
-import           Data.Semigroup
 import           Data.Typeable
 import           GHC.Generics         (Generic)
 import           Prelude

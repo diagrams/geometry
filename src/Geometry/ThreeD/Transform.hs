@@ -62,7 +62,6 @@ import           Geometry.TwoD.Transform
 
 import           Control.Lens            hiding (transform)
 import           Data.Functor.Rep
-import           Data.Semigroup
 
 import           Linear                  (cross, dot, signorm)
 import           Linear.Matrix           hiding (translation)

@@ -45,7 +45,6 @@ import           Control.Lens                       (both, op, review, (//~),
                                                      _Just)
 import qualified Data.Map                           as M
 import           Data.Maybe                         (fromMaybe)
-import           Data.Semigroup
 import qualified Data.Set                           as S
 import           Linear.Metric
 import           Numeric.Interval.NonEmpty.Internal

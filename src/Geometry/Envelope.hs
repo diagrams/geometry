@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DefaultSignatures          #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -38,9 +37,6 @@ module Geometry.Envelope
   , centerPointMay
   ) where
 
-#if __GLASGOW_HASKELL__ < 710
-import           Control.Applicative                ((<$>))
-#endif
 import           Control.Lens                       (both, op, review, (//~),
                                                      _Just)
 import qualified Data.Map                           as M

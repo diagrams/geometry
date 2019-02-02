@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -55,9 +54,6 @@ import           Data.Array.ST           (STUArray, newArray, readArray,
 import           Data.Default.Class
 import           Data.List               (maximumBy, minimumBy)
 import           Data.Maybe              (catMaybes)
-#if __GLASGOW_HASKELL__ < 710
-import           Data.Monoid             (mconcat, mempty)
-#endif
 import           Data.Ord                (comparing)
 
 import           Geometry.Angle

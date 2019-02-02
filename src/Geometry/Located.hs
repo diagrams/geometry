@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -36,9 +35,6 @@ module Geometry.Located
   where
 
 import           Control.Lens         (Lens, Lens')
-#if __GLASGOW_HASKELL__ < 710
-import           Data.Functor         ((<$>))
-#endif
 import           Control.DeepSeq      (NFData (..))
 import qualified Data.Binary          as Binary
 import           Data.Bytes.Get       (MonadGet)

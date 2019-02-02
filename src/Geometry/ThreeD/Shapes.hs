@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE LambdaCase            #-}
@@ -39,10 +38,6 @@ module Geometry.ThreeD.Shapes
   , difference
   ) where
 
-#if __GLASGOW_HASKELL__ < 710
-import           Control.Applicative
-import           Data.Foldable                      (foldMap)
-#endif
 import           Control.Lens                       (review, (^.), _1)
 import           Data.Semigroup
 import qualified Data.Sequence                      as Seq

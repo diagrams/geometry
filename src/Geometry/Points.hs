@@ -1,9 +1,7 @@
 {-# LANGUAGE CPP          #-}
 {-# LANGUAGE RankNTypes   #-}
 {-# LANGUAGE TypeFamilies #-}
-#if __GLASGOW_HASKELL__ >= 710
 {-# LANGUAGE PatternSynonyms #-}
-#endif
 
 -----------------------------------------------------------------------------
 -- |
@@ -24,12 +22,10 @@ module Geometry.Points
   , P2
   , P3
   , P4
-#if __GLASGOW_HASKELL__ >= 710
   , pattern P1
   , pattern P2
   , pattern P3
   , pattern P4
-#endif
 
   , Affine (..)
   , origin
@@ -60,7 +56,6 @@ type P2 = Point V2
 type P3 = Point V3
 type P4 = Point V4
 
-#if __GLASGOW_HASKELL__ >= 710
 pattern P1 :: a -> P1 a
 pattern P1 x = P (V1 x)
 pattern P2 :: a -> a -> P2 a
@@ -69,7 +64,6 @@ pattern P3 :: a -> a -> a -> P3 a
 pattern P3 x y z = P (V3 x y z)
 pattern P4 :: a -> a -> a -> a -> P4 a
 pattern P4 x y z w = P (V4 x y z w)
-#endif
 
 #if __GLASGOW_HASKELL__ >= 802
 {-# COMPLETE P1 #-}
@@ -106,4 +100,3 @@ reflectThrough o = over (relative o) negated
 centroid :: (Foldable f, Additive v, Fractional n) => f (Point v n) -> Point v n
 centroid = uncurry (^/) . F.foldl' (\(s,c) e -> (e ^+^ s,c+1)) (zero,0)
 {-# INLINE centroid #-}
-

@@ -34,6 +34,7 @@ import           Data.Functor.Rep
 import           Data.Profunctor
 import qualified Data.Profunctor.Rep   as P
 import           Data.Profunctor.Sieve
+import           Data.Semigroup
 
 import           Linear.Affine
 import           Linear.Vector

@@ -46,6 +46,7 @@ import           Control.Lens                (AReview, Iso', Lens', iso, over,
                                               review, (^.))
 import           Data.Fixed
 import           Data.Monoid                 hiding ((<>))
+import           Data.Semigroup
 import           GHC.Generics                (Generic, Generic1)
 import           Prelude
 import           Text.Read

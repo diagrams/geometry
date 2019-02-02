@@ -55,6 +55,7 @@ import           Data.Default.Class
 import           Data.List               (maximumBy, minimumBy)
 import           Data.Maybe              (catMaybes)
 import           Data.Ord                (comparing)
+import           Data.Semigroup
 
 import           Geometry.Angle
 import           Geometry.Located

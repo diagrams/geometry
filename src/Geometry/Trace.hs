@@ -42,6 +42,7 @@ module Geometry.Trace
 
 import           Control.Lens
 import qualified Data.Map            as M
+import           Data.Semigroup
 import           Data.Sequence       (Seq)
 import qualified Data.Sequence       as Seq
 import qualified Data.Set            as S

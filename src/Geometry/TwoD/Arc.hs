@@ -41,6 +41,7 @@ import           Geometry.TwoD.Vector    (e, unitX, unitY, unit_Y)
 
 import           Control.Lens            (each, over, reversing, (&), (<>~),
                                           (^.))
+import           Data.Semigroup          ((<>))
 
 import           Linear.Affine
 import           Linear.Metric

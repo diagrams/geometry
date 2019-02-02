@@ -53,6 +53,7 @@ import           Control.Lens.Cons
 import           Data.Foldable             (foldl')
 import           Data.Maybe                (fromMaybe)
 import           Data.Monoid.WithSemigroup
+import           Data.Semigroup
 
 import           Geometry.Direction
 import           Geometry.Envelope

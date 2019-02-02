@@ -68,6 +68,7 @@ import qualified Data.Foldable                      as F
 import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Hashable.Lifted
+import           Data.Semigroup
 import           Data.Sequence                      (Seq ((:<|)))
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal

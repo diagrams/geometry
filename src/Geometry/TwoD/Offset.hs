@@ -45,6 +45,7 @@ module Geometry.TwoD.Offset
 
 import           Control.Applicative
 import           Control.Lens            hiding (at)
+import           Data.Semigroup
 import           Data.Typeable
 import           Prelude
 

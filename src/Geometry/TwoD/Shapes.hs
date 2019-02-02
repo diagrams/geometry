@@ -47,6 +47,7 @@ module Geometry.TwoD.Shapes
 
 import           Control.Lens            (makeLenses, (&), (.~), (<>~), (^.))
 import           Data.Default.Class
+import           Data.Semigroup
 
 import           Geometry.Space
 

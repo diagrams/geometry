@@ -69,7 +69,7 @@ import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Hashable.Lifted
 import           Data.Semigroup
-import           Data.Sequence                      (Seq ((:<|)))
+import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
 import           Data.Typeable
@@ -168,8 +168,8 @@ pathEnv i0 (Path ts) = \v -> F.foldl' (\i t -> hull (locTrailEnv t v) i) i0 ts
 
 pathEnvelope :: (Metric v, OrderedField n) => Path v n -> Envelope v n
 pathEnvelope = \case
-  Path (t :<| ts) -> Envelope $ \(Dir v) -> pathEnv (locTrailEnv t v) (Path ts) v
-  _               -> EmptyEnvelope
+  Path (t :< ts) -> Envelope $ \(Dir v) -> pathEnv (locTrailEnv t v) (Path ts) v
+  _              -> EmptyEnvelope
 -- This could be defined as @foldMap getEnvelope ts@ but this would be
 -- less efficient.
 {-# SPECIALISE pathEnvelope :: Path V2 Double -> Envelope V2 Double #-}

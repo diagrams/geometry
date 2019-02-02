@@ -231,7 +231,7 @@ type instance N (Line v n) = n
 type instance Codomain (Line v n) = v
 
 instance (Eq1 v, Eq n) => Eq (Line v n) where
-  Line s1 _ == Line s2 _ = eq1 s1 s2
+  Line s1 _ == Line s2 _ = length s1 == length s1 && eq1 (toList s1) (toList s2)
   {-# INLINE (==) #-}
 
 instance Show1 v => Show1 (Line v) where

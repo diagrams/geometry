@@ -425,7 +425,7 @@ expandLine opts r (mapLoc wrapLine -> t) = caps cap r s e (f r) (f $ -r)
 
 expandLoop :: RealFloat n => ExpandOpts n -> n -> Located (Loop V2 n) -> Path V2 n
 expandLoop opts r (mapLoc wrapLoop -> t) =
-  fromLocTrail (f r) <> (fromLocTrail . reversing . f $ -r)
+  fromLocTrail (f r) Sem.<> (fromLocTrail . reversing . f $ -r)
     where
       eps = opts^.expandEpsilon
       off r' = map (bindLoc (offsetSegment eps r')) . locatedTrailSegments
@@ -542,8 +542,8 @@ joinSegments _ _ _ _ _ _ [] = mempty `at` origin
 joinSegments _ _ _ _ _ [] _ = mempty `at` origin
 joinSegments epsilon j isLoop ml r es ts@(t:_) = t'
   where
-    t' | isLoop    = mapLoc (glueTrail . (<> f (take (length ts * 2 - 1) $ ss es (ts ++ [t])))) t
-       | otherwise = mapLoc (<> f (ss es ts)) t
+    t' | isLoop    = mapLoc (glueTrail . (Sem.<> f (take (length ts * 2 - 1) $ ss es (ts ++ [t])))) t
+       | otherwise = mapLoc (Sem.<> f (ss es ts)) t
     ss es' ts' = concat [[test a b $ j ml r e a b, Just $ unLoc b] | (e,(a,b)) <- zip es' . (zip <*> tail) $ ts']
     test a b tj
         | atStart b `distance` atEnd a > epsilon = Just tj

@@ -114,7 +114,7 @@ instance Ord n => Sem.Semigroup (Envelope v n) where
 
 -- | @mempty@ is the empty envelope.
 instance Ord n => Monoid (Envelope v n) where
-  mappend = (<>)
+  mappend = (Sem.<>)
   {-# INLINE mappend #-}
   mempty = EmptyEnvelope
   {-# INLINE mempty #-}
@@ -216,9 +216,9 @@ instance Enveloped t => Enveloped (TransInv t) where
   {-# INLINE boundingBox #-}
 
 instance (SameSpace a b, Enveloped a, Enveloped b) => Enveloped (a,b) where
-  getEnvelope (x,y) = getEnvelope x <> getEnvelope y
+  getEnvelope (x,y) = getEnvelope x Sem.<> getEnvelope y
   {-# INLINE getEnvelope #-}
-  boundingBox (x,y) = boundingBox x <> boundingBox y
+  boundingBox (x,y) = boundingBox x Sem.<> boundingBox y
   {-# INLINE boundingBox #-}
 
 instance Enveloped b => Enveloped [b] where

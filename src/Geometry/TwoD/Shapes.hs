@@ -47,6 +47,7 @@ module Geometry.TwoD.Shapes
 
 import           Control.Lens            (makeLenses, (&), (.~), (<>~), (^.))
 import           Data.Default.Class
+import qualified Data.Semigroup as Sem
 
 import           Geometry.Space
 
@@ -279,13 +280,13 @@ roundedRect' w h opts
    . wrapLoop
    . glueLine
    $ seg (0, h - abs rTR - abs rBR)
-   <> mkCorner 0 rTR
-   <> seg (abs rTR + abs rTL - w, 0)
-   <> mkCorner 1 rTL
-   <> seg (0, abs rTL + abs rBL - h)
-   <> mkCorner 2 rBL
-   <> seg (w - abs rBL - abs rBR, 0)
-   <> mkCorner 3 rBR
+   Sem.<> mkCorner 0 rTR
+   Sem.<> seg (abs rTR + abs rTL - w, 0)
+   Sem.<> mkCorner 1 rTL
+   Sem.<> seg (0, abs rTL + abs rBL - h)
+   Sem.<> mkCorner 2 rBL
+   Sem.<> seg (w - abs rBL - abs rBR, 0)
+   Sem.<> mkCorner 3 rBR
   where seg   = fromOffsets . (:[]) . r2
         diag  = sqrt (w * w + h * h)
         -- to clamp corner radius, need to compare with other corners that share an

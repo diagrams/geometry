@@ -107,7 +107,7 @@ import           Linear.Vector
 --   identified with that of @x2@ instead of @x1@, use @beside
 --   (negateV v) x2 x1@.
 beside :: (Juxtaposable a, Sem.Semigroup a) => Vn a -> a -> a -> a
-beside v d1 d2 = d1 <> juxtapose v d1 d2
+beside v d1 d2 = d1 Sem.<> juxtapose v d1 d2
 
 -- | Place two juxtaposable objects adjacent to one another, with the
 --   second placed in the direction 'd' from the first.  The local
@@ -134,7 +134,7 @@ atDirection = beside . fromDirection
 --   >             # centerXY # pad 1.1
 --   >   where c = circle 1
 appends :: (Metric (V a), Floating (N a), Juxtaposable a, Monoid' a) => a -> [(Vn a,a)] -> a
-appends d1 apps = d1 <> mconcat (map (\(v,d) -> juxtapose (signorm v) d1 d) apps)
+appends d1 apps = d1 Sem.<> mconcat (map (\(v,d) -> juxtapose (signorm v) d1 d) apps)
 
 -- | Position things absolutely: combine a list of objects
 --   (e.g. diagrams or paths) by assigning them absolute positions in

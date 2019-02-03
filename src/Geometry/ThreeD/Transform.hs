@@ -59,6 +59,7 @@ import           Geometry.Space
 import           Geometry.ThreeD.Types
 import           Geometry.Transform
 import           Geometry.TwoD.Transform
+import qualified Data.Semigroup as Sem
 
 import           Control.Lens            hiding (transform)
 import           Data.Functor.Rep
@@ -157,7 +158,7 @@ pointAt' about initial final = pointAtUnit (signorm about) (signorm initial) (si
 
 -- | pointAtUnit has the same behavior as @pointAt@, but takes unit vectors.
 pointAtUnit :: Floating n => V3 n -> V3 n -> V3 n -> Transformation V3 n
-pointAtUnit about initial final = tilt <> pan where
+pointAtUnit about initial final = tilt Sem.<> pan where
   -- rotating u by (signedAngle rel u v) about rel gives a vector in the direction of v
   signedAngle rel u v = signum (cross u v `dot` rel) *^ angleBetween u v
   inPanPlaneF = final ^-^ project about final

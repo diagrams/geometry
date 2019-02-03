@@ -165,7 +165,7 @@ instance Num n => Sem.Semigroup (Angle n) where
   {-# INLINE (<>) #-}
 
 instance Num n => Monoid (Angle n) where
-  mappend = (<>)
+  mappend = (Sem.<>)
   mempty  = Radians 0
 
 -- | The radian measure of an 'Angle' @a@ can be accessed as @a '^.'

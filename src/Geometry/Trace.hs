@@ -132,7 +132,7 @@ instance Traced t => Traced (TransInv t) where
   getTrace = getTrace . op TransInv
 
 instance (Traced a, Traced b, SameSpace a b) => Traced (a,b) where
-  getTrace (x,y) = getTrace x <> getTrace y
+  getTrace (x,y) = getTrace x Sem.<> getTrace y
 
 instance Traced t => Traced [t] where
   getTrace = mconcat . map getTrace

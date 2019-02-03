@@ -1,9 +1,10 @@
-{-# LANGUAGE DeriveFunctor       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -55,6 +56,7 @@ import           Data.Default.Class
 import           Data.List               (maximumBy, minimumBy)
 import           Data.Maybe              (catMaybes)
 import           Data.Ord                (comparing)
+import qualified Data.Semigroup          as Sem
 
 import           Geometry.Angle
 import           Geometry.Located
@@ -178,7 +180,7 @@ polyPolarTrail ans (r:rs) = tr `at` p1 where
   p1 = mkP2 r 0
   tr = closeTrail . fromVertices $
          zipWith
-           (\a l -> papply (rotation a <> scaling l) $ p2 (1,0))
+           (\a l -> papply (rotation a Sem.<> scaling l) $ p2 (1,0))
            (scanl (^+^) zero ans)
            (r:rs)
 {-# INLINE polyPolarTrail #-}

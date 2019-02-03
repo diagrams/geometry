@@ -1,7 +1,8 @@
-{-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies     #-}
-{-# LANGUAGE ViewPatterns     #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.TwoD.Arc
@@ -28,6 +29,7 @@ module Geometry.TwoD.Arc
   , annularWedge
   ) where
 
+import qualified Data.Semigroup          as Sem
 import           Geometry.Angle
 import           Geometry.Direction
 import           Geometry.Located        (at)
@@ -156,8 +158,8 @@ arcCW start end = fromLocTrail $
 wedge :: (InSpace V2 n t, OrderedField n, FromTrail t) => n -> Direction V2 n -> Angle n -> t
 wedge r d s = fromLocTrail . (`at` origin) . glueTrail . wrapLine
               $ fromOffsets [r *^ fromDirection d]
-                <> scale r (arc d s)
-                <> fromOffsets [r *^ negated (rotate s $ fromDirection d)]
+            Sem.<> scale r (arc d s)
+            Sem.<> fromOffsets [r *^ negated (rotate s $ fromDirection d)]
 
 -- | @arcBetween p q height@ creates an arc beginning at @p@ and
 --   ending at @q@, with its midpoint at a distance of @abs height@
@@ -208,9 +210,9 @@ annularWedge :: (InSpace V2 n t, FromTrail t, RealFloat n) =>
                 n -> n -> Direction V2 n -> Angle n -> t
 annularWedge r1' r2' d1 s = fromLocTrail . (`at` o) . glueTrail . wrapLine
               $ fromOffsets [(r1' - r2') *^ fromDirection d1]
-                <> scale r1' (arc d1 s)
-                <> fromOffsets [(r1' - r2') *^ negated (fromDirection d2)]
-                <> scale r2' (arc d2 (negated s))
+            Sem.<> scale r1' (arc d1 s)
+            Sem.<> fromOffsets [(r1' - r2') *^ negated (fromDirection d2)]
+            Sem.<> scale r2' (arc d2 (negated s))
   where o = P (r2' *^ fromDirection d1)
         d2 = d1 & _theta <>~ s
 

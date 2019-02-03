@@ -50,6 +50,7 @@ import           Data.Foldable        as F
 import           Data.Functor.Classes
 import           Data.Hashable
 import           Data.Maybe
+import qualified Data.Semigroup       as Sem
 import           Data.Typeable
 import           GHC.Generics         (Generic)
 import           Prelude
@@ -165,5 +166,5 @@ sizeAdjustment spec bb = (sz', t)
 
     s = requiredScale spec sz
 
-    t = translation v <> scaling s
+    t = translation v Sem.<> scaling s
 

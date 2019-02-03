@@ -12,6 +12,9 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+-- https://ghc.haskell.org/trac/ghc/ticket/14253
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Geometry.Path

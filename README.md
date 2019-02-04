@@ -75,7 +75,7 @@ A Haskell geometry library build on top of [`linear`](http://hackage.haskell.org
   Again, I believe this is easier for beginners to understand as well as
   easier for ghc to optimise.
 
-* The `LikeLike` class has changed its name to `FromTrail`. I felt like
+* The `TrailLike` class has changed its name to `FromTrail`. I felt like
   `TrailLike` wasn't clear and `FromTrail` is a more consistent with
   other things like `ToPath`, `HasX` etc.
 
@@ -83,7 +83,7 @@ A Haskell geometry library build on top of [`linear`](http://hackage.haskell.org
   alias type classes (`OrderedField`, etc.) have been moved here.
 
 * `Diagrams.Tangent` has merged into `Geometry.Parametric` since this is
-  alls it really gets used for. (I'm trying to reduce the total number
+  all it really gets used for. (I'm trying to reduce the total number
   of modules since there's so many)
 
 * The `Alignable` class has been removed. Alignment functions now use

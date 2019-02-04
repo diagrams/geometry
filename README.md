@@ -1,6 +1,6 @@
 ## geometry
 
-A Haskell geometry library build on top of [`linear`].
+A Haskell geometry library build on top of [`linear`](http://hackage.haskell.org/package/linear).
 
 ### Overview of changes from diagrams
 

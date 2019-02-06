@@ -68,12 +68,15 @@ angleDir :: Floating n => Angle n -> Direction V2 n
 angleDir = Dir . angleV
 
 -- | A unit vector at a specified angle counterclockwise from the
---   positive x-axis
+--   positive X axis (see also 'e').
 angleV :: Floating n => Angle n -> V2 n
 angleV = angle . view rad
 
 -- | A unit vector at a specified angle counterclockwise from the
---   positive X axis.
+--   positive X axis. 'e' is a synonym for 'angleV', but provided as a
+--   sort of pun: @r *^ e theta@ can be used to construct a vector of
+--   length @r@ in the direction @theta@, just as \(r e^{i \theta}\)
+--   constructs a corresponding complex number.
 e :: Floating n => Angle n -> V2 n
 e = angleV
 

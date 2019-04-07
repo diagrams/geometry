@@ -214,7 +214,7 @@ offsetSegment
   -> Segment V2 n  -- ^ Original segment
   -> Located (Trail V2 n) -- ^ Resulting located (at the offset) trail.
 offsetSegment _ r s@(Linear a) = fromSegments [s] `at` origin .+^ va
-  where va = (-r) *^ unitPerp a
+  where va = r *^ unitPerp a
 
 offsetSegment epsilon r s@(Cubic a b c) = t `at` origin .+^ va
   where

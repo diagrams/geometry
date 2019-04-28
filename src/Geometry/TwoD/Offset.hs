@@ -288,7 +288,7 @@ locatedTrailSegments
   :: OrderedField n
   => Located (Trail V2 n)
   -> [Located (Segment V2 n)]
-locatedTrailSegments t = zipWith at (trailSegments (unLoc t)) (fromLocTrail t)
+locatedTrailSegments t = zipWith at (trailSegments (unLoc t)) (trailPoints t)
 
 -- | Offset a 'Trail' with options and by a given radius.  This generates a new
 --   trail that is always radius 'r' away from the given 'Trail' (depending on
@@ -320,11 +320,11 @@ offsetTrail' opts r t = joinSegments eps j isLoop (opts^.offsetMiterLimit) r end
     where
       eps = opts^.offsetEpsilon
       off = map (bindLoc (offsetSegment eps r)) . locatedTrailSegments
-      ends | isLoop    = (\(a:as) -> as ++ [a]) . fromLocTrail $ t
-           | otherwise = tail . fromLocTrail $ t
+      ends | isLoop    = (\(a:as) -> as ++ [a]) . trailPoints $ t
+           | otherwise = tail . trailPoints $ t
       j = fromLineJoin (opts^.offsetJoin)
 
-      isLoop = withTrail (const False) (const True) (unLoc t)
+      isLoop = has _LocLoop t
 
 -- | Offset a 'Trail' with the default options and a given radius. See
 --   'offsetTrail''.

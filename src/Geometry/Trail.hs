@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE EmptyDataDecls             #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -147,7 +148,7 @@ import           Data.Functor.Contravariant         (phantom)
 import           Data.Hashable
 import           Data.Hashable.Lifted
 import           Data.Monoid.Action
-import qualified Data.Semigroup as Sem
+import qualified Data.Semigroup                     as Sem
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as Seq
 import qualified Data.Serialize                     as Cereal
@@ -225,6 +226,7 @@ import           Geometry.Transform
 --   end to end, together with the cached offset vector from the start
 --   of the line to the end.
 data Line v n = Line !(Seq (Segment v n)) !(v n)
+  deriving Functor
 
 type instance V (Line v n) = v
 type instance N (Line v n) = n
@@ -471,7 +473,7 @@ instance (Additive v, Num n) => Reversing (Line v n) where
 --   Loops are represented as a 'Line' together with a closing
 --   segment.
 data Loop v n = Loop !(Line v n) !(ClosingSegment v n)
-  deriving Eq
+  deriving (Eq, Functor)
 
 type instance V (Loop v n) = v
 type instance N (Loop v n) = n
@@ -627,7 +629,7 @@ instance (Additive v, Num n) => TangentEndValues (Loop v n) where
 data Trail v n
   = OpenTrail !(Line v n)
   | ClosedTrail !(Loop v n)
-  deriving Eq
+  deriving (Eq, Functor)
 
 type instance V (Trail v n) = v
 type instance N (Trail v n) = n

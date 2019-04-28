@@ -214,7 +214,7 @@ offsetSegment
   -> Segment V2 n  -- ^ Original segment
   -> Located (Trail V2 n) -- ^ Resulting located (at the offset) trail.
 offsetSegment _ r s@(Linear a) = fromSegments [s] `at` origin .+^ va
-  where va = r *^ unitPerp a
+  where va = (-r) *^ unitPerp a
 
 offsetSegment epsilon r s@(Cubic a b c) = t `at` origin .+^ va
   where
@@ -518,8 +518,8 @@ capSquare _r c a b = unLoc $ fromVertices [ a, a .+^ v, b .+^ v, b ]
 capArc :: RealFloat n => n -> Point V2 n -> Point V2 n -> Point V2 n -> Trail V2 n
 capArc r c a b = fromLocTrail . moveTo c $ fs
   where
-    fs | r < 0     = scale (-r) $ arcCW  (dirBetween a c) (dirBetween b c)
-       | otherwise = scale r    $ arcCCW (dirBetween a c) (dirBetween b c)
+    fs | r < 0     = scale (-r) $ arcCW  (dirBetween c a) (dirBetween c b)
+       | otherwise = scale r    $ arcCCW (dirBetween c a) (dirBetween c b)
 
 -- | Join together a list of located trails with the given join style.  The
 --   style is given as a function to compute the join given the local information

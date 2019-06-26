@@ -2,6 +2,8 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE TypeFamilies               #-}
 -----------------------------------------------------------------------------
@@ -23,11 +25,12 @@ module Geometry.Query
   , HasQuery (..)
   , sample
   , inquire
-  , queryPoint
+  -- , queryPoint
   ) where
 
 import           Data.Monoid
 
+import GHC.Stack
 import           Control.Lens
 import           Data.Distributive
 import           Data.Functor.Rep
@@ -54,52 +57,56 @@ import           Geometry.Transform
 --   The idea for annotating diagrams with monoidal queries came from
 --   the graphics-drawingcombinators package,
 --   <http://hackage.haskell.org/package/graphics-drawingcombinators>.
-newtype Query v n m = Query { runQuery :: Point v n -> m }
+data Query v n m = Query { runQueryTrans :: Transformation v n -> Point v n -> m }
   deriving (Functor, Applicative, Monad, Sem.Semigroup, Monoid)
 
+-- | Run a query at the given point.
+runQuery :: (Rep v ~ E v, Representable v, Additive v, Foldable v, Num n) => Query v n m -> Point v n -> m
+runQuery q = runQueryTrans q mempty
+
 instance Distributive (Query v n) where
-  distribute a = Query $ \p -> fmap (\(Query q) -> q p) a
+  distribute a = undefined -- Query $ \p -> fmap (\(Query q) -> q p) a
   {-# INLINE distribute #-}
 
-instance Representable (Query v n) where
+instance (Rep v ~ E v, Representable v, Additive v, Foldable v, Num n) => Representable (Query v n) where
   type Rep (Query v n) = Point v n
-  tabulate = Query
+  tabulate = Query . const
   {-# INLINE tabulate #-}
   index    = runQuery
   {-# INLINE index    #-}
 
 instance Functor v => Profunctor (Query v) where
-  lmap f (Query q) = Query $ \p -> q (fmap f p)
+  lmap f (Query q) = undefined -- Query $ \t p -> q t (fmap f p)
   {-# INLINE lmap #-}
   rmap = fmap
   {-# INLINE rmap #-}
 
-instance Functor v => Cosieve (Query v) (Point v) where
-  cosieve = runQuery
-  {-# INLINE cosieve #-}
+-- instance (Rep v ~ E v, Representable v, Additive v, Foldable v) => Cosieve (Query v) (Point v) where
+--   cosieve = runQuery
+--   {-# INLINE cosieve #-}
 
-instance Functor v => Closed (Query v) where
-  closed (Query fab) = Query $ \fxa x -> fab (fmap ($ x) fxa)
-  {-# INLINE closed #-}
+-- instance Functor v => Closed (Query v) where
+--   closed (Query fab) = Query $ \fxa x -> fab (fmap ($ x) fxa)
+--   {-# INLINE closed #-}
 
-instance Functor v => Costrong (Query v) where
-  unfirst (Query f) = Query f'
-    where f' fa = b where (b, d) = f ((\a -> (a, d)) <$> fa)
-  unsecond (Query f) = Query f'
-    where f' fa = b where (d, b) = f ((,) d <$> fa)
+-- instance Functor v => Costrong (Query v) where
+--   unfirst (Query f) = Query f'
+--     where f' fa = b where (b, d) = f ((\a -> (a, d)) <$> fa)
+--   unsecond (Query f) = Query f'
+--     where f' fa = b where (d, b) = f ((,) d <$> fa)
 
-instance Functor v => P.Corepresentable (Query v) where
-  type Corep (Query v) = Point v
-  cotabulate = Query
+-- instance Functor v => P.Corepresentable (Query v) where
+--   type Corep (Query v) = Point v
+--   cotabulate = Query
 
 -- | Setter over the input point of a query.
-queryPoint :: Setter (Query v' n' m) (Query v n m) (Point v n) (Point v' n')
-queryPoint = sets $ \f (Query q) -> Query $ q . f
-{-# INLINE queryPoint #-}
+-- queryPoint :: Setter (Query v' n' m) (Query v n m) (Point v n) (Point v' n')
+-- queryPoint = sets $ \f (Query q) -> Query $ q . f
+-- {-# INLINE queryPoint #-}
 
 instance Wrapped (Query v n m) where
-  type Unwrapped (Query v n m) = Point v n -> m
-  _Wrapped' = iso runQuery Query
+  type Unwrapped (Query v n m) = Transformation v n -> Point v n -> m
+  _Wrapped' = iso runQueryTrans Query
 
 instance Rewrapped (Query v a m) (Query v' a' m')
 
@@ -107,12 +114,23 @@ type instance V (Query v n m) = v
 type instance N (Query v n m) = n
 
 instance (Additive v, Num n) => HasOrigin (Query v n m) where
-  moveOriginTo (P u) = queryPoint %~ (.+^ u)
+  -- moveOriginTo (P u) = queryPoint %~ (.+^ u)
+  moveOriginTo (P u) = error "who's calling me" -- _Wrapping' Query %~ \f p -> f (p .+^ u)
+  -- moveOriginTo = translate . (origin .-.)
   {-# INLINE moveOriginTo #-}
 
 instance (Additive v, Foldable v, Num n) => Transformable (Query v n m) where
-  transform t = queryPoint %~ papply (inv t)
+  -- transform t = queryPoint %~ papply (inv t)
+  transform t = _Wrapped %~ \f t0 p -> f (t0 <> t) p
   {-# INLINE transform #-}
+
+-- transform (t1 <> t2)
+--   = papply (inv (t1 <> t2))
+--   = papply (inv t2 <> inv t1)
+--   = papply (inv t2) . papply (inv t2)
+-- 
+-- transform t1 . transform t2)
+--   = papply (inv t1) . papply inv t2
 
 -- | Types which can answer a 'Query' about points inside the geometric
 --   object.
@@ -124,7 +142,7 @@ instance (Additive v, Foldable v, Num n) => Transformable (Query v n m) where
 -- @
 class HasQuery t m | t -> m where
   -- | Extract the query of an object.
-  getQuery :: t -> Query (V t) (N t) m
+  getQuery :: HasCallStack => t -> Query (V t) (N t) m
 
 instance HasQuery (Query v n m) m where
   getQuery = id
@@ -137,7 +155,7 @@ instance HasQuery (Query v n m) m where
 -- 'inquire' :: 'Query' v n 'Any'      -> 'Point' v n -> 'Bool'
 -- 'inquire' :: 'Geometry.BoundingBox.BoundingBox' v n  -> 'Point' v n -> 'Bool'
 -- @
-inquire :: HasQuery t Any => t -> Point (V t) (N t) -> Bool
+inquire :: (HasQuery t Any, Rep (V t) ~ E (V t), Representable (V t), Additive (V t), Foldable (V t), Num (N t)) => t -> Point (V t) (N t) -> Bool
 inquire t = getAny . sample t
 {-# INLINE inquire #-}
 
@@ -149,7 +167,7 @@ inquire t = getAny . sample t
 -- 'sample' :: 'Geometry.BoundingBox.BoundingBox' v n  -> 'Point' v n -> 'Any'
 -- 'sample' :: 'Geometry.Path.Path' 'V2' 'Double'   -> 'Point' v n -> 'Geometry.TwoD.Path.Crossings'
 -- @
-sample :: HasQuery t m => t -> Point (V t) (N t) -> m
+sample :: (HasQuery t m, Rep (V t) ~ E (V t), Representable (V t), Additive (V t), Foldable (V t), Num (N t)) => t -> Point (V t) (N t) -> m
 sample = runQuery . getQuery
 {-# INLINE sample #-}
 

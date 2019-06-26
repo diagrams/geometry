@@ -34,6 +34,8 @@ module Geometry.Located
   )
   where
 
+import GHC.Stack
+
 import           Control.Lens         (Lens, Lens')
 import           Control.DeepSeq      (NFData (..))
 import qualified Data.Binary          as Binary

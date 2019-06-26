@@ -30,6 +30,8 @@ import           Geometry.Space
 import           Linear.Affine
 import           Linear.Vector
 
+import GHC.Stack
+
 -- | Class of types which have an intrinsic notion of a \"local
 --   origin\", i.e. things which are not invariant under translation,
 --   and which allow the origin to be moved.
@@ -54,10 +56,10 @@ class HasOrigin t where
   --   (for types which are also 'Transformable'); moving the origin
   --   itself while leaving the object \"fixed\" is dual to fixing the
   --   origin and translating the object.
-  moveOriginTo :: Point (V t) (N t) -> t -> t
+  moveOriginTo :: HasCallStack => Point (V t) (N t) -> t -> t
 
 -- | Move the local origin by a relative vector.
-moveOriginBy :: (InSpace v n t, HasOrigin t) => v n -> t -> t
+moveOriginBy :: (InSpace v n t, HasCallStack, HasOrigin t) => v n -> t -> t
 moveOriginBy = moveOriginTo . P
 {-# INLINE moveOriginBy #-}
 
@@ -75,7 +77,7 @@ moveOriginBy = moveOriginTo . P
 --   @
 --   moveTo (origin .+^ v) === translate v
 --   @
-moveTo :: (InSpace v n t, HasOrigin t) => Point v n -> t -> t
+moveTo :: (InSpace v n t, HasCallStack, HasOrigin t) => Point v n -> t -> t
 moveTo = moveOriginBy . (origin .-.)
 {-# INLINE moveTo #-}
 

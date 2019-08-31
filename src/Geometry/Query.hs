@@ -114,6 +114,15 @@ instance (Additive v, Foldable v, Num n) => Transformable (Query v n m) where
   transform t = queryPoint %~ papply (inv t)
   {-# INLINE transform #-}
 
+-- Proof this definition satisfies the monoid homomorphism:
+--
+-- transform (t1 <> t2)
+--   = queryPoint %~ papply (inv (t1 <> t2))
+--   = queryPoint %~ papply (inv t2 <> inv t1)
+--   = queryPoint %~ (papply (inv t2) . papply (inv t1))
+--   = transform t1 . (queryPoint %~ papply (inv t2))
+--   = transform t1 . transform t2
+
 -- | Types which can answer a 'Query' about points inside the geometric
 --   object.
 --

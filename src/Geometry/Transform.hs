@@ -395,7 +395,12 @@ Proofs for the specified properties:
 -- The Transformable class
 ------------------------------------------------------------------------
 
--- | Type class for things @t@ which can be transformed.
+-- | Type class for things @t@ which can be transformed. Implementations
+--   must satisfy the monoid homomorphism:
+--
+-- @
+-- transform t1 . transform t2 = transform (t1 <> t2)
+-- @
 class Transformable t where
 
   -- | Apply a transformation to an object.

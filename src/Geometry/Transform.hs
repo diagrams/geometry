@@ -155,7 +155,7 @@ eye = tabulate $ \(E e) -> zero & e .~ 1
 
 -- | Invert a transformation.
 inv :: (Additive v, Foldable v, Num n) => Transformation v n -> Transformation v n
-inv (T m mInv v) = T mInv m (negated v *! mInv)
+inv (T m mInv v) = T mInv m (negated v *! m)
 {-# INLINE inv #-}
 
 -- | Get the translational component of a transformation.

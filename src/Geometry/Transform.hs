@@ -82,12 +82,10 @@ module Geometry.Transform
 
 import           Control.DeepSeq       (NFData (..))
 import           Control.Lens          hiding (transform)
-import           Control.Lens          (Rewrapped, Traversable, Wrapped (..),
-                                        iso, (&), (.~))
 import           Data.Binary           as Binary
 import           Data.Bytes.Serial
 import           Data.Distributive
-import           Data.Foldable         (Foldable, toList)
+import           Data.Foldable         as F
 import           Data.Functor.Classes
 import           Data.Functor.Rep
 import           Data.Hashable
@@ -154,7 +152,7 @@ eye = tabulate $ \(E e) -> zero & e .~ 1
 {-# INLINE eye #-}
 
 -- | Invert a transformation.
-inv :: (Additive v, Foldable v, Num n) => Transformation v n -> Transformation v n
+inv :: (Additive v, F.Foldable v, Num n) => Transformation v n -> Transformation v n
 inv (T m mInv v) = T mInv m (mInv !* negated v)
 {-# INLINE inv #-}
 
@@ -179,12 +177,14 @@ dropTransl (T a a' _) = T a a' zero
 -- @
 -- 'transform' (t1 `tappend` t2) a === 'transform' t1 ('transform' t2 a)
 -- @
-tappend :: (Additive v, Foldable v, Num n)
+tappend :: (Additive v, F.Foldable v, Num n)
         => Transformation v n -> Transformation v n -> Transformation v n
 tappend (T m1 m1Inv v1) (T m2 m2Inv v2)
     = T (m1 !*! m2) (m2Inv !*! m1Inv) (v1 ^+^ m1 !* v2)
-{-# SPECIALIZE INLINE tappend :: Transformation V2 Double -> Transformation V2 Double -> Transformation V2 Double #-}
-{-# SPECIALIZE INLINE tappend :: Transformation V3 Double -> Transformation V3 Double -> Transformation V3 Double #-}
+{-# SPECIALIZE INLINE[0] tappend :: Transformation V1 Double -> Transformation V1 Double -> Transformation V1 Double #-}
+{-# SPECIALIZE INLINE[0] tappend :: Transformation V2 Double -> Transformation V2 Double -> Transformation V2 Double #-}
+{-# SPECIALIZE INLINE[0] tappend :: Transformation V3 Double -> Transformation V3 Double -> Transformation V3 Double #-}
+{-# INLINE tappend #-}
 
 -- | The empty, /i.e./ identity transformation.
 tempty :: (HasBasis v, Num n) => Transformation v n
@@ -305,7 +305,7 @@ dimen = \_ -> length (basis :: [v Int])
 --   columns) and the translation vector. This is mostly useful for
 --   implementing backends.
 onBasis :: Foldable v => Transformation v n -> ([v n], v n)
-onBasis (T m _ v) = (toList m, v)
+onBasis (T m _ v) = (F.toList m, v)
 
 -- Remove the nth element from a list
 remove :: Int -> [a] -> [a]
@@ -328,12 +328,12 @@ det m = sum [(-1)^i * (c1 !! i) * det (minor i 0 m) | i <- [0 .. (n-1)]]
 
 -- | Convert a vector v to a list of scalars.
 listRep :: Foldable v => v n -> [n]
-listRep = toList
+listRep = F.toList
 
 -- | Convert the linear part of a 'Transformation' to a matrix
 --   representation as a list of column vectors which are also lists.
 matrixRep :: (Additive v, Traversable v, Num n) => Transformation v n -> [[n]]
-matrixRep (T m _ _) = map (toList . (m !*)) basis
+matrixRep (T m _ _) = map (F.toList . (m !*)) basis
 
 -- | Convert a @'Transformation' v@ to a homogeneous matrix
 --   representation.  The final list is the translation.  The
@@ -341,7 +341,7 @@ matrixRep (T m _ _) = map (toList . (m !*)) basis
 --   always [0,0, ... 1] and this representation is the de facto
 --   standard for backends.
 matrixHomRep :: (Additive v, Traversable v, Num n) => Transformation v n -> [[n]]
-matrixHomRep t = mr ++ [toList tl]
+matrixHomRep t = mr ++ [F.toList tl]
   where
     mr = matrixRep t
     tl = transl t
